@@ -399,7 +399,11 @@ Het fotoboek is vanaf het begin onderdeel van het ontwerp en geen latere export-
 
 ### Voor de bouw kiezen we een leverancier
 
-**Huidige referentie:** Henk gebruikt tot nu toe Pixum voor fotoboeken. Pixum is daarom de eerste leverancier die we onderzoeken en waartegen alternatieven worden afgezet. Er is nog geen definitieve keuze gemaakt.
+**Gekozen leverancier voor v1: Prodigi.**
+
+Prodigi wordt de eerste fotoboekprovider die we technisch integreren. Doorslaggevend zijn de beschikbare Print/Studio API, automatische/template-gebaseerde boekgeneratie, Europese productie-opties en de mogelijkheid om ook slechts één fysiek boek te bestellen.
+
+Pixum blijft de kwaliteits-/gebruikservaringsreferentie vanuit eerdere fotoboeken van Henk. Peecho blijft een mogelijke fallback omdat het eveneens sterk gericht is op geautomatiseerde fotoboeken, maar we bouwen v1 niet parallel voor meerdere leveranciers.
 
 
 Voor implementatie onderzoeken en kiezen we een fotoboekleverancier op basis van:
@@ -414,9 +418,11 @@ Voor implementatie onderzoeken en kiezen we een fotoboekleverancier op basis van
 - mogelijkheid tot PDF-upload of professioneel print-ready formaat;
 - kleurprofielen / bleed / resolutie-eisen.
 
-**Beslissing over leverancier moet vóór definitieve implementatie van de exportlaag vallen.**
+**Leveranciersbeslissing voor v1 is genomen: Prodigi.** De interne boekdata en exportlaag blijven desondanks zo leverancier-onafhankelijk mogelijk, zodat later een andere printprovider kan worden toegevoegd zonder het fotoboekmodel opnieuw te ontwerpen.
 
-Voor Pixum onderzoeken we specifiek of we kunnen aansluiten via een gedocumenteerde import, projectbestand, PDF/print-ready workflow of een andere reproduceerbare route. Als directe integratie beperkt blijkt, ontwerpen we een leveranciers-onafhankelijke tussenlaag zodat we bijvoorbeeld layouts, hoge-resolutiefoto's, captions en paginavolgorde kunnen exporteren zonder de hele app aan één leverancier vast te zetten.
+Voor Prodigi onderzoeken/testen we specifiek de Studio API en Print API: boektemplates, foto's en teksten vullen, preview/print-ready output, ordercreatie, levering naar Portugal en orderstatus. De gebruiker moet vóór bestelling het gegenereerde boek kunnen controleren en waar nodig foto's, teksten en pagina-indeling aanpassen.
+
+De eerste end-to-end test gebruikt bewust **één exemplaar**; bulkbestellingen of commercieel volume zijn geen vereiste voor dit persoonlijke platform.
 
 ### Data die we voor het boek bewaren
 
@@ -719,7 +725,7 @@ Relevante elementen die al zichtbaar zijn:
 
 - Naam en domein van het platform.
 - Eén gezamenlijke account of twee individuele accounts met trip membership? Voorkeur: individuele accounts.
-- Welke fotoboekleverancier wordt gekozen?
+- Prodigi is gekozen voor v1; definitieve productspecificatie (formaat, binding, papier en standaard aantal pagina's) nog bepalen.
 - Exacte reminder-techniek op iPhone/PWA.
 - Spraak direct opnemen in de app of OS-dictation als MVP?
 - Kunnen geselecteerde social foto's via Web Share API direct naar apps worden gedeeld?
