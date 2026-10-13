@@ -832,3 +832,101 @@ De eerdere mockup met vijf handmatige invoerstappen is **niet** het gewenste pri
 - Publieke domeinnaam voor de travel-app: `opreis.blindenbach.nl`.
 - Het domein verwijst naar het nieuwe Vercel-project voor deze applicatie.
 - De applicatie moet dezelfde codebase gebruiken voor publieke site en private beheeromgeving, met duidelijke route- en autorisatiescheiding.
+
+
+## Appstructuur, navigatie en bouwfasering — 13 oktober 2026
+
+### Publieke site
+
+De publieke site op `opreis.blindenbach.nl` is fotografie- en verhaalgedreven, niet dashboard-achtig.
+
+Hoofdnavigatie:
+- **Home** — hero, actuele reis, recente dagverhalen, eerdere reizen;
+- **Reizen** — overzicht van gepubliceerde reizen;
+- **Reisdetail** — hero, intro, route/kaart en chronologische tijdlijn;
+- **Dagverhaal** — datum, locatie, verhaal, foto's, kaart en vorige/volgende dag;
+- **Kaart** — primair als view binnen een reis;
+- **Over ons** — eenvoudige persoonlijke pagina.
+
+Indicatieve routes: `/reizen/[trip-slug]` en `/reizen/[trip-slug]/dag/[day]`.
+
+### Private mobiel
+
+Mobiele hoofdnavigatie blijft klein: **Vandaag · Reis · Foto's · Meer**.
+
+**Vandaag** is tijdens de reis het primaire scherm. Een geplande `trip_day` bestaat al vanuit de planning; de gebruiker hoeft normaal geen 'Nieuwe dag' aan te maken. Als een dag ontbreekt, kan deze bij het starten van het dagboek automatisch worden aangemaakt.
+
+Het Vandaag-scherm combineert dagnummer/datum, huidige/planned context, gevonden fotolocaties, geselecteerde foto's, relevante planning en één prominente actie om het AI-interview te starten.
+
+Het interview voelt als een gesprek, niet als een formulierwizard. Foto's kunnen vóór of tijdens/na het gesprek worden geselecteerd. Na **Dit was het voor vandaag** genereert AI het verhaal en de social content. Daarna volgt een preview die zoveel mogelijk overeenkomt met de publieke dagpagina, met acties voor bewerken, opnieuw schrijven, draft bewaren en expliciet publiceren.
+
+### Private desktop
+
+Desktop gebruikt een rustige sidebar:
+- Vandaag
+- Reizen
+  - Overzicht
+  - Planning
+  - Dagboek
+  - Foto's
+  - Documenten
+- Fotoboek
+- Instellingen
+
+Accommodaties, vluchten, transfers en activiteiten zijn onderdelen/views van de planner en worden niet ieder een los hoofdmenu-item.
+
+### Bouwfasering
+
+**Fase 0 — publieke placeholder / technische basis**
+- Vercel-project en domein werkend;
+- warme, persoonlijke tijdelijke landingspagina;
+- basis Next.js-projectstructuur en metadata;
+- geen onnodige database-, AI- of plannerlogica.
+
+**Fase 1 — app shell en klikbare productbasis (eerste Codex-opdracht)**
+- gedeelde visuele basis/design tokens;
+- responsive publieke shell/header/footer;
+- publieke Home;
+- publiek Reisdetail;
+- publiek Dagdetail;
+- private/authenticated shell;
+- mobiele navigatie Vandaag · Reis · Foto's · Meer;
+- desktop sidebar volgens bovenstaande structuur;
+- Vandaag-scherm met representatieve placeholder/testdata;
+- lege/gesimuleerde AI-interviewweergave;
+- previewweergave voor een dagpost;
+- responsive gedrag op iPhone en desktop;
+- nog **geen** echte OpenAI-integratie, uitgebreide planner, Prodigi-integratie of automatische GPS-tracking.
+
+Doel van fase 1: zo snel mogelijk een echte klikbare applicatie op `opreis.blindenbach.nl` waarmee we informatiearchitectuur, navigatie en visuele richting kunnen beoordelen voordat complexe logica wordt toegevoegd.
+
+**Fase 2 — Daily Journal end-to-end**
+- Supabase Auth en relevante minimale tabellen/RLS;
+- trip/trip_day data;
+- geselecteerde foto's uploaden;
+- EXIF/GPS/tijd uit geselecteerde foto's verwerken;
+- AI-interview en vervolgvragen;
+- verhaal + platform-specifieke captions genereren;
+- draft/preview/edit/publish;
+- publieke site uit gepubliceerde data voeden;
+- social handoff.
+
+**Parallel productdesign — Planner**
+Tijdens fase 1 en 2 werken Henk en ChatGPT de planner apart uit op basis van de echte Nepal/Tibet/Bhutan/India-spreadsheet. De planner wordt niet voortijdig door Codex ingevuld als generiek CRUD-dashboard.
+
+**Latere fasen**
+- planner implementeren;
+- reminders/voice/offline-resilience verdiepen;
+- Prodigi-fotoboekworkflow;
+- slimmere imports en automatisering;
+- automatische achtergrondtracking alleen als nice-to-have.
+
+### Mockups
+
+De twee bestaande conceptboards zijn richtinggevend, niet pixel-perfect requirements. Met name de eerdere handmatige 'Nieuwe dag'-wizard is inhoudelijk vervangen door de AI-first interviewflow hierboven.
+
+Beoogde repositorylocaties:
+- `docs/design/mockups/travel-app-photobook-concept.png`
+- `docs/design/mockups/public-admin-new-day-concept.png`
+
+Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaarten en responsive richting, maar moet bij conflicten altijd dit masterplan volgen.
