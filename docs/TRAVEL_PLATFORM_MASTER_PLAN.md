@@ -816,3 +816,12 @@ Er zijn twee visuele conceptboards gemaakt: (1) reisapp en fotoboek (mobiele jou
 **Nieuwe dag mobiel (conceptflow):** (1) datum/titel/land/locatie, (2) foto's één keer kiezen en uploaden, (3) route en hoogtepunten, (4) verhaal/AI-interview en tekstcontrole, (5) preview en expliciet publiceren of concept bewaren. Planning mag velden voorinvullen maar nooit als werkelijk meegemaakt presenteren. De schermen zijn visuele voorstellen, geen definitieve functionele goedkeuring.
 
 **Status bestanden:** conceptafbeeldingen gegenereerd in ChatGPT. Binaire afbeeldingen konden in deze sessie nog niet naar GitHub worden geüpload via de beschikbare GitHub-koppeling; deze markdownbeschrijving is wel gecommit. Zodra bestand-upload mogelijk is, plaats de twee PNG's onder `docs/design/mockups/` en verwijs er vanuit dit document naar.
+
+
+## Dag toevoegen: AI-first en locatiecontext (bespreekpunt, 13 oktober 2026)
+
+De eerdere mockup met vijf handmatige invoerstappen is **niet** het gewenste primaire proces. Dagcreatie is AI-first: de gebruiker opent de dag, selecteert foto's, vertelt via een AI-interview wat er gebeurde, beantwoordt gerichte vervolgvragen, controleert het gegenereerde verhaal en publiceert expliciet. Datum, planning, verblijf, mogelijke route en locaties worden waar betrouwbaar mogelijk automatisch voorgevuld. Planning is nooit bewijs dat een activiteit werkelijk plaatsvond.
+
+**Locatiebronnen in volgorde:** (1) opt-in automatische tracking, (2) EXIF/GPS en opnametijd van geselecteerde foto's, (3) bestaande reisplanning en geboekte locaties als suggesties, (4) correcties/bevestigingen tijdens AI-interview. Bewaar herkomst en nauwkeurigheid per locatie; maak geen onbevestigde routefeiten. Publicatie van precieze locaties is afzonderlijk instelbaar.
+
+**Technische keuze nog open:** iOS-native tracking via Core Location (Visits/significant location changes, offline buffering) versus PWA-only met beperktere achtergrondtracking. Een iPhone-PWA is niet gelijkwaardig aan een native app voor betrouwbare tracking terwijl de app gesloten is. Voor trekking kan optioneel een geïmporteerde GPX-route meer detail geven. Ontwerp tracking opt-in, batterijzuinig, pauzeerbaar en met verwijderbare geschiedenis.
