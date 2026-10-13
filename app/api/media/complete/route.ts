@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import exifr from "exifr";
 import sharp from "sharp";
 import { validUuid } from "../../../../lib/journal";
 import { fetchOriginal } from "../../../../lib/scaleway";
@@ -25,6 +26,8 @@ export async function POST(request: Request) {
 
     await supabase.from("media_assets").update({ upload_status: "processing" }).eq("id", asset.id);
     const original = await fetchOriginal(asset.original_object_key);
+    const metadata = await exifr.parse(original, ["DateTimeOriginal", "CreateDate", "latitude", "longitude"])
+      .catch(() => null);
     const webImage = await sharp(original, { limitInputPixels: 80_000_000 })
       .rotate()
       .resize({ width: 2560, height: 2560, fit: "inside", withoutEnlargement: true })
@@ -34,8 +37,17 @@ export async function POST(request: Request) {
       .upload(asset.web_object_path, webImage, { contentType: "image/webp", upsert: true });
     if (uploadError) throw uploadError;
 
+    const capturedAt = metadata?.DateTimeOriginal || metadata?.CreateDate;
+    const latitude = typeof metadata?.latitude === "number" ? metadata.latitude : null;
+    const longitude = typeof metadata?.longitude === "number" ? metadata.longitude : null;
     const { data: completeAsset, error } = await supabase.from("media_assets")
-      .update({ upload_status: "ready" })
+      .update({
+        upload_status: "ready",
+        captured_at: capturedAt instanceof Date && !Number.isNaN(capturedAt.valueOf()) ? capturedAt.toISOString() : null,
+        latitude,
+        longitude,
+        location_source: latitude !== null && longitude !== null ? "photo_exif" : null,
+      })
       .eq("id", asset.id)
       .select("id,original_filename,caption,upload_status")
       .single();
