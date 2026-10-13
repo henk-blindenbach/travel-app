@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { createClient } from "../../lib/supabase/client";
+import { createClient, createRecoveryClient } from "../../lib/supabase/client";
 
 export function LoginForm({ next }: { next: string }) {
   const [mode, setMode] = useState<"sign-in" | "reset">("sign-in");
@@ -15,7 +15,9 @@ export function LoginForm({ next }: { next: string }) {
     const supabase = createClient();
 
     if (mode === "reset") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await createRecoveryClient().auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
       setMessage(error ? error.message : "Controleer je e-mail om een nieuw wachtwoord te kiezen.");
       return;
     }
