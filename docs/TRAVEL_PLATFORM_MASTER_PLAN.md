@@ -825,3 +825,10 @@ De eerdere mockup met vijf handmatige invoerstappen is **niet** het gewenste pri
 **Locatiebronnen voor MVP in volgorde:** (1) EXIF/GPS en opnametijd van geselecteerde foto's, (2) bestaande reisplanning en geboekte locaties als suggesties, (3) correcties/bevestigingen tijdens AI-interview. Automatische GPS-tracking is expliciet buiten de MVP geplaatst (nice-to-have). Bewaar herkomst en nauwkeurigheid per locatie; maak geen onbevestigde routefeiten. Publicatie van precieze locaties is afzonderlijk instelbaar.
 
 **Scopebesluit 13 oktober 2026:** geen Capacitor/native iOS-wrapper en geen automatische achtergrondtracking in de eerste versie. We starten met Next.js/PWA en halen locaties primair uit de metadata van bewust geselecteerde foto's. Ontbrekende GPS-locaties kunnen via planning en AI-interview worden aangevuld of bevestigd. GPS uit foto's geeft bezochte fotolocaties, niet automatisch een volledige afgelegde route. Later eventueel GPX-import of native tracking als nice-to-have; nu niet bouwen.
+
+
+## Domein en deployment — 13 oktober 2026
+
+- Publieke domeinnaam voor de travel-app: `opreis.blindenbach.nl`.
+- Het domein verwijst naar het nieuwe Vercel-project voor deze applicatie.
+- De applicatie moet dezelfde codebase gebruiken voor publieke site en private beheeromgeving, met duidelijke route- en autorisatiescheiding.
