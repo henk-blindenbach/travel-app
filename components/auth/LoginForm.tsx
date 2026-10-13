@@ -15,9 +15,7 @@ export function LoginForm({ next }: { next: string }) {
     const supabase = createClient();
 
     if (mode === "reset") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       setMessage(error ? error.message : "Controleer je e-mail om een nieuw wachtwoord te kiezen.");
       return;
     }

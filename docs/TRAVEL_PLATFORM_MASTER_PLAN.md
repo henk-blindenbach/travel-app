@@ -805,6 +805,35 @@ Aanbevolen repositorystructuur:
 
 `MASTER_PLAN.md` blijft het overzicht. Detaildocumenten ontstaan pas wanneer een onderdeel groot genoeg wordt.
 
+## 24. Gebouwde basis — 13 oktober 2026
+
+Dit overzicht beschrijft de werkelijk gebouwde basis. Alles buiten deze lijst blijft gepland of visueel gesimuleerd.
+
+### Werkend
+
+- Next.js-app op `opreis.blindenbach.nl`, gedeployed via Vercel vanuit `main`.
+- Publieke, responsive home met reishero, verhaalkaarten en routevisualisatie.
+- Private responsive app-shell: desktop-sidebar en mobiele navigatie voor Vandaag, Reis, Foto's en Meer.
+- Vandaag-scherm met de eerste Nepal/Tibet/Bhutan/India-testreis en de eerste vijf geplande reisdagen uit Supabase.
+- Visuele AI-interviewpagina als productprototype; nog zonder AI-koppeling.
+- Supabase-fundament met `trips`, `trip_members` en `trip_days`, inclusief RLS. De testreis is publiek leesbaar; private app-toegang vereist een membership.
+- Twee individuele gebruikersaccounts zijn gekoppeld aan de testreis. Nieuwe publieke signup staat uit.
+- E-mail/wachtwoord-login met wachtwoordmanager-ondersteuning. De private `/app/*`-routes controleren zowel de sessie als membership.
+- Wachtwoordherstel via een serververifieerbare Supabase `token_hash`-link en een pagina om een nieuw wachtwoord te kiezen.
+
+### Bewust nog niet gebouwd
+
+- Planner/Excel-import, boekingen, accommodaties, vervoer, taken en documenten.
+- Echte AI-interviews, spraakinvoer, tekstgeneratie en social captions.
+- Foto-upload, EXIF/GPS-verwerking, publicatieflow en publieke dagdetailpagina's uit echte content.
+- Offline/PWA-resilience, reminders, Prodigi/fotoboek en automatische locatie-tracking.
+
+### Omgevingsafspraak
+
+- Er is één Supabase-project/database; geen aparte development- en productiondatabase.
+- Productie heeft de benodigde Supabase-variabelen in Vercel. De lokale demo op `localhost` heeft die niet en kan daarom geen echte login afronden.
+- Wachtwoorden, tokens, sleutels, boekingscodes en resetlinks staan nooit in Git of dit document.
+
 
 
 ## UX mockups — concept 13 oktober 2026
