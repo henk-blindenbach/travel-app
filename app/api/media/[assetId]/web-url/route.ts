@@ -30,12 +30,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ as
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
 
     const payload = await request.json();
-    const caption = safeText(payload.caption, 500);
+    const updates: { caption?: string; sort_order?: number } = {};
+    if ("caption" in payload) updates.caption = safeText(payload.caption, 500);
+    if (Number.isSafeInteger(payload.sortOrder) && payload.sortOrder >= 0 && payload.sortOrder <= 10_000) {
+      updates.sort_order = payload.sortOrder;
+    }
+    if (!Object.keys(updates).length) return NextResponse.json({ error: "Geen geldige wijziging." }, { status: 400 });
     const { data: asset, error } = await supabase
       .from("media_assets")
-      .update({ caption })
+      .update(updates)
       .eq("id", assetId)
-      .select("id,caption")
+      .select("id,caption,sort_order")
       .single();
     if (error || !asset) return NextResponse.json({ error: "Het bijschrift kon niet worden opgeslagen." }, { status: 404 });
     return NextResponse.json({ asset });

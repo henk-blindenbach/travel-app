@@ -13,6 +13,7 @@ type Asset = {
   id: string;
   original_filename: string;
   caption: string;
+  sort_order: number;
   upload_status: "uploading" | "processing" | "ready" | "failed";
 };
 
@@ -98,7 +99,7 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dayEntryId: savedEntry.id, filename: file.name, contentType, byteSize: file.size }),
       }));
-      const pending: DisplayAsset = { ...init.asset, original_filename: file.name, caption: "", localUrl: URL.createObjectURL(file) };
+      const pending: DisplayAsset = { ...init.asset, original_filename: file.name, caption: "", sort_order: assets.length, localUrl: URL.createObjectURL(file) };
       setAssets((current) => [...current, pending]);
       await responseJson(await fetch(init.uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: file }));
       const complete = await responseJson(await fetch("/api/media/complete", {
@@ -130,6 +131,27 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
     }
   }
 
+  async function movePhoto(index: number, direction: -1 | 1) {
+    const destination = index + direction;
+    if (destination < 0 || destination >= assets.length) return;
+    const current = assets;
+    const reordered = [...current];
+    [reordered[index], reordered[destination]] = [reordered[destination], reordered[index]];
+    const updated = reordered.map((asset, sortOrder) => ({ ...asset, sort_order: sortOrder }));
+    setAssets(updated);
+    setMessage("");
+    try {
+      await Promise.all([
+        responseJson(await fetch(`/api/media/${current[index].id}/web-url`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sortOrder: destination }) })),
+        responseJson(await fetch(`/api/media/${current[destination].id}/web-url`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sortOrder: index }) })),
+      ]);
+      setMessage("Fotovolgorde opgeslagen.");
+    } catch (error) {
+      setAssets(current);
+      setMessage(error instanceof Error ? error.message : "De fotovolgorde kon niet worden opgeslagen.");
+    }
+  }
+
   async function choosePhotos(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -154,9 +176,10 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
       <div className="entry-form-heading"><div><p className="eyebrow blue">Foto’s</p><h2>Beelden van deze dag</h2></div><button className="secondary-button" type="button" onClick={() => inputRef.current?.click()}>Foto’s kiezen</button></div>
       <p className="entry-helper">HEIC, JPEG, PNG of WebP · maximaal 50 MB per foto. Het origineel blijft privé in Scaleway; alleen een geoptimaliseerde WebP-versie komt in de app.</p>
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/heic,image/heif,image/jpeg,image/png,image/webp,.heic,.heif" multiple onChange={(event) => void choosePhotos(event)} />
-      {assets.length ? <div className="journal-photo-grid">{assets.map((asset) => <figure key={asset.id} className="journal-photo">
+      {assets.length ? <div className="journal-photo-grid">{assets.map((asset, index) => <figure key={asset.id} className="journal-photo">
         {asset.webUrl || asset.localUrl ? <img src={asset.webUrl || asset.localUrl} alt={asset.caption || asset.original_filename} /> : <div className="photo-processing">{asset.upload_status === "failed" ? "Mislukt" : "Wordt verwerkt…"}</div>}
         <figcaption>{asset.original_filename}<small>{asset.upload_status === "ready" ? "Private webversie" : asset.upload_status}</small>
+          <div className="photo-order-actions"><button type="button" className="text-button" disabled={index === 0} onClick={() => void movePhoto(index, -1)}>↑ Eerder</button><button type="button" className="text-button" disabled={index === assets.length - 1} onClick={() => void movePhoto(index, 1)}>Later ↓</button></div>
           <label className="photo-caption-label">Bijschrift<input defaultValue={asset.caption} maxLength={500} placeholder="Wat zie je op deze foto?" onBlur={(event) => {
             if (event.target.value.trim() !== asset.caption) void saveCaption(asset.id, event.target.value);
           }} /></label>
