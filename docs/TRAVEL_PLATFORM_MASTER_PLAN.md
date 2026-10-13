@@ -252,6 +252,10 @@ Reden:
 
 Richtlijn: circa 5-10 foto's per dag, maar geen harde limiet in het datamodel.
 
+**Beslissing foto-selectie:** foto's worden tijdens de dagelijkse workflow één keer geselecteerd. Diezelfde selectie vormt de basis voor de dagpost, social-media handoff en de eerste fotoboekselectie. Er zijn geen aparte dagelijkse selecties voor website, social en fotoboek.
+
+Alleen bewust geselecteerde foto's worden naar de travel-app geüpload; de app wordt geen tweede volledige iCloud/Apple Photos-bibliotheek. Apple Photos/iCloud blijft het volledige persoonlijke fotoarchief. Tijdens de latere fotoboekfase moet het eenvoudig mogelijk zijn om alsnog extra foto's uit Apple Photos aan een reisdag of boekselectie toe te voegen.
+
 ### Stap 3 - Interview
 
 De app begint met een open vraag, bijvoorbeeld:
@@ -341,7 +345,22 @@ Doel: een social post moet na de AI-workflow met slechts enkele handelingen gepu
 
 ### 6.1 Origineel bewaren
 
-De geselecteerde foto's worden in originele of voldoende hoge kwaliteit opgeslagen. Website-optimalisaties zijn afgeleide versies en vervangen nooit het bronbestand.
+De geselecteerde foto's worden in originele/hoge kwaliteit opgeslagen. Website-optimalisaties zijn afgeleide versies en vervangen nooit het bronbestand.
+
+**Opslagarchitectuur (besloten):**
+
+- originele geselecteerde foto's: **Scaleway Object Storage**, Standard Multi-AZ, regio Parijs;
+- geoptimaliseerde webversies: **Supabase Storage** binnen het Free-project;
+- fotometadata, volgorde, privacy/publicatie en fotoboekselecties: **Supabase Postgres**;
+- Apple Photos/iCloud blijft het volledige persoonlijke fotoarchief;
+- de publieke website serveert nooit de high-resolution originelen uit Scaleway;
+- fotoboek/export gebruikt de hoogst beschikbare originelen uit Scaleway;
+- de object-storagekoppeling wordt S3-compatible en provider-onafhankelijk ontworpen;
+- originelen zijn privé en worden alleen via beveiligde server-side toegang of tijdelijke signed URLs ontsloten;
+- uploads krijgen status/retry zodat slechte verbinding niet tot stil gegevensverlies leidt;
+- verwijderen uit een dagpost/boekselectie en permanent verwijderen uit het reisarchief zijn verschillende acties.
+
+Scaleway is gekozen boven een persoonlijke Cloud Drive omdat Object Storage bedoeld is als applicatiebackend en via de S3-standaard goed integreert met de travel-app.
 
 Per foto bewaren we waar beschikbaar:
 
@@ -485,7 +504,8 @@ Aansluitend op bestaande ervaring:
 - **Hosting:** Vercel
 - **Database:** Supabase Postgres
 - **Auth:** Supabase Auth
-- **Foto/document storage:** Supabase Storage
+- **Webfoto/document storage:** Supabase Storage
+- **Originele geselecteerde foto's:** Scaleway Object Storage, Standard Multi-AZ, regio Parijs (S3-compatible)
 - **AI:** OpenAI API
 - **PWA:** installable web app voor iPhone
 - **Notifications:** nader kiezen; web push / e-mail / andere betrouwbare mobiele trigger
@@ -751,7 +771,18 @@ Voor Nepal/Tibet/Bhutan/India is het project geslaagd als:
 
 ---
 
-## 22. Werkafspraak voor dit document
+## 22. Accounts en secrets
+
+Accountnamen/login-identificaties van gebruikte diensten mogen in dit masterplan worden vastgelegd. Wachtwoorden, API keys, secret keys, access tokens en recovery codes worden **nooit** in GitHub of dit document opgeslagen.
+
+- **Scaleway:** `henk@wyop.nl`
+- **Supabase:** account/project aangemaakt; accountnaam/projectreferentie nog vast te leggen.
+- Persoonlijke wachtwoorden worden beheerd in **Apple Wachtwoorden**.
+- Applicatie-secrets worden via beveiligde environment variables / secret stores van de gebruikte hostingdiensten beheerd.
+
+---
+
+## 23. Werkafspraak voor dit document
 
 Dit bestand is het **master plan**. Nieuwe productideeën, beslissingen en scopewijzigingen worden hier eerst verwerkt of vanuit hier naar concrete issues/specs verwezen. Vanaf dit punt geldt als werkafspraak dat elke inhoudelijke beslissing die Henk en ChatGPT samen nemen aan dit masterplan wordt toegevoegd, zodat het document de actuele productwaarheid blijft voor Henk, Michel, ChatGPT, Cursor en Codex.
 
