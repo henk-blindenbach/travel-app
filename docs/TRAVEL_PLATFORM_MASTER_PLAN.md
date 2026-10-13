@@ -819,7 +819,7 @@ Dit overzicht beschrijft de werkelijk gebouwde basis. Alles buiten deze lijst bl
 - Supabase-fundament met `trips`, `trip_members` en `trip_days`, inclusief RLS. De testreis is publiek leesbaar; private app-toegang vereist een membership.
 - Twee individuele gebruikersaccounts zijn gekoppeld aan de testreis. Nieuwe publieke signup staat uit.
 - E-mail/wachtwoord-login met wachtwoordmanager-ondersteuning. De private `/app/*`-routes controleren zowel de sessie als membership.
-- Wachtwoordherstel via een serververifieerbare Supabase `token_hash`-link en een pagina om een nieuw wachtwoord te kiezen.
+- Wachtwoordherstelinterface en pagina om een nieuw wachtwoord te kiezen. De serververifieerbare Supabase `token_hash`-mailtemplate is voorbereid, maar kan in het huidige Free-project pas worden geactiveerd na het instellen van eigen SMTP.
 
 ### Bewust nog niet gebouwd
 
