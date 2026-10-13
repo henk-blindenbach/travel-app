@@ -959,3 +959,25 @@ Beoogde repositorylocaties:
 - `docs/design/mockups/public-admin-new-day-concept.png`
 
 Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaarten en responsive richting, maar moet bij conflicten altijd dit masterplan volgen.
+
+## Voortgang — dagelijks verslag en private foto's (13 oktober 2026)
+
+### Afgerond
+
+- Per reisdag is nu één bewerkbaar conceptverslag mogelijk: eigen titel, werkelijke locatie en vrije tekst.
+- Het private scherm is bereikbaar vanuit **Vandaag** en werkt op mobiel en desktop.
+- Foto-invoer accepteert HEIC/HEIF, JPEG, PNG en WebP tot 50 MB.
+- Het HEIC-origineel gaat naar de private Scaleway-bucket `opreis-private-originals` in Parijs; het origineel wordt nooit via de app ontsloten.
+- De server maakt voor ieder origineel een geroteerde, verkleinde WebP-versie (maximaal 2560 px) en bewaart die in de private Supabase-bucket `trip-web-images`.
+- Een tijdelijke, ondertekende URL is de enige manier waarop de app een webversie kan tonen.
+- De Supabase-tabellen `day_entries` en `media_assets`, inclusief RLS voor uitsluitend reisleden, staan in productie. De webafbeeldingsbucket is niet publiek.
+- Scaleway-credentials bestaan alleen als Vercel Production Secrets; ze staan niet in Git.
+
+### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
+
+- CORS op de Scaleway-bucket voor de directe, kortlevende browser-upload: uitsluitend `https://opreis.blindenbach.nl`, methode `PUT` en header `Content-Type`.
+- Een daadwerkelijke HEIC-upload vanuit iPhone/Apple Photos, inclusief omzetting en private weergave.
+
+### Bewust nog niet gebouwd
+
+- EXIF/GPS-uitlezen, AI-interview, conceptgeneratie, herschikken/bijschriften en publicatie. Dit blijft de volgende stap binnen fase 2.

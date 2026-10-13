@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { safeText, validUuid } from "../../../lib/journal";
+import { createClient } from "../../../lib/supabase/server";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+
+    const payload = await request.json();
+    if (!validUuid(payload.tripDayId)) return NextResponse.json({ error: "Ongeldige reisdag." }, { status: 400 });
+
+    const { data, error } = await supabase.from("day_entries").upsert({
+      trip_day_id: payload.tripDayId,
+      title: safeText(payload.title, 160),
+      actual_location: safeText(payload.actualLocation, 160),
+      body: safeText(payload.body, 20_000),
+    }, { onConflict: "trip_day_id" }).select("id,trip_day_id,title,actual_location,body,updated_at").single();
+
+    if (error) return NextResponse.json({ error: "Het verslag kon niet worden opgeslagen." }, { status: 400 });
+    return NextResponse.json({ entry: data });
+  } catch {
+    return NextResponse.json({ error: "Het verslag kon niet worden opgeslagen." }, { status: 500 });
+  }
+}
