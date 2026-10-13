@@ -805,3 +805,14 @@ Aanbevolen repositorystructuur:
 
 `MASTER_PLAN.md` blijft het overzicht. Detaildocumenten ontstaan pas wanneer een onderdeel groot genoeg wordt.
 
+
+
+## UX mockups — concept 13 oktober 2026
+
+Er zijn twee visuele conceptboards gemaakt: (1) reisapp en fotoboek (mobiele journeys, reisoverzicht, dagoverzicht, route, foto's, fotoboekontwerp/preview/bestellen); (2) publieke desktopsite, mobiele flow 'nieuwe dag', admin mobile en admin desktop.
+
+**Ontwerprichting:** warme, persoonlijke en fotografiegedreven reiservaring; geen generiek SaaS-dashboard. Publieke site: grote reishero, route en dagverhalen, foto's en kaarten. Beheer: duidelijke scheiding tussen reizen, dagen, foto's, routes, fotoboek en instellingen; mobiel voor snelle invoer, desktop voor volledig beheer.
+
+**Nieuwe dag mobiel (conceptflow):** (1) datum/titel/land/locatie, (2) foto's één keer kiezen en uploaden, (3) route en hoogtepunten, (4) verhaal/AI-interview en tekstcontrole, (5) preview en expliciet publiceren of concept bewaren. Planning mag velden voorinvullen maar nooit als werkelijk meegemaakt presenteren. De schermen zijn visuele voorstellen, geen definitieve functionele goedkeuring.
+
+**Status bestanden:** conceptafbeeldingen gegenereerd in ChatGPT. Binaire afbeeldingen konden in deze sessie nog niet naar GitHub worden geüpload via de beschikbare GitHub-koppeling; deze markdownbeschrijving is wel gecommit. Zodra bestand-upload mogelijk is, plaats de twee PNG's onder `docs/design/mockups/` en verwijs er vanuit dit document naar.
