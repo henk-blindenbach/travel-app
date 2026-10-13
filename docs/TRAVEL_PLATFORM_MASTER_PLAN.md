@@ -975,6 +975,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Bij het verwerken van een geselecteerde foto leest de server, waar aanwezig, de opnametijd en GPS-coördinaten uit EXIF. Die gegevens blijven privé bij het media-item; er is geen achtergrondtracking en er wordt niets gepubliceerd zonder latere expliciete publicatie.
 - Bij elke geselecteerde foto kan een privé-bijschrift worden opgeslagen. Dit wordt later hergebruikt als context voor verhaal, publicatie en fotoboek, maar is nu nergens openbaar zichtbaar.
 - De geselecteerde foto’s kunnen binnen één dag worden herschikt; die privé-volgorde wordt de basis voor de latere galerij en het fotoboek.
+- Elk dagverslag heeft nu een expliciete publicatiestatus die standaard op `draft` staat. Er is nog geen route die een concept openbaar maakt.
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
 
