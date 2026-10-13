@@ -973,6 +973,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - De Supabase-tabellen `day_entries` en `media_assets`, inclusief RLS voor uitsluitend reisleden, staan in productie. De webafbeeldingsbucket is niet publiek.
 - Scaleway-credentials bestaan alleen als Vercel Production Secrets; ze staan niet in Git.
 - Bij het verwerken van een geselecteerde foto leest de server, waar aanwezig, de opnametijd en GPS-coördinaten uit EXIF. Die gegevens blijven privé bij het media-item; er is geen achtergrondtracking en er wordt niets gepubliceerd zonder latere expliciete publicatie.
+- Bij elke geselecteerde foto kan een privé-bijschrift worden opgeslagen. Dit wordt later hergebruikt als context voor verhaal, publicatie en fotoboek, maar is nu nergens openbaar zichtbaar.
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
 
@@ -981,4 +982,4 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 
 ### Bewust nog niet gebouwd
 
-- AI-interview, conceptgeneratie, herschikken/bijschriften en publicatie. Dit blijft de volgende stap binnen fase 2.
+- AI-interview, conceptgeneratie, herschikken en publicatie. Dit blijft de volgende stap binnen fase 2.

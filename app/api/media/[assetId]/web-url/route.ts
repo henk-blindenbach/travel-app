@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validUuid } from "../../../../../lib/journal";
+import { safeText, validUuid } from "../../../../../lib/journal";
 import { createClient } from "../../../../../lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -18,5 +18,28 @@ export async function GET(_: Request, { params }: { params: Promise<{ assetId: s
     return NextResponse.json({ signedUrl: data.signedUrl });
   } catch {
     return NextResponse.json({ error: "De foto kon niet worden geopend." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ assetId: string }> }) {
+  try {
+    const { assetId } = await params;
+    if (!validUuid(assetId)) return NextResponse.json({ error: "Ongeldige foto." }, { status: 400 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+
+    const payload = await request.json();
+    const caption = safeText(payload.caption, 500);
+    const { data: asset, error } = await supabase
+      .from("media_assets")
+      .update({ caption })
+      .eq("id", assetId)
+      .select("id,caption")
+      .single();
+    if (error || !asset) return NextResponse.json({ error: "Het bijschrift kon niet worden opgeslagen." }, { status: 404 });
+    return NextResponse.json({ asset });
+  } catch {
+    return NextResponse.json({ error: "Het bijschrift kon niet worden opgeslagen." }, { status: 500 });
   }
 }

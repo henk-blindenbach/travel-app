@@ -115,6 +115,21 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
     }
   }
 
+  async function saveCaption(assetId: string, caption: string) {
+    setMessage("");
+    try {
+      const data = await responseJson(await fetch(`/api/media/${assetId}/web-url`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption }),
+      }));
+      setAssets((current) => current.map((asset) => asset.id === assetId ? { ...asset, caption: data.asset.caption } : asset));
+      setMessage("Bijschrift opgeslagen.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Het bijschrift kon niet worden opgeslagen.");
+    }
+  }
+
   async function choosePhotos(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -141,7 +156,11 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/heic,image/heif,image/jpeg,image/png,image/webp,.heic,.heif" multiple onChange={(event) => void choosePhotos(event)} />
       {assets.length ? <div className="journal-photo-grid">{assets.map((asset) => <figure key={asset.id} className="journal-photo">
         {asset.webUrl || asset.localUrl ? <img src={asset.webUrl || asset.localUrl} alt={asset.caption || asset.original_filename} /> : <div className="photo-processing">{asset.upload_status === "failed" ? "Mislukt" : "Wordt verwerkt…"}</div>}
-        <figcaption>{asset.original_filename}<small>{asset.upload_status === "ready" ? "Private webversie" : asset.upload_status}</small></figcaption>
+        <figcaption>{asset.original_filename}<small>{asset.upload_status === "ready" ? "Private webversie" : asset.upload_status}</small>
+          <label className="photo-caption-label">Bijschrift<input defaultValue={asset.caption} maxLength={500} placeholder="Wat zie je op deze foto?" onBlur={(event) => {
+            if (event.target.value.trim() !== asset.caption) void saveCaption(asset.id, event.target.value);
+          }} /></label>
+        </figcaption>
       </figure>)}</div> : <button className="photo-dropzone" type="button" onClick={() => inputRef.current?.click()}><b>+</b><span>Kies foto’s van vandaag</span><small>HEIC is welkom</small></button>}
     </section>
   </div>;
