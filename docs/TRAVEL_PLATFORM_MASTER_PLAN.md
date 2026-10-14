@@ -979,7 +979,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
 
-- Een daadwerkelijke HEIC-upload vanuit iPhone/Apple Photos, inclusief omzetting en private weergave.
+- Geen openstaande technische verificaties voor de foto-upload. Op 14 oktober 2026 is een echte foto succesvol geüpload, server-side verwerkt en als private WebP-webversie beschikbaar gekomen.
 
 ### Bevestigde uploadbeveiliging
 
