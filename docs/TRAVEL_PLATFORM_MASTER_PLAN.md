@@ -962,6 +962,11 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 
 ## Voortgang — dagelijks verslag en private foto's (13 oktober 2026)
 
+### Installeerbare webapp (14 oktober 2026)
+
+- De app heet op het beginscherm **Nós ✈️** en start na installatie rechtstreeks op **Vandaag**.
+- Manifest, standalone-weergave, iPhone-touch-icon en openingskleur zijn toegevoegd. Offline gebruik en offline uploads zijn bewust nog niet gebouwd.
+
 ### Afgerond
 
 - Per reisdag is nu één bewerkbaar conceptverslag mogelijk: eigen titel, werkelijke locatie en vrije tekst.
