@@ -61,6 +61,43 @@
   font-size: .72rem;
 }
 
+.day-notes-preview {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef5fb;
+  color: #38546d;
+  font-size: .78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.empty-start-card {
+  max-width: 620px;
+  margin-top: 34px;
+}
+
+.empty-start-card h2 {
+  margin: 7px 0;
+  font-size: 1.8rem;
+  letter-spacing: -.04em;
+}
+
+.empty-start-card p:not(.eyebrow) {
+  max-width: 500px;
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.6;
+}
+
+.empty-start-card .primary-button {
+  width: max-content;
+  margin-top: 16px;
+  border: 0;
+}
+
 @media (max-width: 760px) {
   .planning-item-editor {
     padding: 16px 8px;

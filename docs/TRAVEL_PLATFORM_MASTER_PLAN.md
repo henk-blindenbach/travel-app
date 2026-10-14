@@ -1,5 +1,15 @@
 # Travel Platform - Master Plan
 
+## Afgerond — toegang zonder bestaande reis
+
+- Een geldig ingelogd account kan altijd de privéomgeving openen, ook als er nog geen reizen of lidmaatschappen bestaan.
+- De lege startpagina leidt rechtstreeks naar het aanmaken van de eerste reis; afzonderlijke reisdata blijft via het bestaande lidmaatschap beschermd.
+
+## Afgerond — privé-notities per reisdag
+
+- Iedere reisdag heeft nu een eigen veld voor privé-dagnotities, los van de notities op een vlucht, verblijf, vervoer of activiteit.
+- Dagnotities verschijnen uitsluitend in de afgesloten planner en worden niet opgenomen in de publieke reisweergave.
+
 ## Afgerond — planningsonderdelen bewerken en documenteren
 
 - Een gevuld planningstegeltje opent nu een bewerkpaneel met type, status, titel, plaats en een veld voor bijzonderheden/notities.

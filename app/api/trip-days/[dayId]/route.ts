@@ -15,7 +15,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ da
     const { data: trip } = await supabase.from("trips").select("starts_on,ends_on").eq("id", payload.tripId).maybeSingle();
     if (!trip || dayDate < trip.starts_on || dayDate > trip.ends_on) return NextResponse.json({ error: "De datum moet binnen deze reis vallen." }, { status: 400 });
     const dayNumber = Math.floor((Date.parse(`${dayDate}T12:00:00Z`) - Date.parse(`${trip.starts_on}T12:00:00Z`)) / 86400000) + 1;
-    const { data: day, error } = await supabase.from("trip_days").update({ day_date: dayDate, day_number: dayNumber, title: safeText(payload.title, 200) || null, planned_location: safeText(payload.location, 200) || null, planned_route: safeText(payload.route, 400) || null, status }).eq("id", dayId).eq("trip_id", payload.tripId).select("id,day_number,day_date,title,planned_location,planned_route,status").single();
+    const { data: day, error } = await supabase.from("trip_days").update({ day_date: dayDate, day_number: dayNumber, title: safeText(payload.title, 200) || null, planned_location: safeText(payload.location, 200) || null, planned_route: safeText(payload.route, 400) || null, private_notes: safeText(payload.privateNotes, 4_000), status }).eq("id", dayId).eq("trip_id", payload.tripId).select("id,day_number,day_date,title,planned_location,planned_route,private_notes,status").single();
     if (error || !day) return NextResponse.json({ error: "Reisdag kon niet worden opgeslagen. Kies eventueel een andere datum." }, { status: 400 });
     return NextResponse.json({ day });
   } catch { return NextResponse.json({ error: "Reisdag kon niet worden opgeslagen." }, { status: 500 }); }

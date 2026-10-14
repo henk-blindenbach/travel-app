@@ -28,14 +28,5 @@ export async function updateSession(request: NextRequest) {
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
-  if (userId && request.nextUrl.pathname.startsWith("/app")) {
-    const { data: memberships } = await supabase.from("trip_members").select("trip_id").eq("user_id", userId).limit(1);
-    if (!memberships?.length) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("error", "not-authorized");
-      return NextResponse.redirect(url);
-    }
-  }
   return response;
 }
