@@ -1,5 +1,11 @@
 # Travel Platform - Master Plan
 
+## Afgerond — betrouwbare eerste reis aanmaken
+
+- Het aanmaken van een eerste reis vraagt niet langer om een terugleesquery vóór het eigenaar-lidmaatschap bestaat; dit voorkomt een RLS-fout bij een lege database.
+- De API maakt vooraf een reis-ID aan, creëert vervolgens reis, eigenaarlidmaatschap en reisdagen, en ruimt de reis op als een vervolgstap faalt.
+- Foutmeldingen maken voortaan onderscheid tussen opslaan, koppelen aan het account en aanmaken van reisdagen.
+
 ## Afgerond — toegang zonder bestaande reis
 
 - Een geldig ingelogd account kan altijd de privéomgeving openen, ook als er nog geen reizen of lidmaatschappen bestaan.
