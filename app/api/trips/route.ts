@@ -13,6 +13,8 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
     const payload = await request.json();
     const title = safeText(payload.title, 140); const startsOn = isoDate(payload.startsOn); const endsOn = isoDate(payload.endsOn);
+    const travelers = safeText(payload.travelers, 300) || null;
+    const departureLocation = safeText(payload.departureLocation, 200) || null;
     const countries = Array.isArray(payload.countries) ? payload.countries.map((country: unknown) => safeText(country, 60)).filter(Boolean).slice(0, 12) : [];
     const status = statuses.has(payload.status) ? payload.status : "planning";
     if (!title) return NextResponse.json({ error: "Geef de reis een naam." }, { status: 400 });
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
     const baseSlug = slugify(title) || "reis";
     const slug = `${baseSlug}-${startsOn.slice(0, 4)}-${crypto.randomUUID().slice(0, 6)}`;
     const tripId = crypto.randomUUID();
-    const { error: tripError } = await supabase.from("trips").insert({ id: tripId, title, slug, starts_on: startsOn, ends_on: endsOn, countries, summary: safeText(payload.summary, 1000) || null, status, visibility: "private", created_by: user.id });
+    const { error: tripError } = await supabase.from("trips").insert({ id: tripId, title, slug, starts_on: startsOn, ends_on: endsOn, countries, travelers, departure_location: departureLocation, summary: safeText(payload.summary, 1000) || null, status, visibility: "private", created_by: user.id });
     if (tripError) return NextResponse.json({ error: "De reis kon niet worden opgeslagen. Probeer een andere naam of neem contact op als dit blijft gebeuren." }, { status: 400 });
     const { error: membershipError } = await supabase.from("trip_members").insert({ trip_id: tripId, user_id: user.id, role: "owner" });
     if (membershipError) {

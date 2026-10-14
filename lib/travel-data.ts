@@ -1,6 +1,6 @@
 import { createClient, hasSupabaseEnv } from "./supabase/server";
 
-export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
+export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; travelers?: string | null; departure_location?: string | null; summary: string | null; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
 export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; private_notes?: string; status?: "planned" | "in_progress" | "completed" | "skipped" };
 export type PrivateTripMenu = Trip & { days: Pick<TripDay, "id" | "day_number" | "day_date" | "title" | "planned_location">[] };
 
@@ -32,7 +32,7 @@ export async function getPrivateTrips() {
   if (!hasSupabaseEnv()) return [{ ...fallbackTrip, days: fallbackDays }];
   try {
     const supabase = await createClient();
-    const { data: trips, error } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").order("starts_on", { ascending: false });
+    const { data: trips, error } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,travelers,departure_location,summary,status").order("starts_on", { ascending: false });
     if (error || !trips?.length) return [];
     const { data: days } = await supabase.from("trip_days").select("id,trip_id,day_number,day_date,title,planned_location").in("trip_id", trips.map((trip) => trip.id)).order("day_number");
     return trips.map((trip) => ({ ...trip, days: (days || []).filter((day) => day.trip_id === trip.id).map((day) => ({ id: day.id, day_number: day.day_number, day_date: day.day_date, title: day.title, planned_location: day.planned_location })) })) as PrivateTripMenu[];
@@ -43,7 +43,7 @@ export async function getPrivateTrip(tripId: string) {
   if (!hasSupabaseEnv()) return tripId === fallbackTrip.id ? { trip: fallbackTrip, days: fallbackDays } : null;
   try {
     const supabase = await createClient();
-    const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("id", tripId).maybeSingle();
+    const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,travelers,departure_location,summary,status").eq("id", tripId).maybeSingle();
     if (!trip) return null;
     const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route,private_notes,status").eq("trip_id", tripId).order("day_number");
     return { trip: trip as Trip, days: (days || []) as TripDay[] };

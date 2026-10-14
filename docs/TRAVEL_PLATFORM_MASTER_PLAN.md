@@ -1133,3 +1133,26 @@ Bewust buiten deze stap: reizen verwijderen of dupliceren, reisgenoten uitnodige
 - Een lege cel is een uitnodiging om precies dat onderdeel toe te voegen. Optie, gepland en **✓ bevestigd** blijven zichtbaar in dezelfde cel; een passend opgeslagen document verschijnt als subtiele documentvermelding.
 - Boven de tabel staan compacte cijfers en filters voor alles, open acties en de vier categorieën. Het aandachtgetal combineert nog niet bevestigde onderdelen met dagen waar een plaats is ingevuld maar geen verblijf bestaat.
 - Daggegevens, notities en documenten verschijnen alleen in een uitklapbaar dagdetail. Daardoor bestaat er nog maar één reisoverzicht en synchroniseert een nieuwe vlucht of reservering direct met de rij erboven.
+
+### Bouwafspraak — reisaanmaak en bruikbare hoofdnavigatie (14 oktober 2026)
+
+- Het formulier voor een nieuwe reis gebruikt rustige Nederlandse datumvelden (`dd-mm-jjjj`) met directe, specifieke validatie. De server blijft uitsluitend ISO-datums accepteren en valideert opnieuw.
+- Reizigers en vertrekplaats worden als optionele, privé reisgegevens bewaard. Zij komen niet voor in publieke routes, pagina’s of API-antwoorden.
+- De tekst over plannen spreekt consequent over **jullie** in plaats van één reisgenoot bij naam.
+- **Reis** blijft een uitklapbare desktopgroep, maar is ook zelf een link naar het reisoverzicht. **Foto’s** toont de private fotobibliotheek van de gekozen reis; **Meer** biedt praktische routes naar reisbeheer en documenten in plaats van een placeholder.
+
+Bewust buiten deze stap: uitnodigingen of rollen voor reisgenoten, bewerken/verwijderen van reizen, openbare reisvelden, en een aparte fotobewerkingsworkflow.
+
+### Afgerond — reisaanmaak en bruikbare hoofdnavigatie (14 oktober 2026)
+
+- Nieuwe reizen gebruiken nu datumvelden in Nederlands formaat (`dd-mm-jjjj`). Het formulier meldt onmiddellijk en concreet welke datum ontbreekt of ongeldig is, inclusief een terugreis vóór vertrek; de API valideert dezelfde grens opnieuw met ISO-datums.
+- **Reizigers** en **vertrekplaats** zijn optionele, private velden op een reis. De productiemigratie `20261014192341_add_trip_travelers_and_departure_location.sql` is toegepast; beide velden staan alleen op de besloten reisrij en komen niet voor in openbare queries.
+- De introductie bij een nieuwe reis spreekt over **jullie** en wijst niet langer één reisgenoot aan als planner.
+- In de desktopnavigatie is **Reis** zowel uitklapbaar als rechtstreeks te openen naar het volledige reisoverzicht. De mobiele route blijft het overzicht openen.
+- `/app/photos` is nu een private, per reis te kiezen fotobibliotheek. Zij toont alleen klaargezette WebP-versies via bestaande, kortlevende ondertekende links; originelen blijven in de private opslag. Oude reisfoto-links leiden daar ook naartoe.
+- `/app/more` is een praktische reisbeheerpagina met directe routes naar een nieuwe reis, alle reizen, planning, documenten en foto’s per reis.
+- Technische controle: productieschema en migratiehistorie zijn gecontroleerd; `npm run build` is geslaagd op 14 oktober 2026. Een echte aanmaakronde met Nederlandse datums en de nieuwe velden blijft de gewenste gebruikerscontrole.
+
+### Bestaande beveiligingssignalen buiten deze bouwstap
+
+- Supabase meldt nog steeds dat `public.rls_auto_enable()` als publiek uitvoerbare `SECURITY DEFINER`-functie beschikbaar is en dat gelekte-wachtwoordbescherming uit staat. Beide instellingen bestonden vóór deze wijziging en zijn niet aangepast; ze vragen om een afzonderlijke, expliciet goedgekeurde beveiligingsstap.
