@@ -13,3 +13,69 @@
     min-width: 0;
   }
 }
+
+.planning-item-editor {
+  min-width: 790px;
+  padding: 18px;
+  border-top: 1px solid #edf1f4;
+  border-bottom: 1px solid #edf1f4;
+  background: #f8fbfd;
+}
+
+.planning-item-editor .trip-day-editor {
+  grid-column: auto;
+  margin-top: 17px;
+}
+
+.planning-notes {
+  grid-column: 1 / -1;
+}
+
+.planning-notes textarea {
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid #cbd6df;
+  border-radius: 7px;
+  padding: 8px;
+  font: inherit;
+  color: var(--ink);
+}
+
+.item-document-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #dfe8ef;
+}
+
+.item-document-upload > div {
+  display: grid;
+  gap: 3px;
+}
+
+.item-document-upload small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+@media (max-width: 760px) {
+  .planning-item-editor {
+    padding: 16px 8px;
+  }
+
+  .planning-item-editor .trip-day-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .item-document-upload {
+    display: grid;
+  }
+
+  .item-document-upload .secondary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,5 +1,10 @@
 # Travel Platform - Master Plan
 
+## Afgerond — planningsonderdelen bewerken en documenteren
+
+- Een gevuld planningstegeltje opent nu een bewerkpaneel met type, status, titel, plaats en een veld voor bijzonderheden/notities.
+- Vanuit datzelfde paneel kan een document worden geüpload. Het documenttype wordt automatisch afgeleid van het onderdeel en het bestand wordt privé aan zowel de reisdag als het specifieke planningsonderdeel gekoppeld.
+
 ## Afgerond — detail bij de geselecteerde reisdag
 
 - Het detailpaneel voor een reisdag klapt nu meteen onder de aangeklikte dagrij open, in plaats van pas onderaan het volledige planningsoverzicht.
