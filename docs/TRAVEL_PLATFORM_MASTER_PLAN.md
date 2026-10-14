@@ -969,6 +969,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Het persoonlijke reisicoon is bijgesneden zodat de witte buitenmarge niet meer op het beginscherm verschijnt.
 - Het dagverslag en interview zijn mobiel hersteld: acties stapelen netjes op iPhone, het interview blijft bij de gekozen reisdag en spraakinvoer kan veilig stoppen of een begrijpelijke foutmelding tonen.
 - Het interview toont de eerste en vervolgvragen zichtbaar, scrolt naar nieuwe antwoorden, heeft een veilige herstelactie bij een trage AI-reactie en kan op ieder moment via **Maak dagverslag** worden afgerond tot een bewerkbaar concept.
+- De AI-aanroep is begrensd voor een snel mobiel gesprek en meldt sleutel-, limiet- en tijdelijke providerproblemen begrijpelijk, zonder gevoelige gegevens te tonen of te loggen.
 
 ### Afgerond
 

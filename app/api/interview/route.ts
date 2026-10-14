@@ -6,6 +6,17 @@ export const runtime = "nodejs";
 
 type Message = { role: "assistant" | "user"; text: string };
 
+class InterviewError extends Error {
+  constructor(message: string, readonly category: string) { super(message); }
+}
+
+function openAiMessage(status: number) {
+  if (status === 401 || status === 403) return "OpenAI accepteert de API-sleutel niet. Controleer OPENAI_API_KEY in Vercel.";
+  if (status === 429) return "OpenAI heeft tijdelijk geen ruimte voor deze aanvraag. Controleer limiet of tegoed en probeer het daarna opnieuw.";
+  if (status >= 500) return "OpenAI is tijdelijk niet bereikbaar. Probeer het over een minuut opnieuw.";
+  return "De AI-aanvraag werd niet geaccepteerd. Probeer het opnieuw; blijft dit zo, laat het ons weten.";
+}
+
 const schema = {
   type: "object", additionalProperties: false,
   properties: {
@@ -47,9 +58,12 @@ export async function POST(request: Request) {
     const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijke private concepttitel, locatie en volledig verhaal. ${payload.finish ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is." : ""} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-5-mini", input: prompt, text: { format: { type: "json_schema", name: "travel_interview", strict: true, schema } } }), signal: AbortSignal.timeout(30_000),
+      body: JSON.stringify({ model: "gpt-5-mini", reasoning: { effort: "minimal" }, max_output_tokens: 1_600, input: prompt, text: { format: { type: "json_schema", name: "travel_interview", strict: true, schema } } }), signal: AbortSignal.timeout(30_000),
     });
-    if (!response.ok) throw new Error("OpenAI request failed");
+    if (!response.ok) {
+      console.error("OpenAI interview request failed", { status: response.status, category: "provider_rejected" });
+      throw new InterviewError(openAiMessage(response.status), "provider_rejected");
+    }
     const result = await response.json() as { output_text?: string };
     const answer = JSON.parse(result.output_text || "{}") as { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
     if (typeof answer.reply !== "string" || !answer.reply.trim() || typeof answer.complete !== "boolean") throw new Error("Invalid OpenAI response");
@@ -60,7 +74,11 @@ export async function POST(request: Request) {
       await supabase.from("day_entries").upsert({ trip_day_id: day.id, title: safeText(answer.title, 160), actual_location: safeText(answer.actualLocation, 160), body: safeText(answer.body, 20_000) }, { onConflict: "trip_day_id" });
     }
     return NextResponse.json({ reply: messages.at(-1)?.text, complete });
-  } catch {
-    return NextResponse.json({ error: "Het interview kon nu niet worden verwerkt. Probeer het opnieuw." }, { status: 500 });
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    const category = error instanceof InterviewError ? error.category : timedOut ? "provider_timeout" : "processing_failed";
+    console.error("Interview processing failed", { category });
+    const message = error instanceof InterviewError ? error.message : timedOut ? "OpenAI reageert te langzaam. Probeer het over een minuut opnieuw." : "Het interview kon nu niet worden verwerkt. Probeer het opnieuw.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
