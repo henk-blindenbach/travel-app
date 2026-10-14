@@ -1228,3 +1228,22 @@ Bewust buiten deze stap: meerdere directe koppelingen van één document aan ver
 - Iedere dagregel toont nu duidelijk **+ dagnotitie** of **📝 Dagnotitie**. De uitklapbare dageditor legt ook uit dat dit de plek is voor gids, maaltijden en algemene afspraken; deze bestaande gegevens blijven privé.
 - Vanuit de editor is documenttype vrij te kiezen. Een document kan aan het geopende onderdeel óf algemeen aan de reisdag worden gekoppeld. Na opslaan blijft de editor open, zodat uploaden direct daarna kan plaatsvinden.
 - Productiemigratie `20261014195504_add_activity_planning_details.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026. De beveiligingsscan toont uitsluitend de drie al bekende waarschuwingen over `rls_auto_enable()` en gelekte-wachtwoordbescherming.
+
+### Bouwafspraak — actuele Vandaag-pagina en plannerherstel (14 oktober 2026)
+
+- **Vandaag** kiest de datum in de tijdzone van de reiswerkplek. Vóór vertrek verschijnt de eerstvolgende reis met aftellen en praktische snelkoppelingen; alleen tijdens een reis verschijnt de echte kalenderdag en het dagverslag.
+- De oude vaste voorbeeldtekst en Poon-Hill-gegevens verdwijnen uit de besloten Vandaag-route. Zonder actieve of toekomstige reis wordt een neutrale starttoestand getoond.
+- Tijdinvoer wordt een gevalideerd 24-uursveld (`uu:mm`), onafhankelijk van de 12-uursvoorkeur van Safari. Lange dagtitels in het zijmenu mogen over twee regels lopen in plaats van onzichtbaar afgekapt te worden.
+- De actie **+ toevoegen** in een activiteitenvak krijgt een expliciete, klikbare bediening en wordt opnieuw gecontroleerd op desktop en mobiel.
+- De vermoedelijke dubbele Nepal-reis wordt alleen-lezen onderzocht. De app rendert momenteel één submenu per reisrecord; deze stap verwijdert, verbergt of combineert geen gegevens.
+
+Bewust buiten deze stap: datamigratie, samenvoegen/verwijderen van reizen en wijzigingen aan publieke reispagina’s.
+
+### Afgerond — actuele Vandaag-pagina en plannerherstel (14 oktober 2026)
+
+- De besloten **Vandaag**-pagina bevat geen vaste 6-november-, Poon-Hill- of voorbeeldstatistieken meer. Zij bepaalt de datum in de tijdzone Europe/Lisbon en toont alleen een echte reisdag tijdens de reis.
+- Vóór vertrek toont Vandaag de eerstvolgende reis, het aantal resterende dagen en snelle ingangen naar plan en documenten. Zonder actieve of toekomstige reis verschijnt een neutrale toestand; na afloop wordt geen oude reisdag hergebruikt.
+- Tijdvelden worden na openen van een planningonderdeel als 24-uursinvoer `uu:mm` aangeboden, met dezelfde servervalidatie. Lange titels in het zijmenu mogen nu over regels lopen in plaats van afgekapt te worden.
+- De bestaande knop **+ toevoegen** blijft de directe route naar het activiteitenformulier. De technische buildcontrole is geslaagd; een handmatige interactietest kon niet met bestaande reisdata worden herhaald, omdat de ingelogde browser-sessie op dat moment geen reizen terugkreeg.
+- De mogelijke dubbele Nepal-reis is niet aangepast. De app rendert één submenu per reisrecord; zonder een leesbare lijst met actuele records is samenvoegen of verwijderen niet verantwoord.
+- `npm run build` is geslaagd op 14 oktober 2026.

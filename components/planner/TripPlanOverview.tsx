@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, Fragment, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 type Day = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; private_notes?: string; status?: string };
 type Item = { id: string; trip_day_id: string; kind: string; status: string; title: string; details: string; location: string; ends_on?: string | null; booking_reference?: string | null; ticket_number?: string | null; departure_time?: string | null; arrival_time?: string | null; address?: string | null; contact_phone?: string | null; price_amount?: number | null; currency?: string | null; payment_status?: "unknown" | "unpaid" | "paid"; is_optional?: boolean; duration_minutes?: number | null; altitude_m?: number | null };
@@ -18,6 +18,7 @@ function displayPrice(item: Item) { return item.price_amount === null || item.pr
 
 export function TripPlanOverview({ tripId, initialDays, initialItems, documents: initialDocuments }: Props) {
   const [days, setDays] = useState(initialDays); const [items, setItems] = useState(initialItems); const [documents, setDocuments] = useState(initialDocuments); const [filter, setFilter] = useState("all"); const [active, setActive] = useState<{ dayId: string; kind: string } | null>(null); const [detailDayId, setDetailDayId] = useState<string | null>(null); const [editingItemId, setEditingItemId] = useState<string | null>(null); const [editorKind, setEditorKind] = useState<string | null>(null); const [documentType, setDocumentType] = useState("other"); const [documentScope, setDocumentScope] = useState<"item" | "day">("item"); const [message, setMessage] = useState(""); const [saving, setSaving] = useState(false); const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { document.querySelectorAll<HTMLInputElement>(".trip-plan-overview input[type='time']").forEach((input) => { input.type = "text"; input.inputMode = "numeric"; input.placeholder = "uu:mm"; input.pattern = "[0-2][0-9]:[0-5][0-9]"; input.maxLength = 5; }); }, [editingItemId]);
   const dayById = useMemo(() => new Map(days.map((day) => [day.id, day])), [days]);
   const itemsFor = (day: Day, kind: string) => items.filter((item) => { if (item.kind !== kind) return false; if (item.trip_day_id === day.id) return true; const startDay = dayById.get(item.trip_day_id); return kind === "accommodation" && Boolean(startDay && item.ends_on && day.day_date > startDay.day_date && day.day_date < item.ends_on); });
   const documentFor = (item: Item) => documents.some((document) => document.planning_item_id === item.id || (document.trip_day_id === item.trip_day_id && document.document_type === defaultDocumentType[item.kind]));
