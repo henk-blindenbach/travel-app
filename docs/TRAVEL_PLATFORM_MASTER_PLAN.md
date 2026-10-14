@@ -974,6 +974,18 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Een afgerond interview maakt een bewerkbaar, publiceerbaar opgesteld dagverslag in de wij-vorm met kopjes en alinea's. Het eindscherm toont uitsluitend een duidelijke knop naar het concept; de content blijft privé tot een latere expliciete publicatie.
 - Een extra interviewvraag kan het gesprek niet meer blokkeren. Na vijf antwoorden nodigt de interface uit om af te ronden, terwijl er ruimte blijft voor een aanvullende vraag.
 
+### Bouwafspraak publicatieflow — vooraf vastgelegd, uitgevoerd op 14 oktober 2026
+
+Deze bouwstap maakt de eerder gebouwde publicatiegegevens echt zichtbaar buiten de afgesloten omgeving. Vooraf vastgelegd:
+
+- een gepubliceerde dag wordt altijd binnen de URL-reis gecontroleerd; een dagnummer van een andere reis kan dus nooit per ongeluk worden getoond. De reis zelf moet expliciet de bestaande zichtbaarheid `public` hebben voordat er een openbare daglink bestaat;
+- alleen foto’s die Henk of Michel expliciet voor publicatie hebben aangevinkt, verschijnen op de publieke dagpagina;
+- de private Supabase-fotobucket blijft privé. Een smalle, gecontroleerde route serveert uitsluitend de geselecteerde webversies van reeds gepubliceerde dagen;
+- de publieke home toont uitsluitend werkelijk gepubliceerde dagen als er productiedata beschikbaar is; toekomstige planning en privé-inhoud blijven daar weg;
+- na publicatie biedt de private editor een knop naar de publieke dag en duidelijke handoff-knoppen naar Instagram, Facebook en Polarsteps. Captions blijven kopieerbaar, want browsers kunnen die platforms niet betrouwbaar vooraf invullen.
+
+Bewust buiten deze stap: direct posten via social-API’s, publieke reacties, een kaart/GPS op de dagpagina, offline sync en de planner.
+
 ### Afgerond
 
 - Per reisdag is nu één bewerkbaar conceptverslag mogelijk: eigen titel, werkelijke locatie en vrije tekst.
@@ -987,7 +999,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Bij het verwerken van een geselecteerde foto leest de server, waar aanwezig, de opnametijd en GPS-coördinaten uit EXIF. Die gegevens blijven privé bij het media-item; er is geen achtergrondtracking en er wordt niets gepubliceerd zonder latere expliciete publicatie.
 - Bij elke geselecteerde foto kan een privé-bijschrift worden opgeslagen. Dit wordt later hergebruikt als context voor verhaal, publicatie en fotoboek, maar is nu nergens openbaar zichtbaar.
 - De geselecteerde foto’s kunnen binnen één dag worden herschikt; die privé-volgorde wordt de basis voor de latere galerij en het fotoboek.
-- Elk dagverslag heeft nu een expliciete publicatiestatus die standaard op `draft` staat. Er is nog geen route die een concept openbaar maakt.
+- Elk dagverslag heeft een expliciete publicatiestatus die standaard op `draft` staat.
 - Het privé-daginterview werkt met korte AI-vervolgvragen en optionele browser-spraakinvoer. Planning, gesprek en bestaande fotobijschriften geven context; GPS-coördinaten blijven lokaal. Na afronden maakt AI uitsluitend een bewerkbaar privéconcept van titel, locatie en dagverhaal.
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
@@ -1000,4 +1012,15 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 
 ### Bewust nog niet gebouwd
 
-- AI-interview, conceptgeneratie en publicatie. Dit blijft de volgende stap binnen fase 2.
+- Directe plaatsing via Instagram-, Facebook- of Polarsteps-API’s; de app bereidt captions en de geselecteerde foto’s voor, waarna Henk of Michel zelf in de betreffende app plaatst.
+- Volledig publiek reisoverzicht, kaart/GPS op dagposts, eerdere/volgende-dagnavigatie, planner, offline gebruik en fotoboekworkflow.
+
+### Afgerond — publicatie van een dag (14 oktober 2026)
+
+- De publieke home haalt voor de concrete reis alleen al gepubliceerde dagen op. Zijn er nog geen verhalen, dan toont de site geen geplande of privé-dagen maar een rustige aankondiging.
+- Een dagkaart opent de gecontroleerde URL `/reizen/[reis-slug]/dagen/[dagnummer]`. De route verifieert beide delen van de URL en toont uitsluitend een gepubliceerd verslag.
+- De openbare dagpost ondersteunt titel, locatie, kopjes, alinea’s en een galerij. Alleen foto’s met de expliciete keuze **Gebruik voor publicatie en social** verschijnen daar.
+- De oorspronkelijke foto en de private Scaleway-bucket blijven onzichtbaar. De publieke pagina leest alleen de geoptimaliseerde WebP via een RLS-gecontroleerde route; een niet-geselecteerde, niet-klare of niet-gepubliceerde foto geeft geen beeld terug.
+- Na **Publiceer dag** verschijnt in de privé-editor een duidelijke knop naar de publieke dag. Daarnaast zijn er open-knoppen voor Instagram, Facebook en Polarsteps. De caption wordt nog steeds bewust eerst gekopieerd: deze platformen bieden vanuit een webapp geen betrouwbare, veilige vooraf ingevulde poststroom.
+- De geselecteerde originelen kunnen vanuit dezelfde editor via het iPhone-deelmenu aan de fotobibliotheek worden toegevoegd, zodat zij bij het sociale bericht vooraan staan.
+- Technische controle: `npm run build` is geslaagd op 14 oktober 2026. Een echte iPhone-rondgang voor de deelactie en een publicatie met definitieve reisinhoud blijft gewenst.

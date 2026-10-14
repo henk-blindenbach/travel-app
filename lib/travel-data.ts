@@ -26,3 +26,26 @@ export async function getFeaturedTrip() {
     return { trip: fallbackTrip, days: fallbackDays, source: "fallback" as const };
   }
 }
+
+/** Public data never falls back to planned days: only rows admitted by publication RLS are returned. */
+export async function getPublicFeaturedTrip() {
+  if (!hasSupabaseEnv()) return { trip: fallbackTrip, days: [] as TripDay[] };
+  try {
+    const supabase = await createClient();
+    const { data: trip } = await supabase
+      .from("trips")
+      .select("id,title,slug,starts_on,ends_on,countries,summary")
+      .eq("slug", fallbackTrip.slug)
+      .maybeSingle();
+    if (!trip) return { trip: fallbackTrip, days: [] as TripDay[] };
+    const { data: days } = await supabase
+      .from("trip_days")
+      .select("id,day_number,day_date,title,planned_location,planned_route")
+      .eq("trip_id", trip.id)
+      .order("day_number", { ascending: false })
+      .limit(6);
+    return { trip: trip as Trip, days: (days || []) as TripDay[] };
+  } catch {
+    return { trip: fallbackTrip, days: [] as TripDay[] };
+  }
+}

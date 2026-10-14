@@ -25,6 +25,8 @@ type DisplayAsset = Asset & { webUrl?: string; localUrl?: string };
 
 type Props = {
   tripDayId: string;
+  tripSlug: string;
+  dayNumber: number;
   dayTitle: string;
   plannedLocation: string | null;
   initialEntry: Entry;
@@ -45,7 +47,7 @@ async function responseJson(response: Response) {
   return data;
 }
 
-export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEntry, initialAssets }: Props) {
+export function DayEntryEditor({ tripDayId, tripSlug, dayNumber, dayTitle, plannedLocation, initialEntry, initialAssets }: Props) {
   const [entry, setEntry] = useState<Entry>(initialEntry);
   const [title, setTitle] = useState(initialEntry?.title || dayTitle || "");
   const [actualLocation, setActualLocation] = useState(initialEntry?.actual_location || plannedLocation || "");
@@ -199,7 +201,11 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
   async function publish() {
     if (!entry) { setMessage("Sla eerst het verslag op."); return; }
     setPublishing(true); setMessage("");
-    try { await responseJson(await fetch(`/api/day-entries/${entry.id}/publish`, { method: "POST" })); setMessage("Dag gepubliceerd."); }
+    try {
+      const data = await responseJson(await fetch(`/api/day-entries/${entry.id}/publish`, { method: "POST" }));
+      setEntry((current) => current ? { ...current, publication_status: data.entry.publication_status } : current);
+      setMessage("Dag gepubliceerd. Controleer hem nog even en deel daarna waar je wilt.");
+    }
     catch (error) { setMessage(error instanceof Error ? error.message : "Publiceren lukte niet."); } finally { setPublishing(false); }
   }
 
@@ -232,7 +238,8 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
     </section>
     <section className="entry-photos-card"><div className="entry-form-heading"><div><p className="eyebrow blue">Publicatie</p><h2>Klaar om te delen?</h2></div><button className="secondary-button" type="button" onClick={() => void makeCaptions()} disabled={saving}>{saving ? "Even geduld…" : "Maak captions"}</button></div>
       {([ ["Instagram", captions.instagram], ["Facebook", captions.facebook], ["Polarsteps", captions.polarsteps] ] as const).map(([name, caption]) => caption && <div className="social-caption" key={name}><b>{name}</b><p>{caption}</p><button className="text-button" type="button" onClick={() => void copy(caption)}>Kopieer caption</button></div>)}
-      <button className="secondary-button" type="button" onClick={() => void savePhotosToLibrary()}>Bewaar geselecteerde foto’s</button><button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing}>{publishing ? "Publiceren…" : "Publiceer dag"}</button>
+      <div className="publication-actions"><button className="secondary-button" type="button" onClick={() => void savePhotosToLibrary()}>Bewaar geselecteerde foto’s</button><button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing || entry?.publication_status === "published"}>{entry?.publication_status === "published" ? "Gepubliceerd" : publishing ? "Publiceren…" : "Publiceer dag"}</button></div>
+      {entry?.publication_status === "published" ? <div className="published-handoff"><Link className="primary-button blue-button" href={`/reizen/${tripSlug}/dagen/${dayNumber}`} target="_blank">Bekijk publieke dag ↗</Link><p>Open daarna een platform, plak de caption en kies bij het delen de opgeslagen foto’s.</p><div className="social-open-actions"><a className="secondary-button" href="https://www.instagram.com/" target="_blank" rel="noreferrer">Open Instagram ↗</a><a className="secondary-button" href="https://www.facebook.com/" target="_blank" rel="noreferrer">Open Facebook ↗</a><a className="secondary-button" href="https://www.polarsteps.com/" target="_blank" rel="noreferrer">Open Polarsteps ↗</a></div></div> : null}
     </section>
   </div>;
 }
