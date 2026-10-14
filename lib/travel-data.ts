@@ -1,12 +1,12 @@
 import { createClient, hasSupabaseEnv } from "./supabase/server";
 
-export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null };
+export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
 export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null };
 
 const fallbackTrip: Trip = {
   id: "2047b6fd-4f2b-4796-a462-72bc3b8f9265", title: "Nepal · Tibet · Bhutan · India", slug: "nepal-tibet-bhutan-india-2026",
   starts_on: "2026-11-01", ends_on: "2026-12-07", countries: ["Nepal", "Tibet", "Bhutan", "India"],
-  summary: "Bergen, kloosters, levendige steden en ontmoetingen die bijblijven."
+  summary: "Bergen, kloosters, levendige steden en ontmoetingen die bijblijven.", status: "planning"
 };
 const fallbackDays: TripDay[] = [
   { id: "1", day_number: 5, day_date: "2026-11-06", title: "Annapurna trekking", planned_location: "Ghorepani", planned_route: "Ghorepani → Poon Hill" },
@@ -47,5 +47,47 @@ export async function getPublicFeaturedTrip() {
     return { trip: trip as Trip, days: (days || []) as TripDay[] };
   } catch {
     return { trip: fallbackTrip, days: [] as TripDay[] };
+  }
+}
+
+export type PublicTripOverview = { trip: Trip; days: TripDay[] };
+
+export async function getPublicTravelOverview() {
+  if (!hasSupabaseEnv()) return { current: { trip: fallbackTrip, days: [] } as PublicTripOverview, past: [] as PublicTripOverview[], isTravelling: false };
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("trips")
+      .select("id,title,slug,starts_on,ends_on,countries,summary,status")
+      .order("starts_on", { ascending: false });
+    const trips = (data || []) as Trip[];
+    const today = new Date().toISOString().slice(0, 10);
+    const travelling = trips.find((trip) => trip.status === "travelling" || (trip.starts_on <= today && trip.ends_on >= today));
+    const currentTrip = travelling || trips.find((trip) => trip.status !== "completed" && trip.status !== "archived") || trips[0];
+    if (!currentTrip) return { current: null, past: [] as PublicTripOverview[], isTravelling: false };
+    const tripsWithDays = await Promise.all(trips.map(async (trip) => {
+      const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route").eq("trip_id", trip.id).order("day_number", { ascending: true });
+      return { trip, days: (days || []) as TripDay[] };
+    }));
+    return {
+      current: tripsWithDays.find((item) => item.trip.id === currentTrip.id) || { trip: currentTrip, days: [] },
+      past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)),
+      isTravelling: Boolean(travelling),
+    };
+  } catch {
+    return { current: { trip: fallbackTrip, days: [] } as PublicTripOverview, past: [] as PublicTripOverview[], isTravelling: false };
+  }
+}
+
+export async function getPublicTrip(slug: string) {
+  if (!hasSupabaseEnv()) return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[] } : null;
+  try {
+    const supabase = await createClient();
+    const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("slug", slug).maybeSingle();
+    if (!trip) return null;
+    const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route").eq("trip_id", trip.id).order("day_number", { ascending: true });
+    return { trip: trip as Trip, days: (days || []) as TripDay[] };
+  } catch {
+    return null;
   }
 }

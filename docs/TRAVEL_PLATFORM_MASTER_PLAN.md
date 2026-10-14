@@ -1015,6 +1015,15 @@ Bewust buiten deze stap: direct posten via social-API’s, publieke reacties, ee
 - Directe plaatsing via Instagram-, Facebook- of Polarsteps-API’s; de app bereidt captions en de geselecteerde foto’s voor, waarna Henk of Michel zelf in de betreffende app plaatst.
 - Volledig publiek reisoverzicht, kaart/GPS op dagposts, eerdere/volgende-dagnavigatie, planner, offline gebruik en fotoboekworkflow.
 
+### Bouwafspraak publiek reisscherm — vooraf vastgelegd (14 oktober 2026)
+
+- De homepage krijgt een heldere actuele-reispositie: bezoekers zien dat zij Henk en Michel op de huidige reis kunnen volgen en gaan vanaf daar naar het openbare reisscherm.
+- Eerdere openbare reizen blijven bereikbaar als compact overzicht; alleen bestaande publieke reisvelden en gepubliceerde dagen worden gelezen.
+- De nieuwe route `/reizen/[slug]` wordt de chronologische ingang voor één reis. Een dagpost krijgt links naar de vorige en volgende gepubliceerde dag van diezelfde reis.
+- De actuele reis volgt de bestaande status en datums. Als geen reis actief is, blijft de eerstvolgende niet-afgesloten openbare reis zichtbaar zonder een onjuiste claim dat Henk en Michel onderweg zijn.
+
+Bewust buiten deze stap: extra reisdata of schemawijzigingen, kaart/GPS, openbare reacties, social-API’s en het wijzigen van een reisstatus.
+
 ### Afgerond — publicatie van een dag (14 oktober 2026)
 
 - De publieke home haalt voor de concrete reis alleen al gepubliceerde dagen op. Zijn er nog geen verhalen, dan toont de site geen geplande of privé-dagen maar een rustige aankondiging.
@@ -1024,3 +1033,12 @@ Bewust buiten deze stap: direct posten via social-API’s, publieke reacties, ee
 - Na **Publiceer dag** verschijnt in de privé-editor een duidelijke knop naar de publieke dag. Daarnaast zijn er open-knoppen voor Instagram, Facebook en Polarsteps. De caption wordt nog steeds bewust eerst gekopieerd: deze platformen bieden vanuit een webapp geen betrouwbare, veilige vooraf ingevulde poststroom.
 - De geselecteerde originelen kunnen vanuit dezelfde editor via het iPhone-deelmenu aan de fotobibliotheek worden toegevoegd, zodat zij bij het sociale bericht vooraan staan.
 - Technische controle: `npm run build` is geslaagd op 14 oktober 2026. Een echte iPhone-rondgang voor de deelactie en een publicatie met definitieve reisinhoud blijft gewenst.
+
+### Afgerond — actuele en eerdere openbare reizen (14 oktober 2026)
+
+- De publieke homepage herkent de actuele reis aan `travelling` of aan de reisperiode. Als er tijdelijk geen actieve reis is, toont zij de eerstvolgende niet-afgesloten openbare reis eerlijk als volgende reis.
+- Bezoekers krijgen een duidelijke actie om de actuele reis te volgen. Alleen gepubliceerde verhalen verschijnen op de homepage en in de reisdetailpagina.
+- Eerdere openbare reizen worden als apart overzicht getoond zodra er reizen met een afgesloten status of verstreken einddatum bestaan.
+- De nieuwe route `/reizen/[slug]` bevat de chronologische tijdlijn van gepubliceerde verhalen; een individuele dagpost heeft veilige vorige/volgende-navigatie binnen diezelfde reis.
+- Er zijn geen schemawijzigingen of privé-leesrechten toegevoegd. De bestaande RLS-regels blijven bepalen welke reizen, dagen en foto’s publiek leesbaar zijn.
+- Technische controle: `npm run build` is geslaagd op 14 oktober 2026.
