@@ -16,7 +16,7 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
   if (hasSupabaseEnv()) {
     try {
       const supabase = await createClient();
-      const result = await supabase.from("day_entries").select("id,title,actual_location,body,media_assets(id,original_filename,caption,sort_order,upload_status)").eq("trip_day_id", day.id).maybeSingle();
+      const result = await supabase.from("day_entries").select("id,title,actual_location,body,social_captions,publication_status,media_assets(id,original_filename,caption,sort_order,upload_status)").eq("trip_day_id", day.id).maybeSingle();
       entry = result.data;
       assets = (result.data?.media_assets || []).sort((a, b) => a.sort_order - b.sort_order);
     } catch {

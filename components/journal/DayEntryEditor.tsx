@@ -8,6 +8,8 @@ type Entry = {
   title: string;
   actual_location: string;
   body: string;
+  social_captions?: { instagram?: string; facebook?: string; polarsteps?: string };
+  publication_status?: "draft" | "published";
 } | null;
 
 type Asset = {
@@ -50,6 +52,8 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
   const [assets, setAssets] = useState<DisplayAsset[]>(initialAssets);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [captions, setCaptions] = useState(initialEntry?.social_captions || {});
+  const [publishing, setPublishing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -163,6 +167,22 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
     event.target.value = "";
   }
 
+  async function makeCaptions() {
+    if (!entry) { setMessage("Sla eerst het verslag op."); return; }
+    setSaving(true); setMessage("");
+    try { const data = await responseJson(await fetch(`/api/day-entries/${entry.id}/social`, { method: "POST" })); setCaptions(data.captions); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Captions maken lukte niet."); } finally { setSaving(false); }
+  }
+
+  async function publish() {
+    if (!entry) { setMessage("Sla eerst het verslag op."); return; }
+    setPublishing(true); setMessage("");
+    try { await responseJson(await fetch(`/api/day-entries/${entry.id}/publish`, { method: "POST" })); setMessage("Dag gepubliceerd."); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Publiceren lukte niet."); } finally { setPublishing(false); }
+  }
+
+  async function copy(value: string) { await navigator.clipboard.writeText(value); setMessage("Caption gekopieerd."); }
+
   return <div className="journal-editor">
     <section className="entry-form-card">
       <div className="entry-form-heading"><div><p className="eyebrow blue">Dagverslag</p><h2>Wat maakte deze dag bijzonder?</h2></div><div className="entry-form-actions"><Link className="secondary-button" href={`/app/today/interview?day=${tripDayId}`}>🎙 Vertel het</Link><button className="secondary-button" type="button" onClick={() => void saveEntry()} disabled={saving}>{saving ? "Opslaan…" : "Concept opslaan"}</button></div></div>
@@ -186,6 +206,10 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
           }} /></label>
         </figcaption>
       </figure>)}</div> : <button className="photo-dropzone" type="button" onClick={() => inputRef.current?.click()}><b>+</b><span>Kies foto’s van vandaag</span><small>HEIC is welkom</small></button>}
+    </section>
+    <section className="entry-photos-card"><div className="entry-form-heading"><div><p className="eyebrow blue">Publicatie</p><h2>Klaar om te delen?</h2></div><button className="secondary-button" type="button" onClick={() => void makeCaptions()} disabled={saving}>{saving ? "Even geduld…" : "Maak captions"}</button></div>
+      {([ ["Instagram", captions.instagram], ["Facebook", captions.facebook], ["Polarsteps", captions.polarsteps] ] as const).map(([name, caption]) => caption && <div className="social-caption" key={name}><b>{name}</b><p>{caption}</p><button className="text-button" type="button" onClick={() => void copy(caption)}>Kopieer caption</button></div>)}
+      <button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing}>{publishing ? "Publiceren…" : "Publiceer dag"}</button>
     </section>
   </div>;
 }
