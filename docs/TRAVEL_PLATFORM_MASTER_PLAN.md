@@ -1060,3 +1060,9 @@ Bewust buiten deze stap: OCR, e-mailimport, automatische Excel-import, documentb
 - Elk document kan alleen door een reisgenoot worden geüpload, gezien en via een kortlevende ondertekende downloadlink geopend. De bucket is in productie bevestigd als niet-publiek; er bestaan twee privé planner-tabellen met RLS.
 - De productiemigratie `20261014125112_add_private_planning_and_documents.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.
 - Nog praktisch te toetsen: één echte documentupload en download op iPhone, inclusief openen vanuit de bestanden-app. OCR, e-mailinvoer en automatisch uitlezen blijven bewust buiten deze versie.
+
+### Verfijning — centrale documentbibliotheek (14 oktober 2026)
+
+- Een Mac kan een PDF afhankelijk van de bron als generiek bestandstype doorgeven. De upload herkent ondersteunde bestanden daarom gecontroleerd aan zowel extensie als MIME-type en geeft het correcte type mee aan de private opslag.
+- Naast documenten per reisdag bestaat er nu `/app/documents`: een centrale, privé bibliotheek voor de hele reis. Een bestand kan daar aan een reisdag worden gekoppeld of bewust als reisdocument zonder dag worden bewaard.
+- De bibliotheek filtert op documenttype en reisdag. De dagweergave blijft voor het snelle gebruik onderweg bestaan en linkt door naar het volledige overzicht.
