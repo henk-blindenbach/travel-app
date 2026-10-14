@@ -972,6 +972,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - De AI-aanroep is begrensd voor een snel mobiel gesprek en meldt sleutel-, limiet- en tijdelijke providerproblemen begrijpelijk, zonder gevoelige gegevens te tonen of te loggen.
 - De verwerking accepteert zowel de samengevatte als de bericht-gebaseerde Responses-uitvoer van OpenAI en onderscheidt een leeg of onvolledig AI-antwoord veilig van overige storingen.
 - Een afgerond interview maakt een bewerkbaar, publiceerbaar opgesteld dagverslag in de wij-vorm met kopjes en alinea's. Het eindscherm toont uitsluitend een duidelijke knop naar het concept; de content blijft privé tot een latere expliciete publicatie.
+- Een extra interviewvraag kan het gesprek niet meer blokkeren. Na vijf antwoorden nodigt de interface uit om af te ronden, terwijl er ruimte blijft voor een aanvullende vraag.
 
 ### Afgerond
 

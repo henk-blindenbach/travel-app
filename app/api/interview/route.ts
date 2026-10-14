@@ -39,7 +39,7 @@ const schema = {
 };
 
 function validMessages(value: unknown): value is Message[] {
-  return Array.isArray(value) && value.length <= 12 && value.every((message) =>
+  return Array.isArray(value) && value.length <= 24 && value.every((message) =>
     message && (message.role === "assistant" || message.role === "user") && typeof message.text === "string" && message.text.length <= 4000);
 }
 
