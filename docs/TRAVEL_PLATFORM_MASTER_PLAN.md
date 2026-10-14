@@ -1024,6 +1024,15 @@ Bewust buiten deze stap: direct posten via social-API’s, publieke reacties, ee
 
 Bewust buiten deze stap: extra reisdata of schemawijzigingen, kaart/GPS, openbare reacties, social-API’s en het wijzigen van een reisstatus.
 
+### Bouwafspraak privé planner en documentkluis — vooraf vastgelegd (14 oktober 2026)
+
+- De bestaande Excel-planning is uitsluitend als ontwerpbron gebruikt; er komt geen importmodule of blijvende Excel-koppeling.
+- Michel en Henk krijgen een privé dagplanner met verblijf, vlucht, ander vervoer, activiteit en vrije notitie. Ieder onderdeel kan een optie, gepland of bevestigd zijn.
+- Documenten worden privé per reisdag opgeslagen met een expliciet type: hotelbevestiging, visum, vliegticket, ander vervoersticket, excursieticket, verzekering of overig.
+- De documentenbucket, metadata en elke download zijn uitsluitend toegankelijk voor reisleden via RLS en kortlevende URL’s. Bestanden zijn nooit openbaar of onderdeel van de reisblog.
+
+Bewust buiten deze stap: OCR, e-mailimport, automatische Excel-import, documentbewerking, publieke documentlinks en een volledige boekings-/betalingsadministratie.
+
 ### Afgerond — publicatie van een dag (14 oktober 2026)
 
 - De publieke home haalt voor de concrete reis alleen al gepubliceerde dagen op. Zijn er nog geen verhalen, dan toont de site geen geplande of privé-dagen maar een rustige aankondiging.
@@ -1042,3 +1051,12 @@ Bewust buiten deze stap: extra reisdata of schemawijzigingen, kaart/GPS, openbar
 - De nieuwe route `/reizen/[slug]` bevat de chronologische tijdlijn van gepubliceerde verhalen; een individuele dagpost heeft veilige vorige/volgende-navigatie binnen diezelfde reis.
 - Er zijn geen schemawijzigingen of privé-leesrechten toegevoegd. De bestaande RLS-regels blijven bepalen welke reizen, dagen en foto’s publiek leesbaar zijn.
 - Technische controle: `npm run build` is geslaagd op 14 oktober 2026.
+
+### Afgerond — privé planner en documentkluis (14 oktober 2026)
+
+- `/app/trips` is nu de besloten reiswerkplek: Henk en Michel kiezen een reisdag, leggen verblijf, vlucht, ander vervoer, activiteit of notitie vast en zien wat nog een optie is, gepland staat of bevestigd is.
+- Ieder document krijgt een herkenbaar type: **hotelbevestiging**, **visum**, **vliegticket**, **ander vervoersticket**, **excursieticket**, **verzekering** of **overig**. Daardoor blijft de dagkluis onderweg scanbaar zonder de inhoud van bestanden te hoeven openen.
+- De app slaat alleen metadata in Supabase op; het bestand komt in de nieuwe private bucket `trip-documents`. Uploads accepteren PDF, afbeeldingen (inclusief HEIC), Word- en Excel-bestanden tot 25 MB.
+- Elk document kan alleen door een reisgenoot worden geüpload, gezien en via een kortlevende ondertekende downloadlink geopend. De bucket is in productie bevestigd als niet-publiek; er bestaan twee privé planner-tabellen met RLS.
+- De productiemigratie `20261014125112_add_private_planning_and_documents.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.
+- Nog praktisch te toetsen: één echte documentupload en download op iPhone, inclusief openen vanuit de bestanden-app. OCR, e-mailinvoer en automatisch uitlezen blijven bewust buiten deze versie.
