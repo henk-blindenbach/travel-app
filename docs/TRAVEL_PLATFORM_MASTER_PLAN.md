@@ -976,6 +976,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Bij elke geselecteerde foto kan een privé-bijschrift worden opgeslagen. Dit wordt later hergebruikt als context voor verhaal, publicatie en fotoboek, maar is nu nergens openbaar zichtbaar.
 - De geselecteerde foto’s kunnen binnen één dag worden herschikt; die privé-volgorde wordt de basis voor de latere galerij en het fotoboek.
 - Elk dagverslag heeft nu een expliciete publicatiestatus die standaard op `draft` staat. Er is nog geen route die een concept openbaar maakt.
+- Het privé-daginterview werkt met korte AI-vervolgvragen en optionele browser-spraakinvoer. Planning, gesprek en bestaande fotobijschriften geven context; GPS-coördinaten blijven lokaal. Na afronden maakt AI uitsluitend een bewerkbaar privéconcept van titel, locatie en dagverhaal.
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
 
