@@ -1092,3 +1092,11 @@ Bewust buiten deze stap: reizen verwijderen of dupliceren, reisgenoten uitnodige
 - Boven het bestaande dagdetail staat op **Plan de reis** nu een overzichtstabel met per dag de status van vlucht, verblijf, ander vervoer en activiteit. Een lege cel maakt direct zichtbaar wat Michel nog moet plannen.
 - Datum, titel, plaats, route en dagstatus zijn per reisdag bewerkbaar. De update is begrensd tot de gekozen reis en valt onder RLS voor reisleden.
 - Productiemigratie `20261014132509_normalize_trip_days_and_allow_updates.sql` is toegepast; `npm run build` is geslaagd.
+
+### Afgerond — RLS-reparatie voor private planning en publieke verhalen (14 oktober 2026)
+
+- De foutmelding achter de lege Nepal-reisdagen was een echte RLS-recursielus: een regel op `trip_days` raadpleegde `day_entries`, terwijl een regel op `day_entries` terug naar `trip_days` keek. De app ving die databasefout op als een lege lijst.
+- Private reisdagen zijn nu uitsluitend leesbaar voor reisleden. Publieke reisstatus alleen maakt de planning niet langer leesbaar voor bezoekers.
+- Een dagverslag draagt voortaan zijn reis-id, dagnummer en datum als publicatiegegevens. Daardoor kunnen openbare tijdlijnen en dagposts uitsluitend gepubliceerde verslagen lezen, zonder de private planningstabel te raadplegen.
+- Bestaande verslagen zijn met hun oorspronkelijke reisdag aangevuld. Nieuwe verslagen vullen deze gegevens bij het opslaan automatisch en gecontroleerd in.
+- Productiemigratie `20261014133836_decouple_public_entries_from_trip_days.sql` is toegepast. RLS-test: Henk ziet 37 Nepal-reisdagen; een anonieme lezer heeft geen toegang tot `trip_days`. Er zijn nu geen gepubliceerde dagverslagen zichtbaar, zoals verwacht.

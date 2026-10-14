@@ -51,6 +51,12 @@ export async function getPrivateTrip(tripId: string) {
 }
 
 /** Public data never falls back to planned days: only rows admitted by publication RLS are returned. */
+async function getPublishedDays(tripId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("day_entries").select("id,day_number,day_date,title,actual_location").eq("trip_id", tripId).eq("publication_status", "published").order("day_number", { ascending: true });
+  return (data || []).map((entry) => ({ id: entry.id, day_number: entry.day_number, day_date: entry.day_date, title: entry.title || null, planned_location: entry.actual_location || null, planned_route: null })) as TripDay[];
+}
+
 export async function getPublicFeaturedTrip() {
   if (!hasSupabaseEnv()) return { trip: fallbackTrip, days: [] as TripDay[] };
   try {
@@ -61,13 +67,8 @@ export async function getPublicFeaturedTrip() {
       .eq("slug", fallbackTrip.slug)
       .maybeSingle();
     if (!trip) return { trip: fallbackTrip, days: [] as TripDay[] };
-    const { data: days } = await supabase
-      .from("trip_days")
-      .select("id,day_number,day_date,title,planned_location,planned_route")
-      .eq("trip_id", trip.id)
-      .order("day_number", { ascending: false })
-      .limit(6);
-    return { trip: trip as Trip, days: (days || []) as TripDay[] };
+    const days = await getPublishedDays(trip.id);
+    return { trip: trip as Trip, days: days.slice(-6).reverse() };
   } catch {
     return { trip: fallbackTrip, days: [] as TripDay[] };
   }
@@ -88,10 +89,7 @@ export async function getPublicTravelOverview() {
     const travelling = trips.find((trip) => trip.status === "travelling" || (trip.starts_on <= today && trip.ends_on >= today));
     const currentTrip = travelling || trips.find((trip) => trip.status !== "completed" && trip.status !== "archived") || trips[0];
     if (!currentTrip) return { current: null, past: [] as PublicTripOverview[], isTravelling: false };
-    const tripsWithDays = await Promise.all(trips.map(async (trip) => {
-      const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route").eq("trip_id", trip.id).order("day_number", { ascending: true });
-      return { trip, days: (days || []) as TripDay[] };
-    }));
+    const tripsWithDays = await Promise.all(trips.map(async (trip) => ({ trip, days: await getPublishedDays(trip.id) })));
     return {
       current: tripsWithDays.find((item) => item.trip.id === currentTrip.id) || { trip: currentTrip, days: [] },
       past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)),
@@ -108,8 +106,7 @@ export async function getPublicTrip(slug: string) {
     const supabase = await createClient();
     const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("slug", slug).maybeSingle();
     if (!trip) return null;
-    const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route").eq("trip_id", trip.id).order("day_number", { ascending: true });
-    return { trip: trip as Trip, days: (days || []) as TripDay[] };
+    return { trip: trip as Trip, days: await getPublishedDays(trip.id) };
   } catch {
     return null;
   }
