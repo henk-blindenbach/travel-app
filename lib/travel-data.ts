@@ -1,7 +1,8 @@
 import { createClient, hasSupabaseEnv } from "./supabase/server";
 
 export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
-export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null };
+export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; status?: "planned" | "in_progress" | "completed" | "skipped" };
+export type PrivateTripMenu = Trip & { days: Pick<TripDay, "id" | "day_number" | "day_date" | "title" | "planned_location">[] };
 
 const fallbackTrip: Trip = {
   id: "2047b6fd-4f2b-4796-a462-72bc3b8f9265", title: "Nepal · Tibet · Bhutan · India", slug: "nepal-tibet-bhutan-india-2026",
@@ -28,11 +29,11 @@ export async function getFeaturedTrip() {
 }
 
 export async function getPrivateTrips() {
-  if (!hasSupabaseEnv()) return [fallbackTrip];
+  if (!hasSupabaseEnv()) return [{ ...fallbackTrip, days: fallbackDays }];
   try {
     const supabase = await createClient();
-    const { data } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").order("starts_on", { ascending: false });
-    return (data || []) as Trip[];
+    const { data } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status,trip_days(id,day_number,day_date,title,planned_location)").order("starts_on", { ascending: false });
+    return (data || []).map((trip) => ({ ...trip, days: (trip.trip_days || []).sort((a, b) => a.day_number - b.day_number) })) as PrivateTripMenu[];
   } catch { return []; }
 }
 
@@ -42,7 +43,7 @@ export async function getPrivateTrip(tripId: string) {
     const supabase = await createClient();
     const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("id", tripId).maybeSingle();
     if (!trip) return null;
-    const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route").eq("trip_id", tripId).order("day_number");
+    const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route,status").eq("trip_id", tripId).order("day_number");
     return { trip: trip as Trip, days: (days || []) as TripDay[] };
   } catch { return null; }
 }

@@ -1083,3 +1083,12 @@ Bewust buiten deze stap: reizen verwijderen of dupliceren, reisgenoten uitnodige
 - Een nieuwe reis wordt standaard privé aangemaakt. De maker wordt eigenaar en de app maakt voor de volledige reisperiode meteen de lege reisdagen aan.
 - Planner en documentkluis hebben nu een expliciete reisroute (`/app/trips/[reis-id]/plan` en `/app/trips/[reis-id]/documents`); gegevens van verschillende reizen lopen daardoor niet door elkaar.
 - Productiemigratie `20261014131749_allow_private_trip_creation.sql` is toegepast. De drie benodigde RLS-creatiepolicies en de maker-kolom zijn in productie gecontroleerd; `npm run build` is geslaagd.
+
+### Afgerond — reisdagkalender en planningscockpit (14 oktober 2026)
+
+- Het reis-submenu zet alle onderdelen nu expliciet onder elkaar. Iedere reis heeft daarnaast een ingeklapte lijst met zijn reisdagen en directe sprongen naar de bijbehorende regel in het planoverzicht.
+- Bestaande reisdagen zijn veilig genormaliseerd op hun kalenderdatum: gekoppelde documenten en verslagen behouden hun dag-id. Ontbrekende dagen binnen iedere reisperiode worden als lege dagen aangevuld.
+- De Nepal/Bhutan-reis loopt nu volledig van dag 1 op 1 november 2026 tot en met dag 37 op 7 december 2026. Dit is in productie gecontroleerd.
+- Boven het bestaande dagdetail staat op **Plan de reis** nu een overzichtstabel met per dag de status van vlucht, verblijf, ander vervoer en activiteit. Een lege cel maakt direct zichtbaar wat Michel nog moet plannen.
+- Datum, titel, plaats, route en dagstatus zijn per reisdag bewerkbaar. De update is begrensd tot de gekozen reis en valt onder RLS voor reisleden.
+- Productiemigratie `20261014132509_normalize_trip_days_and_allow_updates.sql` is toegepast; `npm run build` is geslaagd.
