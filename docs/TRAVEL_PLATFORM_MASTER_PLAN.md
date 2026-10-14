@@ -979,8 +979,11 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 
 ### Nog te verifiëren voordat echte foto-upload wordt vrijgegeven
 
-- CORS op de Scaleway-bucket voor de directe, kortlevende browser-upload: uitsluitend `https://opreis.blindenbach.nl`, methode `PUT` en header `Content-Type`.
 - Een daadwerkelijke HEIC-upload vanuit iPhone/Apple Photos, inclusief omzetting en private weergave.
+
+### Bevestigde uploadbeveiliging
+
+- De private Scaleway-bucket accepteert directe, kortlevende browser-uploads uitsluitend vanaf `https://opreis.blindenbach.nl`, met methode `PUT` en header `Content-Type`. De bucket en foto-originelen blijven niet-publiek.
 
 ### Bewust nog niet gebouwd
 
