@@ -4,9 +4,10 @@ import { createClient } from "../../../lib/supabase/server";
 
 const kinds = new Set(["accommodation", "flight", "transport", "activity", "note"]);
 const statuses = new Set(["option", "planned", "confirmed"]);
+function isoDate(value: unknown) { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null; }
 
 async function requireMember(supabase: Awaited<ReturnType<typeof createClient>>, tripId: string, tripDayId: string) {
-  const { data: day } = await supabase.from("trip_days").select("id").eq("id", tripDayId).eq("trip_id", tripId).maybeSingle();
+  const { data: day } = await supabase.from("trip_days").select("id,day_date").eq("id", tripDayId).eq("trip_id", tripId).maybeSingle();
   return day;
 }
 
@@ -19,7 +20,9 @@ export async function POST(request: Request) {
     if (!validUuid(payload.tripId) || !validUuid(payload.tripDayId) || !kinds.has(payload.kind) || !statuses.has(payload.status) || !safeText(payload.title, 200)) return NextResponse.json({ error: "Vul een titel, type en dag in." }, { status: 400 });
     const day = await requireMember(supabase, payload.tripId, payload.tripDayId);
     if (!day) return NextResponse.json({ error: "Deze reisdag hoort niet bij de reis." }, { status: 400 });
-    const { data: item, error } = await supabase.from("planning_items").insert({ trip_id: payload.tripId, trip_day_id: payload.tripDayId, kind: payload.kind, status: payload.status, title: safeText(payload.title, 200), details: safeText(payload.details, 4_000), location: safeText(payload.location, 200), starts_at: safeText(payload.startsAt, 5) || null }).select("id,trip_day_id,kind,status,title,details,location,starts_at,sort_order").single();
+    const endsOn = payload.kind === "accommodation" && payload.endsOn ? isoDate(payload.endsOn) : null;
+    if (payload.kind === "accommodation" && payload.endsOn && (!endsOn || endsOn <= day.day_date)) return NextResponse.json({ error: "De uitcheckdatum moet na de incheckdag liggen." }, { status: 400 });
+    const { data: item, error } = await supabase.from("planning_items").insert({ trip_id: payload.tripId, trip_day_id: payload.tripDayId, kind: payload.kind, status: payload.status, title: safeText(payload.title, 200), details: safeText(payload.details, 4_000), location: safeText(payload.location, 200), starts_at: safeText(payload.startsAt, 5) || null, ends_on: endsOn }).select("id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,sort_order").single();
     if (error || !item) return NextResponse.json({ error: "Planningonderdeel kon niet worden opgeslagen." }, { status: 400 });
     return NextResponse.json({ item });
   } catch { return NextResponse.json({ error: "Planningonderdeel kon niet worden opgeslagen." }, { status: 500 }); }
@@ -34,7 +37,9 @@ export async function PATCH(request: Request) {
     if (!validUuid(payload.tripId) || !validUuid(payload.itemId) || !validUuid(payload.tripDayId) || !kinds.has(payload.kind) || !statuses.has(payload.status) || !safeText(payload.title, 200)) return NextResponse.json({ error: "Vul een titel, type en dag in." }, { status: 400 });
     const day = await requireMember(supabase, payload.tripId, payload.tripDayId);
     if (!day) return NextResponse.json({ error: "Deze reisdag hoort niet bij de reis." }, { status: 400 });
-    const { data: item, error } = await supabase.from("planning_items").update({ kind: payload.kind, status: payload.status, title: safeText(payload.title, 200), details: safeText(payload.details, 4_000), location: safeText(payload.location, 200) }).eq("id", payload.itemId).eq("trip_id", payload.tripId).eq("trip_day_id", payload.tripDayId).select("id,trip_day_id,kind,status,title,details,location,starts_at,sort_order").single();
+    const endsOn = payload.kind === "accommodation" && payload.endsOn ? isoDate(payload.endsOn) : null;
+    if (payload.kind === "accommodation" && payload.endsOn && (!endsOn || endsOn <= day.day_date)) return NextResponse.json({ error: "De uitcheckdatum moet na de incheckdag liggen." }, { status: 400 });
+    const { data: item, error } = await supabase.from("planning_items").update({ kind: payload.kind, status: payload.status, title: safeText(payload.title, 200), details: safeText(payload.details, 4_000), location: safeText(payload.location, 200), ends_on: endsOn }).eq("id", payload.itemId).eq("trip_id", payload.tripId).eq("trip_day_id", payload.tripDayId).select("id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,sort_order").single();
     if (error || !item) return NextResponse.json({ error: "Planningonderdeel kon niet worden bijgewerkt." }, { status: 400 });
     return NextResponse.json({ item });
   } catch { return NextResponse.json({ error: "Planningonderdeel kon niet worden bijgewerkt." }, { status: 500 }); }

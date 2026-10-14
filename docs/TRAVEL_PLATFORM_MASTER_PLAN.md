@@ -1174,3 +1174,23 @@ Bewust buiten deze stap: publieke schrijf- of documenttoegang, open registratie,
 - Een teruggedraaide productietest onder Henks account kon een nieuwe reis én eerste lidmaatschapsregel direct maken (`created_memberships: 1`) zonder gegevens achter te laten. Daarmee is de oorspronkelijke RLS-blokkade concreet geverifieerd.
 - Datumvelden zetten acht cijfers tijdens invoer om naar het Nederlandse formaat: `03122026` wordt `03-12-2026`.
 - Productiemigratie `20261014193205_simplify_authenticated_trip_access.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.
+
+### Bouwafspraak — planner met meerdere onderdelen en verblijfsperiodes (14 oktober 2026)
+
+- Iedere dag/categorie in de planningscockpit kan meerdere onderdelen tonen en toevoegen. Bestaande items blijven ongewijzigd en kunnen stuk voor stuk worden geopend en bewerkt.
+- Een verblijf krijgt een optionele uitcheckdatum. Hetzelfde verblijf verschijnt dan op iedere tussenliggende overnachtingsdag; de uitcheckdag zelf telt niet als nacht.
+- Een document hoort primair bij een planningonderdeel. De bestaande koppeling wordt in de cockpit zichtbaarder gemaakt; documenten die alleen aan een dag hangen blijven bestaan.
+- De cockpit maakt opslaan zichtbaar en blokkeert dubbele acties tijdens een actieve bewerking. De statusmeter wordt hernoemd naar het concrete aantal **opties**; "gepland" telt dus niet meer als aandachtspunt.
+- De dagkop wordt op kleine schermen afgekapt in plaats van dat tekst en datum over elkaar heen lopen.
+
+Bewust buiten deze stap: spreadsheet-/tekstimport, kopiëren naar volgende dagen, bulk-upload, categoriegebonden boekingsvelden, budget, openpuntenlijst, reisgenootdossiers en automatische documentextractie.
+
+### Afgerond — planner met meerdere onderdelen en verblijfsperiodes (14 oktober 2026)
+
+- Een planningvak kan nu meerdere items van hetzelfde type tonen. Daardoor kunnen bijvoorbeeld twee vluchten op één dag allebei onder **Vlucht** blijven staan; de knop verandert na het eerste item in **+ nog een**.
+- Een verblijf kan bij toevoegen of bewerken een uitcheckdatum krijgen. Het item wordt vanaf de incheckdag tot, maar niet inclusief, de uitcheckdag getoond. Bestaande verblijven zonder datum behouden hun oorspronkelijke, ééndaagse weergave.
+- Het bestaande documentmodel had al een koppeling met een planningonderdeel. Die koppeling is nu direct bruikbaar vanuit ieder bewerkbaar onderdeel en blijft naast daggebonden documenten bestaan.
+- Tijdens opslaan blokkeert de cockpit andere acties en toont de betreffende knop **Opslaan…**. Dit voorkomt dubbelklikken en dubbele onderdelen.
+- De teller heet nu **opties** en telt uitsluitend items met de status Optie. Geplande, maar nog niet bevestigde items worden dus niet meer als onduidelijk aandachtspunt geteld.
+- De dagkop gebruikt afkappen op kleine schermen, zodat een lange plaats of "Nog invullen" de datum niet meer overlapt.
+- Productiemigratie `20261014194555_add_planning_item_checkout_date.sql` is toegepast; de nullable datumkolom is in productie gecontroleerd en `npm run build` is geslaagd op 14 oktober 2026.
