@@ -17,6 +17,15 @@ function openAiMessage(status: number) {
   return "De AI-aanvraag werd niet geaccepteerd. Probeer het opnieuw; blijft dit zo, laat het ons weten.";
 }
 
+function outputText(result: { output_text?: unknown; output?: unknown }) {
+  if (typeof result.output_text === "string" && result.output_text.trim()) return result.output_text;
+  if (!Array.isArray(result.output)) return "";
+  return result.output.flatMap((item) => {
+    if (!item || typeof item !== "object" || !("content" in item) || !Array.isArray(item.content)) return [];
+    return item.content.flatMap((content: unknown) => content && typeof content === "object" && "text" in content && typeof content.text === "string" ? [content.text] : []);
+  }).join("");
+}
+
 const schema = {
   type: "object", additionalProperties: false,
   properties: {
@@ -64,9 +73,12 @@ export async function POST(request: Request) {
       console.error("OpenAI interview request failed", { status: response.status, category: "provider_rejected" });
       throw new InterviewError(openAiMessage(response.status), "provider_rejected");
     }
-    const result = await response.json() as { output_text?: string };
-    const answer = JSON.parse(result.output_text || "{}") as { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
-    if (typeof answer.reply !== "string" || !answer.reply.trim() || typeof answer.complete !== "boolean") throw new Error("Invalid OpenAI response");
+    const result = await response.json() as { output_text?: unknown; output?: unknown };
+    const rawAnswer = outputText(result);
+    if (!rawAnswer) throw new InterviewError("OpenAI gaf geen leesbaar antwoord terug. Probeer het opnieuw.", "empty_provider_output");
+    let answer: { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
+    try { answer = JSON.parse(rawAnswer); } catch { throw new InterviewError("OpenAI gaf een onvolledig antwoord terug. Probeer het opnieuw.", "invalid_provider_output"); }
+    if (typeof answer.reply !== "string" || !answer.reply.trim() || typeof answer.complete !== "boolean") throw new InterviewError("OpenAI gaf geen bruikbaar antwoord terug. Probeer het opnieuw.", "invalid_provider_output");
     const complete = payload.finish || answer.complete;
     const messages = [...payload.messages, { role: "assistant" as const, text: safeText(answer.reply, 2000) }];
     await supabase.from("day_interviews").upsert({ trip_day_id: day.id, messages, completed_at: complete ? new Date().toISOString() : null }, { onConflict: "trip_day_id" });
