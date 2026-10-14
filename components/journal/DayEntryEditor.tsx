@@ -165,7 +165,7 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
 
   return <div className="journal-editor">
     <section className="entry-form-card">
-      <div className="entry-form-heading"><div><p className="eyebrow blue">Dagverslag</p><h2>Wat maakte deze dag bijzonder?</h2></div><div><Link className="secondary-button" href="/app/today/interview">🎙 Vertel het</Link><button className="secondary-button" type="button" onClick={() => void saveEntry()} disabled={saving}>{saving ? "Opslaan…" : "Concept opslaan"}</button></div></div>
+      <div className="entry-form-heading"><div><p className="eyebrow blue">Dagverslag</p><h2>Wat maakte deze dag bijzonder?</h2></div><div className="entry-form-actions"><Link className="secondary-button" href={`/app/today/interview?day=${tripDayId}`}>🎙 Vertel het</Link><button className="secondary-button" type="button" onClick={() => void saveEntry()} disabled={saving}>{saving ? "Opslaan…" : "Concept opslaan"}</button></div></div>
       <label>Eigen titel<input value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} placeholder="Bijvoorbeeld: Stilte boven de wolken" /></label>
       <label>Waar waren jullie?<input value={actualLocation} maxLength={160} onChange={(event) => setActualLocation(event.target.value)} placeholder={plannedLocation || "Plaats of gebied"} /></label>
       <label>Het verslag<textarea value={body} maxLength={20_000} onChange={(event) => setBody(event.target.value)} placeholder="Schrijf hier vrijuit wat er gebeurde, wat je zag en hoe het voelde…" rows={11} /></label>

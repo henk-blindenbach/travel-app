@@ -967,6 +967,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - De app heet op het beginscherm **Nós ✈️** en start na installatie rechtstreeks op **Vandaag**.
 - Manifest, standalone-weergave, iPhone-touch-icon en openingskleur zijn toegevoegd. Offline gebruik en offline uploads zijn bewust nog niet gebouwd.
 - Het persoonlijke reisicoon is bijgesneden zodat de witte buitenmarge niet meer op het beginscherm verschijnt.
+- Het dagverslag en interview zijn mobiel hersteld: acties stapelen netjes op iPhone, het interview blijft bij de gekozen reisdag en spraakinvoer kan veilig stoppen of een begrijpelijke foutmelding tonen.
 
 ### Afgerond
 
