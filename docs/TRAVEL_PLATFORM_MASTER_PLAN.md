@@ -1211,3 +1211,20 @@ Bewust buiten deze stap: import, visa/verzekering als aparte planningssoort, pas
 - De bewerkeditor houdt de invoer compact per type: vlucht toont tijden en ticketgegevens; verblijf toont uitcheckdatum en contactgegevens; vervoer en activiteit tonen tijd en boekingsnummer. Bedrag, valuta en betaalstatus zijn beschikbaar waar passend.
 - Bestaande titels, locaties, notities, documenten en uitcheckdatums zijn ongewijzigd gebleven; lege nieuwe velden zijn bewust optioneel.
 - Productiemigratie `20261014194941_add_planning_booking_fields.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.
+
+### Bouwafspraak — rijkere activiteiten, dagnotities en flexibele documentkoppeling (14 oktober 2026)
+
+- Activiteiten krijgen optionele, gestructureerde velden voor duur in minuten en hoogte in meters. Elk planningonderdeel kan daarnaast afzonderlijk als **optioneel** worden gemarkeerd, los van de boekingsstatus.
+- Dagnotities krijgen een eigen, herkenbare ingang vanuit iedere dagregel; de bestaande privé-notitie blijft de ene plek voor algemene zaken zoals gids, maaltijden en losse aandachtspunten.
+- Bij uploaden vanuit een planningonderdeel kan de gebruiker zelf het documenttype kiezen en bepalen of het document bij dat onderdeel of algemeen bij die reisdag hoort.
+- De editor blijft na het opslaan open, met een bevestiging, zodat uploaden of een tweede aanvulling direct kan volgen.
+
+Bewust buiten deze stap: meerdere directe koppelingen van één document aan verschillende onderdelen, bulk-upload, documentextractie, import en een nieuw reisbudget- of openpuntenoverzicht.
+
+### Afgerond — rijkere activiteiten, dagnotities en flexibele documentkoppeling (14 oktober 2026)
+
+- Activiteiten kunnen nu een duur in minuten en hoogte in meters hebben. De gegevens staan zichtbaar in het activiteitenvak, zodat meerdere stops niet meer in één vrije notitie hoeven.
+- **Optioneel onderdeel** is een afzonderlijke keuze, naast Optie/Gepland/Bevestigd. Bedrag, valuta en betaalstatus zijn bij alle planningsonderdelen beschikbaar en worden in het overzicht getoond zodra zij zijn ingevuld.
+- Iedere dagregel toont nu duidelijk **+ dagnotitie** of **📝 Dagnotitie**. De uitklapbare dageditor legt ook uit dat dit de plek is voor gids, maaltijden en algemene afspraken; deze bestaande gegevens blijven privé.
+- Vanuit de editor is documenttype vrij te kiezen. Een document kan aan het geopende onderdeel óf algemeen aan de reisdag worden gekoppeld. Na opslaan blijft de editor open, zodat uploaden direct daarna kan plaatsvinden.
+- Productiemigratie `20261014195504_add_activity_planning_details.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026. De beveiligingsscan toont uitsluitend de drie al bekende waarschuwingen over `rls_auto_enable()` en gelekte-wachtwoordbescherming.
