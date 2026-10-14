@@ -1194,3 +1194,20 @@ Bewust buiten deze stap: spreadsheet-/tekstimport, kopiëren naar volgende dagen
 - De teller heet nu **opties** en telt uitsluitend items met de status Optie. Geplande, maar nog niet bevestigde items worden dus niet meer als onduidelijk aandachtspunt geteld.
 - De dagkop gebruikt afkappen op kleine schermen, zodat een lange plaats of "Nog invullen" de datum niet meer overlapt.
 - Productiemigratie `20261014194555_add_planning_item_checkout_date.sql` is toegepast; de nullable datumkolom is in productie gecontroleerd en `npm run build` is geslaagd op 14 oktober 2026.
+
+### Bouwafspraak — boekingsvelden per planningtype en menuherstel (14 oktober 2026)
+
+- Het reis-submenu krijgt een eigen verticale container, zodat alle onderdelen onder de gekozen reis staan en niet naast elkaar kunnen vloeien.
+- Privé planningitems krijgen optionele, gestructureerde velden: boekingsnummer, ticketnummer, vertrek- en aankomsttijd, adres, telefoon, bedrag, valuta en betaalstatus.
+- De editor toont alleen de passende velden: vlucht gebruikt tijd- en ticketvelden; verblijf gebruikt contact-, prijs- en betaalvelden; vervoer en activiteit gebruiken tijd, boekingsnummer en prijs/betaalstatus.
+- Bestaande vrije notities, titel, locatie en uitcheckdatum blijven bewaard. Er worden geen gegevens uit bestaande notities gemigreerd of afgeleid.
+
+Bewust buiten deze stap: import, visa/verzekering als aparte planningssoort, paspoort- en loyaliteitsgegevens, budgetoverzicht, openpuntenlijst en publieke velden.
+
+### Afgerond — boekingsvelden per planningtype en menuherstel (14 oktober 2026)
+
+- Het submenu binnen **Reis** heeft nu per gekozen reis een eigen verticale navigatiecontainer. De vaste onderdelen en ingeklapte reisdagen kunnen daardoor niet meer naast elkaar doorlopen.
+- Een planningonderdeel kan nu optioneel een boekingsnummer, ticketnummer, vertrek- en aankomsttijd, adres, telefoonnummer, bedrag, drieletter-valuta en betaalstatus bewaren. Alle gegevens blijven privé binnen de ingelogde reiswerkplek.
+- De bewerkeditor houdt de invoer compact per type: vlucht toont tijden en ticketgegevens; verblijf toont uitcheckdatum en contactgegevens; vervoer en activiteit tonen tijd en boekingsnummer. Bedrag, valuta en betaalstatus zijn beschikbaar waar passend.
+- Bestaande titels, locaties, notities, documenten en uitcheckdatums zijn ongewijzigd gebleven; lege nieuwe velden zijn bewust optioneel.
+- Productiemigratie `20261014194941_add_planning_booking_fields.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.
