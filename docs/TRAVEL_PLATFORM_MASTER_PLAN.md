@@ -1100,3 +1100,10 @@ Bewust buiten deze stap: reizen verwijderen of dupliceren, reisgenoten uitnodige
 - Een dagverslag draagt voortaan zijn reis-id, dagnummer en datum als publicatiegegevens. Daardoor kunnen openbare tijdlijnen en dagposts uitsluitend gepubliceerde verslagen lezen, zonder de private planningstabel te raadplegen.
 - Bestaande verslagen zijn met hun oorspronkelijke reisdag aangevuld. Nieuwe verslagen vullen deze gegevens bij het opslaan automatisch en gecontroleerd in.
 - Productiemigratie `20261014133836_decouple_public_entries_from_trip_days.sql` is toegepast. RLS-test: Henk ziet 37 Nepal-reisdagen; een anonieme lezer heeft geen toegang tot `trip_days`. Er zijn nu geen gepubliceerde dagverslagen zichtbaar, zoals verwacht.
+
+### Bouwafspraak — één planningscockpit (14 oktober 2026)
+
+- De dubbele combinatie van reisoverzicht en losse dagplanner wordt vervangen door één interactieve tabel: per rij één reisdag en per kolom vlucht, verblijf, vervoer of activiteit.
+- Een lege cel is een uitnodiging om precies dat onderdeel toe te voegen. Optie, gepland en **✓ bevestigd** blijven zichtbaar in dezelfde cel; een passend opgeslagen document verschijnt als subtiele documentvermelding.
+- Boven de tabel staan compacte cijfers en filters voor alles, open acties en de vier categorieën. Het aandachtgetal combineert nog niet bevestigde onderdelen met dagen waar een plaats is ingevuld maar geen verblijf bestaat.
+- Daggegevens, notities en documenten verschijnen alleen in een uitklapbaar dagdetail. Daardoor bestaat er nog maar één reisoverzicht en synchroniseert een nieuwe vlucht of reservering direct met de rij erboven.
