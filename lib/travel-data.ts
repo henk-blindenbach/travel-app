@@ -32,7 +32,7 @@ export async function getPrivateTrips() {
   if (!hasSupabaseEnv()) return [{ ...fallbackTrip, days: fallbackDays }];
   try {
     const supabase = await createClient();
-    const { data: trips, error } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,travelers,departure_location,summary,status").order("starts_on", { ascending: false });
+    const { data: trips, error } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,travelers,departure_location,summary,status").order("starts_on", { ascending: true });
     if (error || !trips?.length) return [];
     const { data: days } = await supabase.from("trip_days").select("id,trip_id,day_number,day_date,title,planned_location").in("trip_id", trips.map((trip) => trip.id)).order("day_number");
     return trips.map((trip) => ({ ...trip, days: (days || []).filter((day) => day.trip_id === trip.id).map((day) => ({ id: day.id, day_number: day.day_number, day_date: day.day_date, title: day.title, planned_location: day.planned_location })) })) as PrivateTripMenu[];
