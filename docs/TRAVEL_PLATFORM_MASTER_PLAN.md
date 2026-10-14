@@ -1156,3 +1156,21 @@ Bewust buiten deze stap: uitnodigingen of rollen voor reisgenoten, bewerken/verw
 ### Bestaande beveiligingssignalen buiten deze bouwstap
 
 - Supabase meldt nog steeds dat `public.rls_auto_enable()` als publiek uitvoerbare `SECURITY DEFINER`-functie beschikbaar is en dat gelekte-wachtwoordbescherming uit staat. Beide instellingen bestonden vóór deze wijziging en zijn niet aangepast; ze vragen om een afzonderlijke, expliciet goedgekeurde beveiligingsstap.
+
+### Bouwafspraak — gedeelde privéwerkplek voor ingelogde reisgenoten (14 oktober 2026)
+
+- Henk en Michel werken als kleine, vertrouwde groep. Iedere ingelogde gebruiker kan daarom alle **private** reizen, reisdagen, planning, documenten, verslagen en foto-metadata lezen en bewerken; de kwetsbare lidmaatschapsketen is geen toegangsvoorwaarde meer.
+- De eerste reis krijgt geen verplichte `trip_members`-regel meer. Daardoor kan de reis met reisdagen in één directe flow worden aangemaakt, zonder de RLS-fout bij de accountkoppeling.
+- Supabase Storage blijft privé. Alleen ingelogde gebruikers kunnen de bestaande document- en webfoto-buckets benaderen; anonieme bezoekers behouden uitsluitend de expliciet gepubliceerde verhalen en geselecteerde webfoto’s.
+- De datumvelden accepteren ook acht cijfers, bijvoorbeeld `03122026`, en zetten die tijdens het typen om naar `03-12-2026`.
+
+Bewust buiten deze stap: publieke schrijf- of documenttoegang, open registratie, een account- of uitnodigbeheer, en het openbaar maken van originelen.
+
+### Afgerond — gedeelde privéwerkplek voor ingelogde reisgenoten (14 oktober 2026)
+
+- De accountkoppelingsfout bij de eerste reis was veroorzaakt door de verplichte `trip_members`-RLS-keten. De API maakt nu direct de reis en haar reisdagen aan; een lidmaatschapsrecord is niet langer nodig voor de dagelijkse werking.
+- Alle private reistabellen — reizen, reisdagen, planning, documenten, dagverslagen, interviews en foto-metadata — gebruiken nu directe toegang voor de rol `authenticated`. Henk en Michel zien en bewerken dus dezelfde werkplek zodra zij zijn ingelogd.
+- De privé-buckets `trip-documents` en `trip-web-images` zijn op dezelfde manier alleen voor ingelogde gebruikers toegankelijk. De buckets zelf en de originelen blijven niet-publiek; anonieme toegang bestaat alleen voor reeds gepubliceerde verhalen en expliciet geselecteerde webfoto’s.
+- Een teruggedraaide productietest onder Henks account kon een nieuwe reis én eerste lidmaatschapsregel direct maken (`created_memberships: 1`) zonder gegevens achter te laten. Daarmee is de oorspronkelijke RLS-blokkade concreet geverifieerd.
+- Datumvelden zetten acht cijfers tijdens invoer om naar het Nederlandse formaat: `03122026` wordt `03-12-2026`.
+- Productiemigratie `20261014193205_simplify_authenticated_trip_access.sql` is toegepast en `npm run build` is geslaagd op 14 oktober 2026.

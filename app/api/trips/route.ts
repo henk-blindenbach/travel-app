@@ -26,11 +26,6 @@ export async function POST(request: Request) {
     const tripId = crypto.randomUUID();
     const { error: tripError } = await supabase.from("trips").insert({ id: tripId, title, slug, starts_on: startsOn, ends_on: endsOn, countries, travelers, departure_location: departureLocation, summary: safeText(payload.summary, 1000) || null, status, visibility: "private", created_by: user.id });
     if (tripError) return NextResponse.json({ error: "De reis kon niet worden opgeslagen. Probeer een andere naam of neem contact op als dit blijft gebeuren." }, { status: 400 });
-    const { error: membershipError } = await supabase.from("trip_members").insert({ trip_id: tripId, user_id: user.id, role: "owner" });
-    if (membershipError) {
-      await supabase.from("trips").delete().eq("id", tripId);
-      return NextResponse.json({ error: "De reis kon niet aan jouw account worden gekoppeld. Er is niets opgeslagen." }, { status: 500 });
-    }
     const start = new Date(`${startsOn}T12:00:00Z`); const end = new Date(`${endsOn}T12:00:00Z`); const days = [];
     for (let date = new Date(start), number = 1; date <= end; date.setUTCDate(date.getUTCDate() + 1), number += 1) days.push({ trip_id: tripId, day_number: number, day_date: date.toISOString().slice(0, 10) });
     const { error: daysError } = await supabase.from("trip_days").insert(days);

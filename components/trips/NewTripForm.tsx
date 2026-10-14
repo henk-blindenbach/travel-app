@@ -11,6 +11,13 @@ function parseDutchDate(value: string) {
   return `${year}-${month}-${day}`;
 }
 
+function formatDutchDate(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+}
+
 async function responseJson(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "Er ging iets mis.");
@@ -63,8 +70,8 @@ export function NewTripForm() {
     <label>Vertrekplaats<input name="departureLocation" maxLength={200} placeholder="Bijvoorbeeld: Lissabon" /></label>
     <label>Landen of bestemmingen<input name="countries" maxLength={300} placeholder="Japan, Zuid-Korea" /><small>Scheid meerdere namen met een komma.</small></label>
     <div className="trip-date-fields">
-      <label>Vertrek<input required aria-invalid={Boolean(startsOn && !parseDutchDate(startsOn))} autoComplete="off" inputMode="numeric" maxLength={10} name="startsOn" onChange={(event) => setStartsOn(event.target.value)} placeholder="dd-mm-jjjj" type="text" value={startsOn} /></label>
-      <label>Terug<input required aria-invalid={Boolean(endsOn && !parseDutchDate(endsOn))} autoComplete="off" inputMode="numeric" maxLength={10} name="endsOn" onChange={(event) => setEndsOn(event.target.value)} placeholder="dd-mm-jjjj" type="text" value={endsOn} /></label>
+      <label>Vertrek<input required aria-invalid={Boolean(startsOn && !parseDutchDate(startsOn))} autoComplete="off" inputMode="numeric" maxLength={10} name="startsOn" onChange={(event) => setStartsOn(formatDutchDate(event.target.value))} placeholder="dd-mm-jjjj" type="text" value={startsOn} /></label>
+      <label>Terug<input required aria-invalid={Boolean(endsOn && !parseDutchDate(endsOn))} autoComplete="off" inputMode="numeric" maxLength={10} name="endsOn" onChange={(event) => setEndsOn(formatDutchDate(event.target.value))} placeholder="dd-mm-jjjj" type="text" value={endsOn} /></label>
     </div>
     <label>Fase<select name="status" defaultValue="planning"><option value="idea">Idee</option><option value="planning">Voorbereiden</option><option value="booked">Geboekt</option></select></label>
     <label>Korte omschrijving <textarea name="summary" maxLength={1000} rows={4} placeholder="Waar kijken jullie naar uit?" /></label>
