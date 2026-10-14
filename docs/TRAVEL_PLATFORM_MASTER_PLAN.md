@@ -971,6 +971,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Het interview toont de eerste en vervolgvragen zichtbaar, scrolt naar nieuwe antwoorden, heeft een veilige herstelactie bij een trage AI-reactie en kan op ieder moment via **Maak dagverslag** worden afgerond tot een bewerkbaar concept.
 - De AI-aanroep is begrensd voor een snel mobiel gesprek en meldt sleutel-, limiet- en tijdelijke providerproblemen begrijpelijk, zonder gevoelige gegevens te tonen of te loggen.
 - De verwerking accepteert zowel de samengevatte als de bericht-gebaseerde Responses-uitvoer van OpenAI en onderscheidt een leeg of onvolledig AI-antwoord veilig van overige storingen.
+- Een afgerond interview maakt een bewerkbaar, publiceerbaar opgesteld dagverslag in de wij-vorm met kopjes en alinea's. Het eindscherm toont uitsluitend een duidelijke knop naar het concept; de content blijft privé tot een latere expliciete publicatie.
 
 ### Afgerond
 
