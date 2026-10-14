@@ -17,6 +17,7 @@ type Asset = {
   original_filename: string;
   caption: string;
   sort_order: number;
+  is_public?: boolean;
   upload_status: "uploading" | "processing" | "ready" | "failed";
 };
 
@@ -136,6 +137,27 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
     }
   }
 
+  async function setPublic(assetId: string, isPublic: boolean) {
+    try {
+      const data = await responseJson(await fetch(`/api/media/${assetId}/web-url`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isPublic }) }));
+      setAssets((current) => current.map((asset) => asset.id === assetId ? { ...asset, is_public: data.asset.is_public } : asset));
+    } catch { setMessage("De publicatiefotokeuze kon niet worden opgeslagen."); }
+  }
+
+  async function savePhotosToLibrary() {
+    const selected = assets.filter((asset) => asset.is_public && asset.upload_status === "ready");
+    if (!selected.length) { setMessage("Kies eerst minstens één foto voor publicatie."); return; }
+    try {
+      const files = await Promise.all(selected.map(async (asset) => {
+        const response = await fetch(`/api/media/${asset.id}/original`);
+        if (!response.ok) throw new Error();
+        return new File([await response.blob()], asset.original_filename, { type: response.headers.get("Content-Type") || "image/jpeg" });
+      }));
+      if (navigator.canShare?.({ files }) && navigator.share) await navigator.share({ files, title: dayTitle });
+      else { files.forEach((file) => { const link = document.createElement("a"); link.href = URL.createObjectURL(file); link.download = file.name; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1_000); }); }
+    } catch { setMessage("De geselecteerde foto’s konden niet worden klaargezet."); }
+  }
+
   async function movePhoto(index: number, direction: -1 | 1) {
     const destination = index + direction;
     if (destination < 0 || destination >= assets.length) return;
@@ -204,12 +226,13 @@ export function DayEntryEditor({ tripDayId, dayTitle, plannedLocation, initialEn
           <label className="photo-caption-label">Bijschrift<input defaultValue={asset.caption} maxLength={500} placeholder="Wat zie je op deze foto?" onBlur={(event) => {
             if (event.target.value.trim() !== asset.caption) void saveCaption(asset.id, event.target.value);
           }} /></label>
+          <label className="photo-caption-label"><input type="checkbox" checked={Boolean(asset.is_public)} onChange={(event) => void setPublic(asset.id, event.target.checked)} /> Gebruik voor publicatie en social</label>
         </figcaption>
       </figure>)}</div> : <button className="photo-dropzone" type="button" onClick={() => inputRef.current?.click()}><b>+</b><span>Kies foto’s van vandaag</span><small>HEIC is welkom</small></button>}
     </section>
     <section className="entry-photos-card"><div className="entry-form-heading"><div><p className="eyebrow blue">Publicatie</p><h2>Klaar om te delen?</h2></div><button className="secondary-button" type="button" onClick={() => void makeCaptions()} disabled={saving}>{saving ? "Even geduld…" : "Maak captions"}</button></div>
       {([ ["Instagram", captions.instagram], ["Facebook", captions.facebook], ["Polarsteps", captions.polarsteps] ] as const).map(([name, caption]) => caption && <div className="social-caption" key={name}><b>{name}</b><p>{caption}</p><button className="text-button" type="button" onClick={() => void copy(caption)}>Kopieer caption</button></div>)}
-      <button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing}>{publishing ? "Publiceren…" : "Publiceer dag"}</button>
+      <button className="secondary-button" type="button" onClick={() => void savePhotosToLibrary()}>Bewaar geselecteerde foto’s</button><button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing}>{publishing ? "Publiceren…" : "Publiceer dag"}</button>
     </section>
   </div>;
 }
