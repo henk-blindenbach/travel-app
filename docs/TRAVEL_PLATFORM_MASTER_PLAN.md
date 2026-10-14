@@ -1,5 +1,10 @@
 # Travel Platform - Master Plan
 
+## Afgerond — detail bij de geselecteerde reisdag
+
+- Het detailpaneel voor een reisdag klapt nu meteen onder de aangeklikte dagrij open, in plaats van pas onderaan het volledige planningsoverzicht.
+- De daggegevens, gekoppelde documenten en bewerkingsmogelijkheden blijven ongewijzigd.
+
 **Status:** Living document / master plan  
 **Eerste concrete reis:** Nepal - Tibet - Bhutan - India, 2026  
 **Gebruikers:** Henk & Michel  
