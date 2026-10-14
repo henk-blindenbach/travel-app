@@ -1066,3 +1066,20 @@ Bewust buiten deze stap: OCR, e-mailimport, automatische Excel-import, documentb
 - Een Mac kan een PDF afhankelijk van de bron als generiek bestandstype doorgeven. De upload herkent ondersteunde bestanden daarom gecontroleerd aan zowel extensie als MIME-type en geeft het correcte type mee aan de private opslag.
 - Naast documenten per reisdag bestaat er nu `/app/documents`: een centrale, privé bibliotheek voor de hele reis. Een bestand kan daar aan een reisdag worden gekoppeld of bewust als reisdocument zonder dag worden bewaard.
 - De bibliotheek filtert op documenttype en reisdag. De dagweergave blijft voor het snelle gebruik onderweg bestaan en linkt door naar het volledige overzicht.
+
+### Bouwafspraak reisstructuur — vooraf vastgelegd (14 oktober 2026)
+
+- De besloten app wordt reisgericht: iedere planner-, document- en volgende verslagpagina krijgt expliciet de gekozen reis in de URL en dataquery mee.
+- **Reis** opent op desktop een uitklapbare navigatie met alle toegankelijke reizen, de onderdelen Plan de reis, Documenten, Reisverslag, Foto’s en Publiceren, plus bovenaan **Nieuwe reis**.
+- Een nieuwe reis vraagt alleen titel, landen/bestemmingen, datums, fase en een optionele korte omschrijving. Zij start altijd privé, krijgt de maker als eigenaar en maakt lege reisdagen voor de volledige periode aan.
+- De bestaande reis blijft intact. Mobiel blijft de knop **Reis** naar een duidelijk reisoverzicht leiden; een diepe uitklapnavigatie past daar niet goed.
+
+Bewust buiten deze stap: reizen verwijderen of dupliceren, reisgenoten uitnodigen/beheren, wijzigingen aan openbare zichtbaarheid en inhoudelijke planning per nieuwe reis.
+
+### Afgerond — privé reisstructuur (14 oktober 2026)
+
+- `/app/trips` is het besloten overzicht van alle toegankelijke reizen, met fase, periode, bestemming en directe ingangen naar de reisonderdelen.
+- De desktopnavigatie onder **Reis** is inklapbaar: bovenaan staat **Nieuwe reis**, daarna iedere reis met de vaste subpagina’s Plan de reis, Documenten, Reisverslag, Foto’s en Publiceren. Op mobiel opent **Reis** het overzicht.
+- Een nieuwe reis wordt standaard privé aangemaakt. De maker wordt eigenaar en de app maakt voor de volledige reisperiode meteen de lege reisdagen aan.
+- Planner en documentkluis hebben nu een expliciete reisroute (`/app/trips/[reis-id]/plan` en `/app/trips/[reis-id]/documents`); gegevens van verschillende reizen lopen daardoor niet door elkaar.
+- Productiemigratie `20261014131749_allow_private_trip_creation.sql` is toegepast. De drie benodigde RLS-creatiepolicies en de maker-kolom zijn in productie gecontroleerd; `npm run build` is geslaagd.

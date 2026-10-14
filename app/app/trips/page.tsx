@@ -1,21 +1,9 @@
+import Link from "next/link";
 import { AppShell } from "../../../components/AppShell";
-import { TripPlanner } from "../../../components/planner/TripPlanner";
-import { getFeaturedTrip } from "../../../lib/travel-data";
-import { createClient, hasSupabaseEnv } from "../../../lib/supabase/server";
+import { getPrivateTrips } from "../../../lib/travel-data";
 
+const statusLabels: Record<string, string> = { idea: "Idee", planning: "Voorbereiden", booked: "Geboekt", travelling: "Onderweg", completed: "Afgerond", archived: "Archief" };
 export default async function Trips() {
-  const { trip, days } = await getFeaturedTrip();
-  let items: never[] = [];
-  let documents: never[] = [];
-  if (hasSupabaseEnv()) {
-    try {
-      const supabase = await createClient();
-      const [itemResult, documentResult] = await Promise.all([
-        supabase.from("planning_items").select("id,trip_day_id,kind,status,title,details,location,starts_at,sort_order").eq("trip_id", trip.id).order("sort_order"),
-        supabase.from("trip_documents").select("id,trip_day_id,document_type,title,original_filename,upload_status").eq("trip_id", trip.id).eq("upload_status", "ready").order("created_at", { ascending: false }),
-      ]);
-      items = (itemResult.data || []) as never[]; documents = (documentResult.data || []) as never[];
-    } catch { /* First deploy stays readable until the migration is live. */ }
-  }
-  return <AppShell active="trips"><div className="planner-page"><p className="eyebrow blue">Reisplanner</p><h1>{trip.title}</h1><p className="journal-intro">Michel plant hier de reis. Jullie vinden onderweg per dag de praktische informatie en documenten terug.</p><TripPlanner tripId={trip.id} days={days} initialItems={items} initialDocuments={documents} /></div></AppShell>;
+  const trips = await getPrivateTrips();
+  return <AppShell active="trips"><div className="planner-page trip-overview"><div className="trip-overview-heading"><div><p className="eyebrow blue">Jullie reizen</p><h1>Alles per reis bij elkaar.</h1><p className="journal-intro">Plan, praktische documenten, verslagen en foto’s blijven altijd bij de juiste reis.</p></div><Link className="primary-button blue-button" href="/app/trips/new">+ Nieuwe reis</Link></div>{trips.length ? <div className="trip-overview-grid">{trips.map((trip) => <article className="trip-overview-card" key={trip.id}><span className={`trip-state ${trip.status}`}>{statusLabels[trip.status || "planning"] || "Voorbereiden"}</span><h2>{trip.title}</h2><p>{new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${trip.starts_on}T12:00:00`))} — {new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${trip.ends_on}T12:00:00`))}</p><small>{trip.countries?.join(" · ") || "Bestemming nog toevoegen"}</small><nav><Link href={`/app/trips/${trip.id}/plan`}>Plan de reis</Link><Link href={`/app/trips/${trip.id}/documents`}>Documenten</Link><Link href={`/app/trips/${trip.id}/journal`}>Reisverslag</Link><Link href={`/app/trips/${trip.id}/photos`}>Foto’s</Link></nav></article>)}</div> : <section className="planner-card"><h2>Nog geen reizen</h2><p className="journal-intro">Maak jullie eerste reis aan. Alle gegevens blijven standaard privé.</p><Link className="primary-button blue-button" href="/app/trips/new">Nieuwe reis aanmaken</Link></section>}</div></AppShell>;
 }
