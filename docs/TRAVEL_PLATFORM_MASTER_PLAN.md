@@ -968,6 +968,7 @@ Codex mag de mockups gebruiken voor sfeer, hiërarchie, fotografiegebruik, kaart
 - Manifest, standalone-weergave, iPhone-touch-icon en openingskleur zijn toegevoegd. Offline gebruik en offline uploads zijn bewust nog niet gebouwd.
 - Het persoonlijke reisicoon is bijgesneden zodat de witte buitenmarge niet meer op het beginscherm verschijnt.
 - Het dagverslag en interview zijn mobiel hersteld: acties stapelen netjes op iPhone, het interview blijft bij de gekozen reisdag en spraakinvoer kan veilig stoppen of een begrijpelijke foutmelding tonen.
+- Het interview toont de eerste en vervolgvragen zichtbaar, scrolt naar nieuwe antwoorden, heeft een veilige herstelactie bij een trage AI-reactie en kan op ieder moment via **Maak dagverslag** worden afgerond tot een bewerkbaar concept.
 
 ### Afgerond
 

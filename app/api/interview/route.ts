@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
     const payload = await request.json();
-    if (!validUuid(payload.tripDayId) || !validMessages(payload.messages)) return NextResponse.json({ error: "Ongeldig interview." }, { status: 400 });
+    if (!validUuid(payload.tripDayId) || !validMessages(payload.messages) || (payload.finish !== undefined && typeof payload.finish !== "boolean")) return NextResponse.json({ error: "Ongeldig interview." }, { status: 400 });
 
     const { data: day } = await supabase.from("trip_days")
       .select("id,title,planned_location,planned_route,day_number,day_date,day_entries(id,title,actual_location,body,media_assets(original_filename,caption,captured_at))")
@@ -44,20 +44,22 @@ export async function POST(request: Request) {
       currentDraft: entry ? { title: entry.title, location: entry.actual_location, body: entry.body } : null,
       photos: entry?.media_assets?.map((asset) => ({ filename: asset.original_filename, caption: asset.caption, capturedAt: asset.captured_at })) || [],
     });
-    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijke private concepttitel, locatie en volledig verhaal. Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
+    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijke private concepttitel, locatie en volledig verhaal. ${payload.finish ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is." : ""} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-5-mini", input: prompt, text: { format: { type: "json_schema", name: "travel_interview", strict: true, schema } } }),
+      body: JSON.stringify({ model: "gpt-5-mini", input: prompt, text: { format: { type: "json_schema", name: "travel_interview", strict: true, schema } } }), signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) throw new Error("OpenAI request failed");
     const result = await response.json() as { output_text?: string };
     const answer = JSON.parse(result.output_text || "{}") as { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
+    if (typeof answer.reply !== "string" || !answer.reply.trim() || typeof answer.complete !== "boolean") throw new Error("Invalid OpenAI response");
+    const complete = payload.finish || answer.complete;
     const messages = [...payload.messages, { role: "assistant" as const, text: safeText(answer.reply, 2000) }];
-    await supabase.from("day_interviews").upsert({ trip_day_id: day.id, messages, completed_at: answer.complete ? new Date().toISOString() : null }, { onConflict: "trip_day_id" });
-    if (answer.complete) {
+    await supabase.from("day_interviews").upsert({ trip_day_id: day.id, messages, completed_at: complete ? new Date().toISOString() : null }, { onConflict: "trip_day_id" });
+    if (complete) {
       await supabase.from("day_entries").upsert({ trip_day_id: day.id, title: safeText(answer.title, 160), actual_location: safeText(answer.actualLocation, 160), body: safeText(answer.body, 20_000) }, { onConflict: "trip_day_id" });
     }
-    return NextResponse.json({ reply: messages.at(-1)?.text, complete: answer.complete });
+    return NextResponse.json({ reply: messages.at(-1)?.text, complete });
   } catch {
     return NextResponse.json({ error: "Het interview kon nu niet worden verwerkt. Probeer het opnieuw." }, { status: 500 });
   }

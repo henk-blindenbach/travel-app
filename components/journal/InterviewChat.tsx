@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type Message = { role: "assistant" | "user"; text: string };
 type Props = { tripDayId: string; initialQuestion: string };
@@ -12,8 +13,11 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
   const [complete, setComplete] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceMessage, setVoiceMessage] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [retryAttempt, setRetryAttempt] = useState<{ messages: Message[]; finish: boolean } | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const newestMessageRef = useRef<HTMLDivElement>(null);
 
   function stopListening() {
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
@@ -27,15 +31,41 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
     recognitionRef.current?.stop();
   }, []);
 
-  async function send(text = draft) {
-    const clean = text.trim(); if (!clean || busy || complete) return;
-    const next = [...messages, { role: "user" as const, text: clean }]; setMessages(next); setDraft(""); setBusy(true);
+  useEffect(() => { newestMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [busy, complete, messages]);
+
+  async function submit(next: Message[], finish: boolean) {
+    if (busy || complete) return;
+    setBusy(true);
+    setRequestError("");
+    setRetryAttempt(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 35_000);
     try {
-      const response = await fetch("/api/interview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tripDayId, messages: next }) });
+      const response = await fetch("/api/interview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tripDayId, messages: next, finish }), signal: controller.signal });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
+      if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("Er kwam geen vraag terug.");
       setMessages((current) => [...current, { role: "assistant", text: data.reply }]); setComplete(data.complete);
-    } catch (error) { setMessages((current) => [...current, { role: "assistant", text: error instanceof Error ? error.message : "Probeer het nog eens." }]); }
-    finally { setBusy(false); }
+    } catch (error) {
+      setRequestError(error instanceof DOMException && error.name === "AbortError" ? "Dit duurt langer dan normaal. Probeer het opnieuw." : error instanceof Error ? error.message : "Het antwoord kon niet worden opgehaald.");
+      setRetryAttempt({ messages: next, finish });
+    } finally { window.clearTimeout(timeout); setBusy(false); }
+  }
+
+  async function send() {
+    const clean = draft.trim(); if (!clean || busy || complete) return;
+    const next = [...messages, { role: "user" as const, text: clean }];
+    setMessages(next);
+    setDraft("");
+    await submit(next, false);
+  }
+
+  async function finishInterview() {
+    if (busy || complete) return;
+    if (!messages.some((message) => message.role === "user")) {
+      setRequestError("Vertel eerst iets over jullie dag; daarna kan Nós er een verslag van maken.");
+      return;
+    }
+    await submit(messages, true);
   }
 
   function dictate() {
@@ -67,9 +97,10 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
     try { recognition.start(); } catch { stopListening(); setVoiceMessage("De spraakopname kon niet starten. Probeer het nog eens of typ je antwoord."); }
   }
 
-  return <div className="chat">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`chat-bubble ${message.role}`}><p>{message.text}</p></div>)}
+  return <div className="chat">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`chat-bubble ${message.role}`}><p>{message.role === "assistant" && index === 0 ? "Vraag 1 · " : ""}{message.text}</p></div>)}
     {busy && <div className="chat-bubble assistant"><p>Even luisteren en ordenen…</p></div>}
-    {complete ? <p className="form-message">Conceptdagverslag gemaakt. Je kunt het nu in je dagverslag bekijken en aanpassen.</p> : <div className="interview-compose"><textarea value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Vertel het gewoon zoals je het zou zeggen…" rows={3}/>{voiceMessage && <p className="voice-message" role="status">{voiceMessage}</p>}<div><button type="button" className="secondary-button" onClick={dictate}>{listening ? "Opname stoppen" : "🎙 Vertellen"}</button><button type="button" className="primary-button blue-button" onClick={() => void send()} disabled={busy}>Verder →</button></div></div>}</div>;
+    <div ref={newestMessageRef}/>
+    {complete ? <p className="form-message">Conceptdagverslag gemaakt. <Link href={`/app/journal/${tripDayId}`}>Open en pas het verslag aan →</Link></p> : <div className="interview-compose"><textarea value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Vertel het gewoon zoals je het zou zeggen…" rows={3}/>{voiceMessage && <p className="voice-message" role="status">{voiceMessage}</p>}{requestError && <p className="voice-message" role="alert">{requestError} {retryAttempt && <button type="button" className="text-button" onClick={() => void submit(retryAttempt.messages, retryAttempt.finish)}>Opnieuw proberen</button>}</p>}<div><button type="button" className="secondary-button" onClick={dictate}>{listening ? "Opname stoppen" : "🎙 Vertellen"}</button><button type="button" className="primary-button blue-button" onClick={() => void send()} disabled={busy || !draft.trim()}>Stuur antwoord</button></div><button type="button" className="finish-button" onClick={() => void finishInterview()} disabled={busy}>Maak dagverslag met wat ik al vertelde →</button></div>}</div>;
 }
 
 declare global { interface Window { SpeechRecognition?: new () => SpeechRecognition; webkitSpeechRecognition?: new () => SpeechRecognition; } }
