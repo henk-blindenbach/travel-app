@@ -1326,3 +1326,19 @@ Bewust buiten deze stap: nieuwe foto-uploadregels, databasewijzigingen, routekaa
 - De homepage heeft een warmere, gelaagde hero, rustiger typografische hiërarchie, beweeglijke maar gereduceerd-beweging-veilige kaarten en heldere blokken voor verhalen, komende reizen en het reisarchief.
 - Wanneer er een geselecteerde foto bij een gepubliceerd dagverhaal bestaat, kan alleen die al-openbare WebP als hero-achtergrond worden gebruikt. Zonder foto blijft de hero abstract; privédocumenten, originelen en niet-gepubliceerde foto’s worden niet opgevraagd.
 - `npm run build` en `git diff --check` zijn geslaagd. Er is geen gedrag in `/app/*` gewijzigd.
+
+### Bouwafspraak — vaste omslagfoto per reis (15 oktober 2026)
+
+- In **Reis → Publiceren** komt één omslagfoto per reis, met upload, voorvertoning, vervangen en verwijderen.
+- De omslagfoto is onafhankelijk van een dagverslag. Het origineel blijft in de privé-opslag; alleen een gestripte WebP-versie mag zichtbaar zijn op de publieke hero van een openbare reis.
+- De publieke homepage gebruikt een expliciete omslagfoto vóór een geselecteerde foto uit een gepubliceerd dagverhaal.
+
+Bewust buiten deze stap: een reisbrede fotobibliotheek, meerdere omslagfoto’s, wijziging van bestaande dagfoto’s en aanpassingen aan reiszichtbaarheid.
+
+### Afgerond — vaste omslagfoto per reis (15 oktober 2026)
+
+- **Publiceren** bevat nu het blok **Omslagfoto**. HEIC, HEIF, JPEG, PNG en WebP tot 50 MB worden ondersteund, met lokale voorvertoning, veilige omzetting naar WebP, vervangen en verwijderen.
+- Nieuwe tabel `trip_covers` bewaart precies één omslagfoto per reis. Originele bestanden blijven privé op Scaleway; webversies staan in de bestaande private image-bucket.
+- De anonieme database- en opslagregels geven uitsluitend leesrecht op de minimale WebP-gegevens wanneer de gekoppelde reis openbaar is. Bestandsnamen en originelen zijn niet publiek toegankelijk.
+- De homepage kiest eerst deze omslagfoto; zonder omslagfoto gebruikt zij hooguit een reeds geselecteerde, gepubliceerde dagfoto en anders de abstracte hero.
+- Productiemigratie `20261015120436_add_trip_covers.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.

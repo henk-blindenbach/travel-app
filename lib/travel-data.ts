@@ -75,13 +75,19 @@ export async function getPublicFeaturedTrip() {
   }
 }
 
-export type PublicTripOverview = { trip: Trip; days: TripDay[]; coverAssetId: string | null };
+export type PublicTripOverview = { trip: Trip; days: TripDay[]; coverUrl: string | null };
 
 async function getPublicCoverAssetId(entryIds: string[]) {
   if (!entryIds.length) return null;
   const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data } = await supabase.from("media_assets").select("id").in("day_entry_id", entryIds).order("sort_order").limit(1).maybeSingle();
   return data?.id || null;
+}
+
+async function getPublicTripCoverUrl(tripId: string) {
+  const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data } = await supabase.from("trip_covers").select("id").eq("trip_id", tripId).eq("upload_status", "ready").maybeSingle();
+  return data?.id ? `/api/public/trip-covers/${data.id}` : null;
 }
 
 export async function getPublicTravelOverview() {
@@ -100,10 +106,12 @@ export async function getPublicTravelOverview() {
     if (!currentTrip) return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false };
     const tripsWithDays = await Promise.all(trips.map(async (trip) => {
       const days = await getPublishedDays(trip.id);
-      return { trip, days, coverAssetId: await getPublicCoverAssetId(days.map((day) => day.id)) };
+      const tripCoverUrl = await getPublicTripCoverUrl(trip.id);
+      const dayCoverId = tripCoverUrl ? null : await getPublicCoverAssetId(days.map((day) => day.id));
+      return { trip, days, coverUrl: tripCoverUrl || (dayCoverId ? `/api/public/media/${dayCoverId}` : null) };
     }));
     return {
-      current: tripsWithDays.find((item) => item.trip.id === currentTrip.id) || { trip: currentTrip, days: [], coverAssetId: null },
+      current: tripsWithDays.find((item) => item.trip.id === currentTrip.id) || { trip: currentTrip, days: [], coverUrl: null },
       upcoming: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && item.trip.starts_on > today && item.trip.status !== "completed" && item.trip.status !== "archived"),
       past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)).reverse(),
       isTravelling: Boolean(travelling),

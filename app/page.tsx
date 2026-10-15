@@ -12,11 +12,11 @@ export default async function Home() {
   const { current, upcoming, past, isTravelling } = await getPublicTravelOverview();
   if (!current) return <><PublicHeader/><main className="public-empty-state"><p className="eyebrow blue">Op reis</p><h1>Nieuwe verhalen volgen binnenkort.</h1></main></>;
 
-  const { trip, days, coverAssetId } = current;
+  const { trip, days, coverUrl } = current;
   const latestDays = [...days].reverse().slice(0, 3);
 
   return <>
-    <div className={`hero public-home-hero${coverAssetId ? " has-public-cover" : ""}`} style={coverAssetId ? { backgroundImage: `url(/api/public/media/${coverAssetId})` } : undefined}>
+    <div className={`hero public-home-hero${coverUrl ? " has-public-cover" : ""}`} style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}>
       <PublicHeader/>
       <div className="hero-content">
         <p className="eyebrow hero-kicker"><Icon name="spark" size={14}/> {isTravelling ? "Nu onderweg" : "Binnenkort vertrekken"}</p>

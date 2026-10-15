@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type ScalewayConfig = {
@@ -45,4 +45,9 @@ export async function fetchOriginal(key: string) {
   const result = await client(settings).send(new GetObjectCommand({ Bucket: settings.bucket, Key: key }));
   if (!result.Body) throw new Error("Het geüploade origineel kon niet worden gelezen.");
   return Buffer.from(await result.Body.transformToByteArray());
+}
+
+export async function deleteOriginal(key: string) {
+  const settings = config();
+  await client(settings).send(new DeleteObjectCommand({ Bucket: settings.bucket, Key: key }));
 }
