@@ -1368,3 +1368,16 @@ Bewust buiten deze correctie: foto-upload, opslag, zichtbaarheidkeuzes, bestaand
 - De homepage leest een omslagfoto via `public_trip_covers`, een read-only view die alleen foto-id en reis-id levert wanneer de WebP klaar is en de reis openbaar is.
 - De view biedt geen uploadstatus, bestandsnaam, objectpad of origineel aan. De binaire WebP blijft uitsluitend beschikbaar via de bestaande gecontroleerde afbeeldingsroute.
 - Productiemigratie `20261015154044_add_public_trip_cover_view.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — omslagfoto-route via veilige view (15 oktober 2026)
+
+- De gecontroleerde afbeeldingsroute leest hetzelfde beperkte publieke omslagfoto-record als de homepage, zodat de heroverwijzing en de WebP-download onder exact dezelfde voorwaarden werken.
+- De view bevat alleen een ondoorzichtig WebP-opslagpad voor de reeds openbare, verwerkte afbeelding. Geen Scaleway-originelen, bestandsnamen, captions, EXIF, GPS of documentgegevens komen in deze route.
+
+Bewust buiten deze correctie: publieke lijsttoegang tot opslag, originele foto’s, uploadgedrag en de besloten foto-editor.
+
+### Afgerond — omslagfoto-route via veilige view (15 oktober 2026)
+
+- De publieke hero en de afbeeldingsroute gebruiken nu allebei `public_trip_covers`; daardoor kan een omslagfoto die de homepage kiest ook daadwerkelijk als WebP worden gestreamd.
+- De view bevat uitsluitend het niet-herleidbare web-objectpad dat nodig is om de al-openbare afbeelding te leveren. Originele Scaleway-keys, bestandsnamen, captions, EXIF en GPS zijn niet beschikbaar.
+- Productiemigratie `20261015154222_expose_public_cover_web_path_to_route.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
