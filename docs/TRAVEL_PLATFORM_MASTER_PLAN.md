@@ -1280,3 +1280,19 @@ Bewust buiten deze stap: server-side documentkopieën, synchronisatie tussen toe
 - De planner toont op mobiel compacte kaarten per reisdag met vaste labels voor vlucht, verblijf, vervoer en activiteit. De zes-kolomstabel verdwijnt daar en kan niet meer horizontaal uit het scherm lopen.
 - Bestaande onderdelen én **+ toevoegen** openen op desktop als een vast rechter zijpaneel. Op mobiel opent hetzelfde formulier schermvullend.
 - `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — publieke reissite, veilige basis (15 oktober 2026)
+
+- De publieke routes gebruiken uitsluitend een sessieloze anonieme Supabase-client met vaste kolomselecties. Privé planner-, document-, reisgenoot-, interview-, caption- en GPS-velden mogen nooit in publieke responses terechtkomen.
+- Anonieme database-toegang wordt beperkt tot openbare reizen, gepubliceerde dagverhalen en geselecteerde webfoto’s. Privé en unlisted reizen gedragen zich identiek als een niet-bestaande route.
+- De publieke site krijgt naast home en reis/dagverhaal eigen routes voor reizen, route, foto’s en over ons. De besloten `/app/*`-omgeving blijft buiten deze bouwstap.
+
+Bewust buiten deze eerste publieke release: statistiekvelden, exacte locatiepublicatie, GPS-route, openbare documenten, import en wijzigingen in de privéplanner.
+
+### Afgerond — publieke reissite, veilige basis (15 oktober 2026)
+
+- Productiemigratie `20261015083218_secure_public_data_access.sql` beperkt anonieme toegang zowel per rij als per kolom. Gepubliceerde inhoud is alleen zichtbaar wanneer de bovenliggende reis openbaar is; bestandsnamen, private captions, EXIF/GPS, documenten en privéreisvelden zijn geen anoniem toegankelijke kolommen meer.
+- Home en bestaande openbare reisfuncties gebruiken voortaan een sessieloze anonieme client. Een ingelogde bezoeker krijgt daardoor via de publieke datalaag hetzelfde resultaat als een anonieme bezoeker.
+- De openbare afbeeldingsroute gebruikt dezelfde anonieme toegangslaag, levert alleen WebP zonder bestandsnaamheader en retourneert een neutrale 404 voor onbekende of niet-openbare assets.
+- Nieuwe publieke routes zijn `/reizen`, `/reizen/[slug]/route`, `/reizen/[slug]/fotos` en `/over-ons`; zij tonen alleen expliciet gepubliceerde inhoud.
+- `npm run build` en `git diff --check` zijn geslaagd. Er is geen gedrag in `/app/*` aangepast.

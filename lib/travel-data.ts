@@ -1,4 +1,5 @@
 import { createClient, hasSupabaseEnv } from "./supabase/server";
+import { createClient as createAnonClient } from "@supabase/supabase-js";
 
 export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; travelers?: string | null; departure_location?: string | null; summary: string | null; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
 export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; private_notes?: string; status?: "planned" | "in_progress" | "completed" | "skipped" };
@@ -52,7 +53,7 @@ export async function getPrivateTrip(tripId: string) {
 
 /** Public data never falls back to planned days: only rows admitted by publication RLS are returned. */
 async function getPublishedDays(tripId: string) {
-  const supabase = await createClient();
+  const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data } = await supabase.from("day_entries").select("id,day_number,day_date,title,actual_location").eq("trip_id", tripId).eq("publication_status", "published").order("day_number", { ascending: true });
   return (data || []).map((entry) => ({ id: entry.id, day_number: entry.day_number, day_date: entry.day_date, title: entry.title || null, planned_location: entry.actual_location || null, planned_route: null })) as TripDay[];
 }
@@ -60,7 +61,7 @@ async function getPublishedDays(tripId: string) {
 export async function getPublicFeaturedTrip() {
   if (!hasSupabaseEnv()) return { trip: fallbackTrip, days: [] as TripDay[] };
   try {
-    const supabase = await createClient();
+    const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: trip } = await supabase
       .from("trips")
       .select("id,title,slug,starts_on,ends_on,countries,summary")
@@ -79,7 +80,7 @@ export type PublicTripOverview = { trip: Trip; days: TripDay[] };
 export async function getPublicTravelOverview() {
   if (!hasSupabaseEnv()) return { current: { trip: fallbackTrip, days: [] } as PublicTripOverview, past: [] as PublicTripOverview[], isTravelling: false };
   try {
-    const supabase = await createClient();
+    const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data } = await supabase
       .from("trips")
       .select("id,title,slug,starts_on,ends_on,countries,summary,status")
@@ -103,7 +104,7 @@ export async function getPublicTravelOverview() {
 export async function getPublicTrip(slug: string) {
   if (!hasSupabaseEnv()) return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[] } : null;
   try {
-    const supabase = await createClient();
+    const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("slug", slug).maybeSingle();
     if (!trip) return null;
     return { trip: trip as Trip, days: await getPublishedDays(trip.id) };
