@@ -78,25 +78,27 @@ export async function getPublicFeaturedTrip() {
 export type PublicTripOverview = { trip: Trip; days: TripDay[] };
 
 export async function getPublicTravelOverview() {
-  if (!hasSupabaseEnv()) return { current: null, past: [] as PublicTripOverview[], isTravelling: false };
+  if (!hasSupabaseEnv()) return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false };
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data } = await supabase
       .from("trips")
       .select("id,title,slug,starts_on,ends_on,countries,summary,status")
-      .order("starts_on", { ascending: false });
+      .order("starts_on", { ascending: true });
     const trips = (data || []) as Trip[];
     const today = new Date().toISOString().slice(0, 10);
     const travelling = trips.find((trip) => trip.status === "travelling" || (trip.starts_on <= today && trip.ends_on >= today));
-    const currentTrip = travelling || trips.find((trip) => trip.status !== "completed" && trip.status !== "archived") || trips[0];
-    if (!currentTrip) return { current: null, past: [] as PublicTripOverview[], isTravelling: false };
+    const futureTrips = trips.filter((trip) => trip.starts_on > today && trip.status !== "completed" && trip.status !== "archived");
+    const currentTrip = travelling || futureTrips[0] || trips.at(-1);
+    if (!currentTrip) return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false };
     const tripsWithDays = await Promise.all(trips.map(async (trip) => ({ trip, days: await getPublishedDays(trip.id) })));
     return {
       current: tripsWithDays.find((item) => item.trip.id === currentTrip.id) || { trip: currentTrip, days: [] },
-      past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)),
+      upcoming: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && item.trip.starts_on > today && item.trip.status !== "completed" && item.trip.status !== "archived"),
+      past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)).reverse(),
       isTravelling: Boolean(travelling),
     };
-  } catch { return { current: null, past: [] as PublicTripOverview[], isTravelling: false }; }
+  } catch { return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false }; }
 }
 
 export async function getPublicTrip(slug: string) {

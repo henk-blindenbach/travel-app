@@ -1296,3 +1296,18 @@ Bewust buiten deze eerste publieke release: statistiekvelden, exacte locatiepubl
 - De openbare afbeeldingsroute gebruikt dezelfde anonieme toegangslaag, levert alleen WebP zonder bestandsnaamheader en retourneert een neutrale 404 voor onbekende of niet-openbare assets.
 - Nieuwe publieke routes zijn `/reizen`, `/reizen/[slug]/route`, `/reizen/[slug]/fotos` en `/over-ons`; zij tonen alleen expliciet gepubliceerde inhoud.
 - `npm run build` en `git diff --check` zijn geslaagd. Er is geen gedrag in `/app/*` aangepast.
+
+### Bouwafspraak — chronologische publieke reisvolgorde (15 oktober 2026)
+
+- De publieke homepage kiest eerst een actieve reis. Is niemand onderweg, dan staat de reis met de eerstvolgende vertrekdatum bovenaan.
+- Overige toekomstige, openbare reizen verschijnen daaronder in chronologische volgorde. Eerdere reizen krijgen een aparte, herkenbare ingang vanuit de homepage.
+- De publieke reisindex kan via die ingang uitsluitend eerdere reizen tonen.
+
+Bewust buiten deze stap: wijzigingen aan reisdata, reisstatussen, zichtbaarheid, gepubliceerde dagverhalen en de besloten `/app/*`-omgeving.
+
+### Afgerond — chronologische publieke reisvolgorde (15 oktober 2026)
+
+- De homepage sorteert openbare reizen op vertrekdatum en kiest nu aantoonbaar in deze volgorde: actieve reis, eerstvolgende toekomstige reis, en alleen daarna een eerder afgeronde reis als terugval.
+- Verdere geplande reizen staan onder de hoofdreis als **Komende reizen**, van vroeg naar laat.
+- De homepage heeft een knop **Bekijk reizen uit het verleden**. Die opent `/reizen?periode=verleden`, waar uitsluitend reizen staan die zijn afgelopen of als voltooid/gearchiveerd zijn gemarkeerd.
+- `npm run build` en `git diff --check` zijn geslaagd. De wijziging gebruikt alleen al-publieke reisvelden; geen privégegevens of databaserollen zijn aangepast.
