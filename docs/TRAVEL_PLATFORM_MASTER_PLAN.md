@@ -1247,3 +1247,20 @@ Bewust buiten deze stap: datamigratie, samenvoegen/verwijderen van reizen en wij
 - De bestaande knop **+ toevoegen** blijft de directe route naar het activiteitenformulier. De technische buildcontrole is geslaagd; een handmatige interactietest kon niet met bestaande reisdata worden herhaald, omdat de ingelogde browser-sessie op dat moment geen reizen terugkreeg.
 - De mogelijke dubbele Nepal-reis is niet aangepast. De app rendert één submenu per reisrecord; zonder een leesbare lijst met actuele records is samenvoegen of verwijderen niet verantwoord.
 - `npm run build` is geslaagd op 14 oktober 2026.
+
+### Bouwafspraak — mobiele reisdagen en documentkluis (15 oktober 2026)
+
+- Tijdens een actieve reis toont **Vandaag** de planning van vandaag én de eerstvolgende reisdag als leesbare mobiele kaarten, met tijden, boekingsreferentie, navigatie/bellen waar beschikbaar en directe documentacties.
+- Een verlopen sessie bij een document leidt herkenbaar terug naar inloggen. Documentacties tonen voortaan een duidelijke, grote kaartactie in plaats van een kleine losse link.
+- De documentkluis begint met de lijst. Een document heeft een bewerkbare titel en kan aan nul, één of meerdere planningonderdelen worden gekoppeld; bestaande enkelvoudige koppelingen blijven behouden.
+- De nieuwe koppeltabel volgt het reeds goedgekeurde model van deze besloten, gedeelde werkplek: uitsluitend ingelogde gebruikers krijgen toegang; anonieme toegang blijft uitgesloten.
+
+Bewust buiten deze stap: offline kopieën op een toestel, een cache-/wisstrategie bij uitloggen, import via AI/PDF/e-mail, bulk-upload, de desktop-zijpaneel-editor en wijzigingen aan publieke pagina’s.
+
+### Afgerond — mobiele reisdagen en documentkluis (15 oktober 2026)
+
+- Tijdens een actieve reis haalt **Vandaag** nu de planning en documenten op voor vandaag en de eerstvolgende reisdag. De mobiele kaarten tonen vlucht-/verblijfsdetails, tijden, boekingsreferentie, navigatie of bellen wanneer die gegevens bestaan, en directe documentknoppen.
+- Bij een documentactie zonder geldige sessie gaat de app terug naar inloggen met een terugkeerpad. De documentkaart is volledig aanklikbaar en bevat daarnaast een expliciete grote actie.
+- De documentpagina toont de lijst voor het uploadgedeelte. Titel en gekoppelde planningonderdelen zijn daar te bewerken; bij uploaden kan één document meteen aan meerdere onderdelen worden gekoppeld.
+- Nieuwe tabel `trip_document_planning_items` bewaart de meerdere koppelingen. Bestaande `planning_item_id`-koppelingen zijn gemigreerd en blijven compatibel met de bestaande planner.
+- Productiemigratie `20261015075736_document_planning_item_links.sql` is toegepast en `npm run build` is geslaagd op 15 oktober 2026.
