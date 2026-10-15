@@ -1438,3 +1438,11 @@ Bewust buiten deze stap: paspoortnummers, geboortedata, paspoortscans, import, k
 - Onder de planner staat nu een privé reisdossier waarin reizigers, contacten en budgetregels kunnen worden toegevoegd. Budgettotalen worden per valuta getoond. Paspoortnummers, geboortedata en scans worden niet opgeslagen.
 - De bestaande open-punten-API accepteert nu eigenaar, deadline en koppeling met een planningonderdeel; de zichtbare uitgebreide editor voor die velden, en het volledig gelijk trekken van snelle planninginvoer met alle nieuwe vlucht-/activiteitsvelden, worden in de resterende UI-afronding van dit blok toegevoegd.
 - `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Afgerond — privé reisdossier en planner-UI (15 oktober 2026)
+
+- Toevoegen en bewerken gebruiken nu één gedeeld planningsformulier. Daardoor zijn vluchtvelden overal gelijk: maatschappij, vluchtnummer, vertrek- en aankomsttijd, aankomstdatum, terminals, stoel, boekings- en ticketnummer.
+- Vervoer, activiteiten en visum/permit hebben tijd, adres, externe link, prijs, betaalstatus, notitie en documentkoppeling. Visum/permit staat als vijfde kolom in het desktopoverzicht en als eigen sectie op mobiel.
+- Reizigers, contacten en budgetregels zijn nu toe te voegen, te bewerken en te verwijderen. Het dossier bewaart bewust geen paspoortnummers, geboortedata of scans.
+- Open punten zijn aan te maken en te bewerken met eigenaar, deadline, toelichting en optionele koppeling met een reisdag of planningonderdeel.
+- Geen nieuwe publieke route, anonieme rechten of databasewijziging is toegevoegd in deze UI-afronding. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.

@@ -11,7 +11,10 @@ export async function POST(request: Request) {
 }
 export async function PATCH(request: Request) {
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
-  const payload = await request.json(); if (!validUuid(payload.id) || !validUuid(payload.tripId) || !["open", "done"].includes(payload.status)) return NextResponse.json({ error: "Ongeldig open punt." }, { status: 400 });
-  const { data, error } = await supabase.from("trip_open_items").update({ status: payload.status }).eq("id", payload.id).eq("trip_id", payload.tripId).select("id,trip_day_id,title,details,status,assigned_to,due_on,planning_item_id").single();
+  const payload = await request.json(); if (!validUuid(payload.id) || !validUuid(payload.tripId)) return NextResponse.json({ error: "Ongeldig open punt." }, { status: 400 });
+  const dueOn = typeof payload.dueOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.dueOn) ? payload.dueOn : null;
+  const update = { status: ["open", "done"].includes(payload.status) ? payload.status : "open", title: safeText(payload.title, 200), details: safeText(payload.details, 4000), assigned_to: safeText(payload.assignedTo, 120), due_on: dueOn, trip_day_id: validUuid(payload.tripDayId) ? payload.tripDayId : null, planning_item_id: validUuid(payload.planningItemId) ? payload.planningItemId : null };
+  if (!update.title) return NextResponse.json({ error: "Geef een open punt een titel." }, { status: 400 });
+  const { data, error } = await supabase.from("trip_open_items").update(update).eq("id", payload.id).eq("trip_id", payload.tripId).select("id,trip_day_id,title,details,status,assigned_to,due_on,planning_item_id").single();
   if (error || !data) return NextResponse.json({ error: "Open punt kon niet worden bijgewerkt." }, { status: 400 }); return NextResponse.json({ item: data });
 }
