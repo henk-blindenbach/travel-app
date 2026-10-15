@@ -1446,3 +1446,19 @@ Bewust buiten deze stap: paspoortnummers, geboortedata, paspoortscans, import, k
 - Reizigers, contacten en budgetregels zijn nu toe te voegen, te bewerken en te verwijderen. Het dossier bewaart bewust geen paspoortnummers, geboortedata of scans.
 - Open punten zijn aan te maken en te bewerken met eigenaar, deadline, toelichting en optionele koppeling met een reisdag of planningonderdeel.
 - Geen nieuwe publieke route, anonieme rechten of databasewijziging is toegevoegd in deze UI-afronding. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — betrouwbare offline documenten en sociale handoff (15 oktober 2026)
+
+- Offline documenten worden alleen op het huidige toestel bewaard, met zichtbare voortgang en expliciet wissen. De cache wordt bij uitloggen verwijderd; er komt geen serverkopie, synchronisatie of gedeelde offline-opslag.
+- De dageditor maakt de bestaande Instagram-, Facebook- en Polarsteps-captions praktisch deelbaar: geselecteerde foto’s gaan via het iPhone-deelmenu waar dat kan, captions zijn per platform te kopiëren en de betreffende app/site kan direct worden geopend.
+- De private pagina **Publiceren** krijgt een reisbreed overzicht van gepubliceerde en nog te publiceren dagverhalen, zonder privétekst, documenten of niet-geselecteerde foto’s naar publieke routes te sturen.
+
+Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, accountmachtigingen, publieke reacties, offline uploads en nieuwe databasevelden.
+
+### Afgerond — betrouwbare offline documenten en sociale handoff (15 oktober 2026)
+
+- De offline documentcache toont nu per bestand voortgang en het actuele aantal lokale kopieën. De service worker is versieerbaar en bewaart geen private pagina-antwoorden meer; alleen de minimale app-assets worden daar gecachet.
+- Uitloggen wist alle lokale `Nós`-caches en verwijdert de geregistreerde service worker voordat de sessie wordt beëindigd. Reisdocumenten worden daarmee niet op een gedeeld toestel achtergelaten.
+- In ieder dagverslag is de sociale handoff expliciet: geselecteerde foto’s gaan via het systeemdeelmenu, captions zijn per Instagram/Facebook/Polarsteps te kopiëren en ieder platform is direct te openen. De keuze en plaatsing blijven bij Henk of Michel.
+- De reisbrede pagina **Publiceren** toont nu iedere reisdag met concept-/publiekstatus, aantal geselecteerde foto’s en — na publicatie — snelle caption- en platformacties. De editor werkt niet meer alleen voor de vaste voorbeeldreis, maar zoekt de gevraagde reisdag en bijbehorende reis op.
+- Geen migratie of nieuwe publieke toegang is toegevoegd. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026. De echte eindtest blijft: op iPhone documenten vooraf bewaren, vliegtuigstand inschakelen, document openen en daarna uitloggen.

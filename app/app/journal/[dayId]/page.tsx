@@ -2,13 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/AppShell";
 import { DayEntryEditor } from "../../../../components/journal/DayEntryEditor";
-import { getFeaturedTrip } from "../../../../lib/travel-data";
+import { getFeaturedTrip, getPrivateTrip } from "../../../../lib/travel-data";
 import { createClient, hasSupabaseEnv } from "../../../../lib/supabase/server";
 
 export default async function JournalDay({ params }: { params: Promise<{ dayId: string }> }) {
   const { dayId } = await params;
-  const { trip, days } = await getFeaturedTrip();
-  const day = days.find((item) => item.id === dayId);
+  let fallback = await getFeaturedTrip();
+  let trip = fallback.trip; let day = fallback.days.find((item) => item.id === dayId);
+  if (hasSupabaseEnv()) try {
+    const supabase = await createClient();
+    const result = await supabase.from("trip_days").select("id,trip_id,day_number,day_date,title,planned_location,planned_route").eq("id", dayId).maybeSingle();
+    if (result.data) { const journey = await getPrivateTrip(result.data.trip_id); if (journey) { trip = journey.trip; day = result.data; } }
+  } catch { /* The fallback remains useful during local mock work. */ }
   if (!day) notFound();
 
   let entry = null;
