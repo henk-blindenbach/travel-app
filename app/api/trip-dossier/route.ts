@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import { safeText, validUuid } from "../../../lib/journal";
+import { createClient } from "../../../lib/supabase/server";
+
+const tables = new Set(["travelers", "contacts", "budget"]);
+const text = (value: unknown, maximum: number) => safeText(value, maximum);
+const amount = (value: unknown) => value === "" || value === null || value === undefined ? null : (Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : undefined);
+
+function values(entity: string, payload: Record<string, unknown>) {
+  if (entity === "travelers") return { name: text(payload.name, 120), role: text(payload.role, 80) || "Reiziger", ticket_reference: text(payload.ticketReference, 120), seat_notes: text(payload.seatNotes, 200), loyalty_number: text(payload.loyaltyNumber, 120), notes: text(payload.notes, 2000) };
+  if (entity === "contacts") return { name: text(payload.name, 160), role: text(payload.role, 120), phone: text(payload.phone, 80), email: text(payload.email, 254), address: text(payload.address, 500), notes: text(payload.notes, 2000) };
+  const planned = amount(payload.plannedAmount); const actual = amount(payload.actualAmount); const currency = text(payload.currency, 3).toUpperCase();
+  return { title: text(payload.title, 200), category: text(payload.category, 30) || "other", planned_amount: planned, actual_amount: actual, currency, payment_status: ["unknown", "unpaid", "paid"].includes(String(payload.paymentStatus)) ? payload.paymentStatus : "unknown", notes: text(payload.notes, 2000) };
+}
+
+export async function POST(request: Request) {
+  try { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); const payload = await request.json(); if (!user || !validUuid(payload.tripId) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 }); const item = values(payload.entity, payload); if (!item.name && !item.title || item.planned_amount === undefined || item.actual_amount === undefined || payload.entity === "budget" && !/^[A-Z]{3}$/.test(item.currency)) return NextResponse.json({ error: "Vul de verplichte velden correct in." }, { status: 400 }); const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries"; const { data, error } = await supabase.from(table).insert({ trip_id: payload.tripId, ...item }).select().single(); if (error || !data) throw error; return NextResponse.json({ item: data }); } catch { return NextResponse.json({ error: "Kon niet opslaan." }, { status: 400 }); }
+}

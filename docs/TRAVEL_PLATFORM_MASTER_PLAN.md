@@ -1422,3 +1422,19 @@ Bewust buiten deze stap: nieuwe planningvelden, import, budget/open-puntenuitbre
 - Vóór vertrek leest **Vandaag** de eerste twee echte reisdagen, hun planning en beschikbare dagdocumenten uit de gekozen reis. De bestaande Vandaag/Morgen-kaarten worden daarvoor hergebruikt met passende koppen; er is geen voorbeelddata toegevoegd.
 - Private app- en reisroutes hebben lichte `loading.tsx`-skeletons. De offlinefunctie meldt een mislukte service-workerregistratie nu duidelijk, terwijl de afzonderlijke documentcache bruikbaar blijft.
 - `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026. De echte offline-rondgang (vliegtuigstand na vooraf downloaden) blijft nog een handmatige iPhone-test.
+
+### Bouwafspraak — privé reisdossier (15 oktober 2026)
+
+- De planner krijgt complete operationele vluchtvelden: maatschappij, vluchtnummer, vertrek- en aankomstdatum/-tijd, vertrek- en aankomstterminal en stoel. Activiteiten en vervoer krijgen tijd, adres en een externe link.
+- Visum en permit worden een eigen privé planningssoort, met dezelfde status-, document- en prijsmechaniek als de bestaande onderdelen.
+- Onder de planner komt een privé reisdossier met reizigers (naam, rol, stoel-/ticket- en loyaliteitsgegevens), contacten (rol, telefoon, e-mail, adres en notitie), een budget met geraamde/werkelijke bedragen per valuta en de bestaande open-puntenlijst.
+- Open punten krijgen een eigenaar, deadline en optionele koppeling met een reisdag of planningonderdeel. Alle nieuwe tabellen zijn RLS-beveiligd en uitsluitend toegankelijk voor ingelogde gebruikers; geen ervan krijgt anonieme grants of een publieke route.
+
+Bewust buiten deze stap: paspoortnummers, geboortedata, paspoortscans, import, kopiëren naar volgende dagen, betalingsintegraties, server-side documentextractie en wijzigingen aan de publieke website.
+
+### Deellevering — privé reisdossierfundament (15 oktober 2026)
+
+- Productiemigratie `20261015175727_add_private_trip_dossier.sql` voegt privé tabellen toe voor reizigers, contacten en budgetregels, plus operationele velden voor vlucht/activiteit/vervoer en uitgebreidere open punten. Alle nieuwe tabellen hebben RLS, krijgen alleen rechten voor `authenticated` en expliciet geen anonieme toegang.
+- Onder de planner staat nu een privé reisdossier waarin reizigers, contacten en budgetregels kunnen worden toegevoegd. Budgettotalen worden per valuta getoond. Paspoortnummers, geboortedata en scans worden niet opgeslagen.
+- De bestaande open-punten-API accepteert nu eigenaar, deadline en koppeling met een planningonderdeel; de zichtbare uitgebreide editor voor die velden, en het volledig gelijk trekken van snelle planninginvoer met alle nieuwe vlucht-/activiteitsvelden, worden in de resterende UI-afronding van dit blok toegevoegd.
+- `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
