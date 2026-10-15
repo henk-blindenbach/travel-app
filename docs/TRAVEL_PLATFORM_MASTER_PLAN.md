@@ -1355,3 +1355,16 @@ Bewust buiten deze correctie: uploadgedrag, omslagfoto-keuze, bestaande foto’s
 - De publieke homepage leest nu alleen het omslagfoto-id dat anoniem is toegestaan. De databasepolicy bepaalt of de rij bestaat: uitsluitend een voltooide WebP-omslagfoto van een openbare reis wordt doorgelaten.
 - Hierdoor is de omslagfoto zichtbaar zodra de verwerking klaar is, zonder dat uploadstatus, originele naam, private opslaglocatie of origineel bestand publiek beschikbaar worden.
 - Productiemigratie `20261015133156_restrict_public_trip_covers_to_ready.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — minimale publieke omslagfoto-view (15 oktober 2026)
+
+- De publieke homepage leest omslagfoto’s via een read-only databaseview met uitsluitend foto-id en reis-id, niet langer rechtstreeks uit de privétabel.
+- De view bevat zelf de harde voorwaarden: alleen een verwerkte WebP-omslagfoto van een openbare reis. Uploadstatus, bestandsnaam, objectpaden en originelen worden niet als viewkolom aangeboden.
+
+Bewust buiten deze correctie: foto-upload, opslag, zichtbaarheidkeuzes, bestaande reisgegevens en alle besloten routes.
+
+### Afgerond — minimale publieke omslagfoto-view (15 oktober 2026)
+
+- De homepage leest een omslagfoto via `public_trip_covers`, een read-only view die alleen foto-id en reis-id levert wanneer de WebP klaar is en de reis openbaar is.
+- De view biedt geen uploadstatus, bestandsnaam, objectpad of origineel aan. De binaire WebP blijft uitsluitend beschikbaar via de bestaande gecontroleerde afbeeldingsroute.
+- Productiemigratie `20261015154044_add_public_trip_cover_view.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
