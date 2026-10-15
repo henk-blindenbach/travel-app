@@ -78,7 +78,7 @@ export async function getPublicFeaturedTrip() {
 export type PublicTripOverview = { trip: Trip; days: TripDay[] };
 
 export async function getPublicTravelOverview() {
-  if (!hasSupabaseEnv()) return { current: { trip: fallbackTrip, days: [] } as PublicTripOverview, past: [] as PublicTripOverview[], isTravelling: false };
+  if (!hasSupabaseEnv()) return { current: null, past: [] as PublicTripOverview[], isTravelling: false };
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data } = await supabase
@@ -96,9 +96,7 @@ export async function getPublicTravelOverview() {
       past: tripsWithDays.filter((item) => item.trip.id !== currentTrip.id && (item.trip.status === "completed" || item.trip.status === "archived" || item.trip.ends_on < today)),
       isTravelling: Boolean(travelling),
     };
-  } catch {
-    return { current: { trip: fallbackTrip, days: [] } as PublicTripOverview, past: [] as PublicTripOverview[], isTravelling: false };
-  }
+  } catch { return { current: null, past: [] as PublicTripOverview[], isTravelling: false }; }
 }
 
 export async function getPublicTrip(slug: string) {
