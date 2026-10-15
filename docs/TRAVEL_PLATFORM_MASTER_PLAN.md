@@ -1342,3 +1342,16 @@ Bewust buiten deze stap: een reisbrede fotobibliotheek, meerdere omslagfoto’s,
 - De anonieme database- en opslagregels geven uitsluitend leesrecht op de minimale WebP-gegevens wanneer de gekoppelde reis openbaar is. Bestandsnamen en originelen zijn niet publiek toegankelijk.
 - De homepage kiest eerst deze omslagfoto; zonder omslagfoto gebruikt zij hooguit een reeds geselecteerde, gepubliceerde dagfoto en anders de abstracte hero.
 - Productiemigratie `20261015120436_add_trip_covers.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — zichtbaarheid van publieke omslagfoto’s herstellen (15 oktober 2026)
+
+- De openbare omslagfoto-selectie leest uitsluitend het al toegestane foto-id. De gereed-status wordt volledig in de databasepolicy afgedwongen.
+- Alleen een omslagfoto met een geslaagde WebP-verwerking van een openbare reis is anoniem leesbaar; uploadstatus, bestandsnaam en origineel blijven buiten de publieke kolommen.
+
+Bewust buiten deze correctie: uploadgedrag, omslagfoto-keuze, bestaande foto’s, zichtbaarheidinstellingen en de besloten app.
+
+### Afgerond — zichtbaarheid van publieke omslagfoto’s herstellen (15 oktober 2026)
+
+- De publieke homepage leest nu alleen het omslagfoto-id dat anoniem is toegestaan. De databasepolicy bepaalt of de rij bestaat: uitsluitend een voltooide WebP-omslagfoto van een openbare reis wordt doorgelaten.
+- Hierdoor is de omslagfoto zichtbaar zodra de verwerking klaar is, zonder dat uploadstatus, originele naam, private opslaglocatie of origineel bestand publiek beschikbaar worden.
+- Productiemigratie `20261015133156_restrict_public_trip_covers_to_ready.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.

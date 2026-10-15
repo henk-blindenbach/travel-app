@@ -86,7 +86,7 @@ async function getPublicCoverAssetId(entryIds: string[]) {
 
 async function getPublicTripCoverUrl(tripId: string) {
   const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data } = await supabase.from("trip_covers").select("id").eq("trip_id", tripId).eq("upload_status", "ready").maybeSingle();
+  const { data } = await supabase.from("trip_covers").select("id").eq("trip_id", tripId).maybeSingle();
   return data?.id ? `/api/public/trip-covers/${data.id}` : null;
 }
 
