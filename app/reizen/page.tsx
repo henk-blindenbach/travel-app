@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PublicHeader } from "../../components/PublicHeader";
 import { listPublicTrips, getPublicTripBySlug } from "../../lib/public-travel-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicTrips() {
   const trips = await listPublicTrips();
   const cards = await Promise.all(trips.map(async (trip) => ({ trip, count: (await getPublicTripBySlug(trip.slug))?.days.length || 0 })));

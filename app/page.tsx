@@ -3,6 +3,8 @@ import { Icon } from "../components/Icons";
 import { PublicHeader } from "../components/PublicHeader";
 import { getPublicTravelOverview } from "../lib/travel-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const { current, past, isTravelling } = await getPublicTravelOverview();
   if (!current) return <><PublicHeader/><main className="public-empty-state"><p className="eyebrow blue">Op reis</p><h1>Nieuwe verhalen volgen binnenkort.</h1></main></>;
