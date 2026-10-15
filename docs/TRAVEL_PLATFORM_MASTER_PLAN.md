@@ -1405,3 +1405,20 @@ Bewust buiten deze correctie: omslagfoto-upload, tabeldata, reiszichtbaarheid, p
 - Zowel de bestaande dagfoto-policy als de nieuwe omslagfoto-policy gebruiken nu elk een minimale, afgeschermde toestemmingsfunctie. Die controleert uitsluitend of een exact WebP-pad bij een openbare reis en expliciet gepubliceerde/gereed gemelde afbeelding hoort.
 - De homepage geeft de veilige omslagfoto-route door en die route retourneert live `200 image/webp` voor de Nepal-omslagfoto. Originelen, bestandsnamen, documenten en overige objecten in de bucket blijven privé.
 - Productiemigraties `20261015154807_allow_public_cover_web_image_stream.sql` en `20261015154901_authorize_public_cover_web_image_stream.sql` plus `20261015154925_authorize_public_web_image_streams.sql` zijn toegepast op 15 oktober 2026.
+
+### Bouwafspraak — mobiele kwaliteitsronde onderweg (15 oktober 2026)
+
+- De private documentkluis mag op ieder mobiel formaat binnen de viewport blijven. Documentkaarten, filters, upload- en offline-acties krijgen consistente aanraakvlakken van minimaal 44px.
+- Mobiele plannerkaarten krijgen een vaste, afbreekveilige dagkop: dagtitel, datum en route blijven leesbaar zonder overlap.
+- Vóór vertrek toont **Vandaag** naast de afteller een compacte vooruitblik op de eerste twee reisdagen, inclusief beschikbare planning en dagdocumenten. Tijdens de reis blijft de bestaande Vandaag/Morgen-weergave gelden.
+- Private routes krijgen lichte `loading.tsx`-skeletons. De offlinefunctie toont een bruikbare registratie-/cachefout in plaats van die stil te negeren.
+
+Bewust buiten deze stap: nieuwe planningvelden, import, budget/open-puntenuitbreiding, wijzigingen aan reisdata, server-side offlinekopieën, synchronisatie en publieke routes.
+
+### Afgerond — mobiele kwaliteitsronde onderweg (15 oktober 2026)
+
+- Documentkaarten en documentformulieren breken lange titels, gekoppelde onderdelen en bestandsnamen binnen de beschikbare schermbreedte af. Mobiele document-, upload-, offline- en detailacties hebben nu minimaal een 44px-aanraakvlak.
+- De mobiele dagkop in de planner gebruikt nu aparte regels voor titel, datum/route en dagnotitie. Lange waarden worden afgebroken in plaats van over elkaar heen te lopen.
+- Vóór vertrek leest **Vandaag** de eerste twee echte reisdagen, hun planning en beschikbare dagdocumenten uit de gekozen reis. De bestaande Vandaag/Morgen-kaarten worden daarvoor hergebruikt met passende koppen; er is geen voorbeelddata toegevoegd.
+- Private app- en reisroutes hebben lichte `loading.tsx`-skeletons. De offlinefunctie meldt een mislukte service-workerregistratie nu duidelijk, terwijl de afzonderlijke documentcache bruikbaar blijft.
+- `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026. De echte offline-rondgang (vliegtuigstand na vooraf downloaden) blijft nog een handmatige iPhone-test.
