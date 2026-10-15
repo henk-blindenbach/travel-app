@@ -1381,3 +1381,27 @@ Bewust buiten deze correctie: publieke lijsttoegang tot opslag, originele foto�
 - De publieke hero en de afbeeldingsroute gebruiken nu allebei `public_trip_covers`; daardoor kan een omslagfoto die de homepage kiest ook daadwerkelijk als WebP worden gestreamd.
 - De view bevat uitsluitend het niet-herleidbare web-objectpad dat nodig is om de al-openbare afbeelding te leveren. Originele Scaleway-keys, bestandsnamen, captions, EXIF en GPS zijn niet beschikbaar.
 - Productiemigratie `20261015154222_expose_public_cover_web_path_to_route.sql` is toegepast. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — publieke API-schema-refresh (15 oktober 2026)
+
+- Na toevoeging van de omslagfoto-view wordt alleen de PostgREST-schema-cache vernieuwd, zodat de bestaande view direct voor de publieke leesroute beschikbaar is.
+
+Bewust buiten deze correctie: tabellen, data, RLS-regels, opslag en applicatiegedrag.
+
+### Afgerond — publieke API-schema-refresh (15 oktober 2026)
+
+- Productiemigratie `20261015154332_reload_public_api_schema.sql` heeft de PostgREST-schema-cache vernieuwd, zodat de publieke omslagfoto-view direct beschikbaar is voor de bestaande leesroute.
+
+### Bouwafspraak — gecontroleerde uitlevering publieke omslag-WebP (15 oktober 2026)
+
+- De Storage-regel voor de publieke afbeeldingsroute gebruikt dezelfde read-only `public_trip_covers`-view als de route zelf. Daardoor kan uitsluitend de WebP van een openbare reis met afgeronde verwerking worden opgehaald.
+- De wijziging herstelt alleen het uitleveren van die reeds publieke WebP. Originelen, andere objecten in de bucket, bestandsnamen en privégegevens blijven onbereikbaar voor anonieme bezoekers.
+
+Bewust buiten deze correctie: omslagfoto-upload, tabeldata, reiszichtbaarheid, private opslag en alle besloten routes.
+
+### Afgerond — gecontroleerde uitlevering publieke omslag-WebP (15 oktober 2026)
+
+- De oorzaak was een oudere Storage-policy voor publieke dagfoto’s die tijdens iedere anonieme afbeeldingsdownload alsnog een privétabel probeerde te lezen. Daardoor strandde ook een geldige omslagfoto op 404.
+- Zowel de bestaande dagfoto-policy als de nieuwe omslagfoto-policy gebruiken nu elk een minimale, afgeschermde toestemmingsfunctie. Die controleert uitsluitend of een exact WebP-pad bij een openbare reis en expliciet gepubliceerde/gereed gemelde afbeelding hoort.
+- De homepage geeft de veilige omslagfoto-route door en die route retourneert live `200 image/webp` voor de Nepal-omslagfoto. Originelen, bestandsnamen, documenten en overige objecten in de bucket blijven privé.
+- Productiemigraties `20261015154807_allow_public_cover_web_image_stream.sql` en `20261015154901_authorize_public_cover_web_image_stream.sql` plus `20261015154925_authorize_public_web_image_streams.sql` zijn toegepast op 15 oktober 2026.
