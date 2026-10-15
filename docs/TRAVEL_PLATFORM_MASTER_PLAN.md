@@ -1311,3 +1311,18 @@ Bewust buiten deze stap: wijzigingen aan reisdata, reisstatussen, zichtbaarheid,
 - Verdere geplande reizen staan onder de hoofdreis als **Komende reizen**, van vroeg naar laat.
 - De homepage heeft een knop **Bekijk reizen uit het verleden**. Die opent `/reizen?periode=verleden`, waar uitsluitend reizen staan die zijn afgelopen of als voltooid/gearchiveerd zijn gemarkeerd.
 - `npm run build` en `git diff --check` zijn geslaagd. De wijziging gebruikt alleen al-publieke reisvelden; geen privégegevens of databaserollen zijn aangepast.
+
+### Bouwafspraak — levendige publieke homepage (15 oktober 2026)
+
+- De publieke homepage krijgt een warme, fotografiegedreven hero en gelaagde reisblokken in de stijlrichting van de aangeleverde mockups: groot displaytype, rustige contrasten, duidelijke kaarten en subtiele route-/landaccenten.
+- Een geselecteerde openbare WebP-foto kan als hero-achtergrond worden gebruikt zodra er een gepubliceerd dagverhaal met foto bestaat. Zonder publieke foto blijft de hero bewust een abstracte, merkwaardige achtergrond — nooit een privéfoto of een vaste voorbeeldbestemming.
+- De oude, vaste aanduiding **Himalaya** verdwijnt. Titels, perioden, landen en links blijven uitsluitend afkomstig van de openbare reisgegevens.
+
+Bewust buiten deze stap: nieuwe foto-uploadregels, databasewijzigingen, routekaarten met GPS, de privéplanner, documenten en wijzigingen aan zichtbaarheid/publicatie.
+
+### Afgerond — levendige publieke homepage (15 oktober 2026)
+
+- De vaste, onjuiste aanduiding **Himalaya** is verwijderd. Ook de route-/landaccenten op de homepage zijn nu decoratief en niet langer een harde bestemmingstekst.
+- De homepage heeft een warmere, gelaagde hero, rustiger typografische hiërarchie, beweeglijke maar gereduceerd-beweging-veilige kaarten en heldere blokken voor verhalen, komende reizen en het reisarchief.
+- Wanneer er een geselecteerde foto bij een gepubliceerd dagverhaal bestaat, kan alleen die al-openbare WebP als hero-achtergrond worden gebruikt. Zonder foto blijft de hero abstract; privédocumenten, originelen en niet-gepubliceerde foto’s worden niet opgevraagd.
+- `npm run build` en `git diff --check` zijn geslaagd. Er is geen gedrag in `/app/*` gewijzigd.
