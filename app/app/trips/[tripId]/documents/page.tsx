@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "../../../../../components/AppShell";
 import { DocumentLibrary } from "../../../../../components/planner/DocumentLibrary";
+import { OfflineDocumentCache } from "../../../../../components/documents/OfflineDocumentCache";
 import { getPrivateTrip } from "../../../../../lib/travel-data";
 import { createClient, hasSupabaseEnv } from "../../../../../lib/supabase/server";
 
@@ -22,5 +23,5 @@ export default async function TripDocuments({ params }: { params: Promise<{ trip
     documents = (documentResult.data || []).map((document) => ({ ...document, planningItemIds: [...new Set([...(links.filter((link) => link.document_id === document.id).map((link) => link.planning_item_id)), ...(document.planning_item_id ? [document.planning_item_id] : [])])] })) as never[];
     planningItems = (itemResult.data || []) as never[];
   } catch {}
-  return <AppShell active="trips"><div className="planner-page"><Link className="back-link" href={"/app/trips/" + tripId + "/plan"}>← Terug naar reisplanner</Link><p className="eyebrow blue">Privé documentkluis</p><h1>{journey.trip.title}</h1><p className="journal-intro">Alle bevestigingen, tickets en reisdocumenten bij elkaar.</p><DocumentLibrary tripId={tripId} days={journey.days} planningItems={planningItems} initialDocuments={documents} /></div></AppShell>;
+  return <AppShell active="trips"><div className="planner-page"><Link className="back-link" href={"/app/trips/" + tripId + "/plan"}>← Terug naar reisplanner</Link><p className="eyebrow blue">Privé documentkluis</p><h1>{journey.trip.title}</h1><p className="journal-intro">Alle bevestigingen, tickets en reisdocumenten bij elkaar.</p><OfflineDocumentCache tripId={tripId} endsOn={journey.trip.ends_on} documents={documents}/><DocumentLibrary tripId={tripId} days={journey.days} planningItems={planningItems} initialDocuments={documents} /></div></AppShell>;
 }

@@ -1264,3 +1264,19 @@ Bewust buiten deze stap: offline kopieën op een toestel, een cache-/wisstrategi
 - De documentpagina toont de lijst voor het uploadgedeelte. Titel en gekoppelde planningonderdelen zijn daar te bewerken; bij uploaden kan één document meteen aan meerdere onderdelen worden gekoppeld.
 - Nieuwe tabel `trip_document_planning_items` bewaart de meerdere koppelingen. Bestaande `planning_item_id`-koppelingen zijn gemigreerd en blijven compatibel met de bestaande planner.
 - Productiemigratie `20261015075736_document_planning_item_links.sql` is toegepast en `npm run build` is geslaagd op 15 oktober 2026.
+
+### Bouwafspraak — offline reisdossier en leesbare planner (15 oktober 2026)
+
+- Alle documenten van de gekozen reis kunnen op verzoek alleen op het huidige toestel worden bewaard. Kopieën verdwijnen automatisch zodra de reis voorbij is en blijven altijd handmatig te verwijderen.
+- Op mobiel wordt de planner een leesbare dagkaartweergave zonder horizontaal scrollen. Snel details en documenten vinden is het hoofddoel; bewerken blijft beschikbaar maar niet dominant.
+- Op desktop gebruiken zowel toevoegen als bewerken hetzelfde vaste rechter zijpaneel. Het reisoverzicht blijft daardoor in positie.
+
+Bewust buiten deze stap: server-side documentkopieën, synchronisatie tussen toestellen, AI-import, bulk-upload en wijzigingen aan private reisgegevens of het databaseschema.
+
+### Afgerond — offline reisdossier en leesbare planner (15 oktober 2026)
+
+- De documentpagina heeft een actie **Maak offline beschikbaar**. Die downloadt alle documenten van de reis naar de browsercache op het huidige toestel; **Verwijder offline kopieën** wist ze weer. De cache wordt bij het volgende openen automatisch verwijderd wanneer de einddatum van de reis voorbij is.
+- Documenten openen gebruiken offline kopieën als een verbinding ontbreekt. De service worker bewaart daarnaast de privénavigatie-shell die nodig is om de app onderweg te openen.
+- De planner toont op mobiel compacte kaarten per reisdag met vaste labels voor vlucht, verblijf, vervoer en activiteit. De zes-kolomstabel verdwijnt daar en kan niet meer horizontaal uit het scherm lopen.
+- Bestaande onderdelen én **+ toevoegen** openen op desktop als een vast rechter zijpaneel. Op mobiel opent hetzelfde formulier schermvullend.
+- `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026.
