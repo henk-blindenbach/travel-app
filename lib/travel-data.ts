@@ -2,7 +2,7 @@ import { createClient, hasSupabaseEnv } from "./supabase/server";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 
 export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; travelers?: string | null; departure_location?: string | null; summary: string | null; visibility?: "private" | "unlisted" | "public"; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
-export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; private_notes?: string; status?: "planned" | "in_progress" | "completed" | "skipped" };
+export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; planned_latitude?: number | null; planned_longitude?: number | null; private_notes?: string; status?: "planned" | "in_progress" | "completed" | "skipped" };
 export type PrivateTripMenu = Trip & { days: Pick<TripDay, "id" | "day_number" | "day_date" | "title" | "planned_location">[] };
 
 const fallbackTrip: Trip = {
@@ -46,6 +46,8 @@ export async function getPrivateTrip(tripId: string) {
     const supabase = await createClient();
     const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,travelers,departure_location,summary,status,visibility").eq("id", tripId).maybeSingle();
     if (!trip) return null;
+    const withCoords = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route,planned_latitude,planned_longitude,private_notes,status").eq("trip_id", tripId).order("day_number");
+    if (!withCoords.error) return { trip: trip as Trip, days: (withCoords.data || []) as TripDay[] };
     const { data: days } = await supabase.from("trip_days").select("id,day_number,day_date,title,planned_location,planned_route,private_notes,status").eq("trip_id", tripId).order("day_number");
     return { trip: trip as Trip, days: (days || []) as TripDay[] };
   } catch { return null; }
