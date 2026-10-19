@@ -26,6 +26,12 @@
 - Het detailpaneel voor een reisdag klapt nu meteen onder de aangeklikte dagrij open, in plaats van pas onderaan het volledige planningsoverzicht.
 - De daggegevens, gekoppelde documenten en bewerkingsmogelijkheden blijven ongewijzigd.
 
+## Afgerond — dagelijkse e-mailherinnering
+
+- ’s Avonds (Europe/Amsterdam / Vercel cron 18:00 UTC) een e-mail om de actieve reisdag af te ronden; CTA opent `/app/today` of `/app/journal/[dayId]`.
+- Geen automatische publicatie. Skip bij gepubliceerde of stevige concepttekst. Opt-out onder Meer → Herinneringen.
+- Configuratie: `CRON_SECRET`, `RESEND_API_KEY`, bij voorkeur `EMAIL_FROM` + geverifieerd domein — zie `docs/DAILY_EMAIL_REMINDER.md`.
+
 **Status:** Living document / master plan  
 **Eerste concrete reis:** Nepal - Tibet - Bhutan - India, 2026  
 **Gebruikers:** Henk & Michel  
