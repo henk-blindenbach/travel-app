@@ -78,7 +78,10 @@ export default async function Photos({ searchParams }: { searchParams: Promise<{
           <p className="eyebrow blue">{trip.title}</p>
           <h2>{filtered.length} {countLabel}</h2>
         </div>
-        <Link className="secondary-button" href={`/app/trips/${trip.id}/journal`}>Open reisverslag</Link>
+        <div className="photo-library-heading-actions">
+          <Link className="secondary-button" href={`/app/trips/${trip.id}/fotoboek`}>Open fotoboek</Link>
+          <Link className="secondary-button" href={`/app/trips/${trip.id}/journal`}>Open reisverslag</Link>
+        </div>
       </div>
       <nav className="photo-book-filter" aria-label="Filter foto’s">
         <Link className={filter === "all" ? "active" : ""} href={filterHref("all")}>Alle foto’s</Link>

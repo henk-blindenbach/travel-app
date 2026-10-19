@@ -40,6 +40,16 @@ export async function createOriginalUploadUrl(key: string, contentType: string) 
   );
 }
 
+/** Temporary GET URL for external processors (e.g. Prodigi asset download). */
+export async function createOriginalDownloadUrl(key: string, expiresInSeconds = 60 * 60) {
+  const settings = config();
+  return getSignedUrl(
+    client(settings),
+    new GetObjectCommand({ Bucket: settings.bucket, Key: key }),
+    { expiresIn: expiresInSeconds },
+  );
+}
+
 export async function fetchOriginal(key: string) {
   const settings = config();
   const result = await client(settings).send(new GetObjectCommand({ Bucket: settings.bucket, Key: key }));
