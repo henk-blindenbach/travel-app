@@ -1,0 +1,6 @@
+row_type,day_number,title,planned_location,planned_route,private_notes,day_status,kind,item_status,item_location,details,booking_reference,ticket_number,departure_time,arrival_time,arrives_on,ends_on,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,latitude,longitude
+day,1,Aankomst,Voorbeeldstad,Airport → hotel,,planned,,,,,,,,,,,,,,,,,,,,,,,,,,
+item,1,Voorbeeldvlucht,,,,,flight,confirmed,Vertrekstad,Directe vlucht,ABC123,,10:25,06:40,2026-11-02,,ExampleAir,XX123,,,,,,,450,EUR,paid,false,,,,
+item,1,Voorbeeldhotel,,,,,accommodation,planned,Voorbeeldstad,Check-in na 14:00,HTL-44,,,,,,,,,,,,Centrum 12,+00-0-000000,80,EUR,unpaid,false,,,,
+day,2,Stadswandeling,Voorbeeldstad,Centrum → museum,,planned,,,,,,,,,,,,,,,,,,,,,,,,,,
+item,2,Museumbezoek,,,,,activity,option,Voorbeeldstad,Tickets ter plaatse,,,,,,,,,,,,,,,12,EUR,unknown,true,120,100,,

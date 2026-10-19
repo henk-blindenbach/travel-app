@@ -1468,3 +1468,10 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - In ieder dagverslag is de sociale handoff expliciet: geselecteerde foto’s gaan via het systeemdeelmenu, captions zijn per Instagram/Facebook/Polarsteps te kopiëren en ieder platform is direct te openen. De keuze en plaatsing blijven bij Henk of Michel.
 - De reisbrede pagina **Publiceren** toont nu iedere reisdag met concept-/publiekstatus, aantal geselecteerde foto’s en — na publicatie — snelle caption- en platformacties. De editor werkt niet meer alleen voor de vaste voorbeeldreis, maar zoekt de gevraagde reisdag en bijbehorende reis op.
 - Geen migratie of nieuwe publieke toegang is toegevoegd. `npm run build` en `git diff --check` zijn geslaagd op 15 oktober 2026. De echte eindtest blijft: op iPhone documenten vooraf bewaren, vliegtuigstand inschakelen, document openen en daarna uitloggen.
+
+### Afgerond — CSV plan-import (19 oktober 2026)
+
+- Op de privé planner (`/app/trips/[tripId]/plan`) staat een CSV-import: upload of plakken → **Voorbeeld** → **Import bevestigen**.
+- Rijen `day` werken `trip_days` bij op `day_number`; rijen `item` matchen `planning_items` op dag + kind + titel (anders insert). Geen blinde deletes.
+- Generieke template: `/templates/plan-import-template.csv` + `docs/PLAN_CSV_IMPORT.md`. Native `.xlsx` blijft een dunne follow-up (zelfde kolommen via Excel-export naar CSV).
+- Bewust buiten: copy-day, dossier/budget/open-punten-import, bulk-Nominatim tijdens import (lat/lng-kolommen of later dag opslaan).
