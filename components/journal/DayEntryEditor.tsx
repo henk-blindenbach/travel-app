@@ -18,6 +18,8 @@ type Asset = {
   caption: string;
   sort_order: number;
   is_public?: boolean;
+  book_candidate?: boolean;
+  book_favorite?: boolean;
   upload_status: "uploading" | "processing" | "ready" | "failed";
 };
 
@@ -146,6 +148,17 @@ export function DayEntryEditor({ tripDayId, tripSlug, dayNumber, dayTitle, plann
     } catch { setMessage("De publicatiefotokeuze kon niet worden opgeslagen."); }
   }
 
+  async function setBookFlag(assetId: string, patch: { bookCandidate?: boolean; bookFavorite?: boolean }) {
+    try {
+      const data = await responseJson(await fetch(`/api/media/${assetId}/web-url`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }));
+      setAssets((current) => current.map((asset) => asset.id === assetId ? {
+        ...asset,
+        book_candidate: data.asset.book_candidate,
+        book_favorite: data.asset.book_favorite,
+      } : asset));
+    } catch { setMessage("De fotoboekkeuze kon niet worden opgeslagen."); }
+  }
+
   async function savePhotosToLibrary() {
     const selected = assets.filter((asset) => asset.is_public && asset.upload_status === "ready");
     if (!selected.length) { setMessage("Kies eerst minstens één foto voor publicatie."); return; }
@@ -233,6 +246,8 @@ export function DayEntryEditor({ tripDayId, tripSlug, dayNumber, dayTitle, plann
             if (event.target.value.trim() !== asset.caption) void saveCaption(asset.id, event.target.value);
           }} /></label>
           <label className="photo-caption-label"><input type="checkbox" checked={Boolean(asset.is_public)} onChange={(event) => void setPublic(asset.id, event.target.checked)} /> Gebruik voor publicatie en social</label>
+          <label className="photo-caption-label"><input type="checkbox" checked={Boolean(asset.book_candidate)} onChange={(event) => void setBookFlag(asset.id, { bookCandidate: event.target.checked })} /> Fotoboek-kandidaat</label>
+          <label className="photo-caption-label"><input type="checkbox" checked={Boolean(asset.book_favorite)} onChange={(event) => void setBookFlag(asset.id, { bookFavorite: event.target.checked })} /> Favoriet voor fotoboek</label>
         </figcaption>
       </figure>)}</div> : <button className="photo-dropzone" type="button" onClick={() => inputRef.current?.click()}><b>+</b><span>Kies foto’s van vandaag</span><small>HEIC is welkom</small></button>}
     </section>

@@ -30,18 +30,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ as
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
 
     const payload = await request.json();
-    const updates: { caption?: string; sort_order?: number; is_public?: boolean } = {};
+    const updates: {
+      caption?: string;
+      sort_order?: number;
+      is_public?: boolean;
+      book_candidate?: boolean;
+      book_favorite?: boolean;
+    } = {};
     if ("caption" in payload) updates.caption = safeText(payload.caption, 500);
     if (Number.isSafeInteger(payload.sortOrder) && payload.sortOrder >= 0 && payload.sortOrder <= 10_000) {
       updates.sort_order = payload.sortOrder;
     }
     if (typeof payload.isPublic === "boolean") updates.is_public = payload.isPublic;
+    if (typeof payload.bookCandidate === "boolean") updates.book_candidate = payload.bookCandidate;
+    if (typeof payload.bookFavorite === "boolean") updates.book_favorite = payload.bookFavorite;
     if (!Object.keys(updates).length) return NextResponse.json({ error: "Geen geldige wijziging." }, { status: 400 });
     const { data: asset, error } = await supabase
       .from("media_assets")
       .update(updates)
       .eq("id", assetId)
-      .select("id,caption,sort_order,is_public")
+      .select("id,caption,sort_order,is_public,book_candidate,book_favorite")
       .single();
     if (error || !asset) return NextResponse.json({ error: "Het bijschrift kon niet worden opgeslagen." }, { status: 404 });
     return NextResponse.json({ asset });

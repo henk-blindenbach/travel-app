@@ -43,3 +43,6 @@
 
 /* Trip visibility (private / unlisted / public) */
 .visibility-options{display:grid;gap:8px;margin:18px 0 16px}.visibility-option{display:grid;gap:4px;text-align:left;border:1px solid #d5e1eb;border-radius:10px;background:#fbfdfe;padding:12px 13px;color:var(--ink);cursor:pointer}.visibility-option:hover{border-color:#9ec2e5}.visibility-option.active{border-color:#1769e8;background:#eaf3ff}.visibility-option:disabled{opacity:.65;cursor:wait}.visibility-option strong{font:700 .82rem 'DM Sans',sans-serif}.visibility-option span{color:var(--muted);font-size:.76rem;line-height:1.45}.planner-card .secondary-button{display:inline-flex;margin-top:4px}
+
+/* Photo book candidate / favorite filters */
+.photo-book-filter{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.photo-book-filter a{padding:7px 11px;border:1px solid #d5e1eb;border-radius:8px;background:white;color:#54718b;font-size:.74rem;font-weight:700}.photo-book-filter a.active{border-color:#1769e8;background:#eaf3ff;color:#1769e8}.private-photo .photo-caption-label{margin-top:6px}.private-photo .photo-caption-label input[type="checkbox"]{width:auto;margin-right:6px}
