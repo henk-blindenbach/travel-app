@@ -6,6 +6,8 @@ import { createClient } from "../../../../lib/supabase/server";
 const statuses = new Set(["planned", "in_progress", "completed", "skipped"]);
 function isoDate(value: unknown) { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : ""; }
 
+export type CoordinateStatus = "geocoded" | "manual" | "unchanged" | "failed" | "cleared" | "skipped";
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ dayId: string }> }) {
   try {
     const { dayId } = await params; if (!validUuid(dayId)) return NextResponse.json({ error: "Ongeldige reisdag." }, { status: 400 });
@@ -39,22 +41,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ da
 
     let updatePayload: Record<string, unknown> = baseUpdate;
     let selectCols = "id,day_number,day_date,title,planned_location,planned_route,private_notes,status";
+    let coordinateStatus: CoordinateStatus = "skipped";
 
     if (coordsReady) {
       let plannedLatitude: number | null = (existing as { planned_latitude: number | null }).planned_latitude ?? null;
       let plannedLongitude: number | null = (existing as { planned_longitude: number | null }).planned_longitude ?? null;
       const explicit = readExplicitCoords(payload);
-      const clearCoords = payload.clearCoordinates === true || payload.latitude === null || payload.longitude === null;
+      const clearCoords = payload.clearCoordinates === true;
       if (!plannedLocation || clearCoords) {
         plannedLatitude = null;
         plannedLongitude = null;
+        coordinateStatus = "cleared";
       } else if (explicit) {
         plannedLatitude = explicit.latitude;
         plannedLongitude = explicit.longitude;
+        coordinateStatus = "manual";
       } else if (plannedLocation !== existing?.planned_location || plannedLatitude === null || plannedLongitude === null) {
         const geocoded = await geocodePlace(plannedLocation);
         plannedLatitude = geocoded?.latitude ?? null;
         plannedLongitude = geocoded?.longitude ?? null;
+        coordinateStatus = geocoded ? "geocoded" : "failed";
+      } else {
+        coordinateStatus = "unchanged";
       }
       updatePayload = { ...baseUpdate, planned_latitude: plannedLatitude, planned_longitude: plannedLongitude };
       selectCols += ",planned_latitude,planned_longitude";
@@ -62,6 +70,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ da
 
     const { data: day, error } = await supabase.from("trip_days").update(updatePayload).eq("id", dayId).eq("trip_id", payload.tripId).select(selectCols).single();
     if (error || !day) return NextResponse.json({ error: "Reisdag kon niet worden opgeslagen. Kies eventueel een andere datum." }, { status: 400 });
-    return NextResponse.json({ day });
+    return NextResponse.json({ day, coordinateStatus });
   } catch { return NextResponse.json({ error: "Reisdag kon niet worden opgeslagen." }, { status: 500 }); }
 }
