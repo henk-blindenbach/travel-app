@@ -9,17 +9,27 @@ export type PublicMedia = { id: string; day_entry_id: string; web_object_path: s
 
 export async function listPublicTrips() {
   if (!configured()) return [];
-  const { data } = await publicClient().from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").order("starts_on", { ascending: false });
+  // Anon RLS on trips is public-only — unlisted trips never appear in /reizen lists.
+  const { data } = await publicClient()
+    .from("trips")
+    .select("id,title,slug,starts_on,ends_on,countries,summary,status")
+    .order("starts_on", { ascending: false });
   return (data || []) as PublicTrip[];
 }
 
 export async function getPublicTripBySlug(slug: string) {
   if (!configured()) return null;
-  const db = publicClient();
-  const { data: trip } = await db.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("slug", slug).maybeSingle();
-  if (!trip) return null;
-  const { data: days } = await db.from("day_entries").select("id,trip_id,day_number,day_date,title,actual_location,body,published_at").eq("trip_id", trip.id).order("day_number");
-  return { trip: trip as PublicTrip, days: (days || []) as PublicDay[] };
+  try {
+    const db = publicClient();
+    const { data, error } = await db.rpc("get_shareable_trip_by_slug", { p_slug: slug });
+    if (error) return null;
+    const trip = Array.isArray(data) ? data[0] : data;
+    if (!trip) return null;
+    const { data: days } = await db.from("day_entries").select("id,trip_id,day_number,day_date,title,actual_location,body,published_at").eq("trip_id", trip.id).order("day_number");
+    return { trip: trip as PublicTrip, days: (days || []) as PublicDay[] };
+  } catch {
+    return null;
+  }
 }
 
 export async function getPublicDayByNumber(slug: string, dayNumber: number) {

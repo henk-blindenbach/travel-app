@@ -6,7 +6,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
   try {
     const { tripId } = await params;
     const { visibility } = await request.json();
-    if (!validUuid(tripId) || !["private", "public"].includes(visibility)) return NextResponse.json({ error: "Ongeldige zichtbaarheid." }, { status: 400 });
+    if (!validUuid(tripId) || !["private", "unlisted", "public"].includes(visibility)) {
+      return NextResponse.json({ error: "Ongeldige zichtbaarheid." }, { status: 400 });
+    }
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });

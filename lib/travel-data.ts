@@ -64,6 +64,7 @@ export async function getPublicFeaturedTrip() {
   if (!hasSupabaseEnv()) return { trip: fallbackTrip, days: [] as TripDay[] };
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+    // Anon RLS on trips is public-only; unlisted never appears in list/featured scans.
     const { data: trip } = await supabase
       .from("trips")
       .select("id,title,slug,starts_on,ends_on,countries,summary")
@@ -96,6 +97,7 @@ export async function getPublicTravelOverview() {
   if (!hasSupabaseEnv()) return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false };
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+    // Anon RLS: only visibility=public rows; unlisted excluded from homepage featured/lists.
     const { data } = await supabase
       .from("trips")
       .select("id,title,slug,starts_on,ends_on,countries,summary,status")
@@ -125,7 +127,9 @@ export async function getPublicTrip(slug: string) {
   if (!hasSupabaseEnv()) return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[] } : null;
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: trip } = await supabase.from("trips").select("id,title,slug,starts_on,ends_on,countries,summary,status").eq("slug", slug).maybeSingle();
+    const { data, error } = await supabase.rpc("get_shareable_trip_by_slug", { p_slug: slug });
+    if (error) throw error;
+    const trip = Array.isArray(data) ? data[0] : data;
     if (!trip) return null;
     return { trip: trip as Trip, days: await getPublishedDays(trip.id) };
   } catch {
