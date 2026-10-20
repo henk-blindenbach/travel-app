@@ -7,7 +7,7 @@ Evening e-mail that opens today’s trip day in the app. No auto-publish.
 - **Today** = calendar date in `Europe/Amsterdam`.
 - Finds an active trip (`starts_on ≤ today ≤ ends_on`, status not `idea` / `completed` / `archived`) and that day’s `trip_days` row.
 - **Skips** when the day entry is already `published`, or the draft body is ≥ 200 characters.
-- Recipients: all Auth users with an e-mail, minus opt-outs in `reminder_preferences`. Optional allowlist: `REMINDER_EMAIL_ALLOWLIST` (comma-separated).
+- Recipients: **trip owners only** (`trip_members.role = 'owner'`), falling back to `trips.created_by` when no owner membership exists. Editors/other Auth users (e.g. Michel) do not get reminder mail. Opt-outs in `reminder_preferences` still apply. Optional allowlist: `REMINDER_EMAIL_ALLOWLIST` (comma-separated) further restricts.
 - CTA links: `/app/today` and `/app/journal/[dayId]`.
 - Idempotent via `reminder_sends` (one mail per user / trip day / date).
 - Opt-out UI: **Meer → Herinneringen**.
@@ -27,7 +27,7 @@ Evening e-mail that opens today’s trip day in the app. No auto-publish.
 | `RESEND_API_KEY` | **yes** to actually send | [Resend](https://resend.com) API key |
 | `EMAIL_FROM` | recommended | Verified sender, e.g. `Op reis <noreply@jouwdomein.nl>` |
 | `APP_BASE_URL` | recommended | Canonical app URL for links (falls back to `https://opreis.blindenbach.nl`) |
-| `REMINDER_EMAIL_ALLOWLIST` | optional | Limit recipients while testing |
+| `REMINDER_EMAIL_ALLOWLIST` | optional | Extra filter on top of owner-only (e.g. testing) |
 
 Already present: `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` (cron uses the service role).
 

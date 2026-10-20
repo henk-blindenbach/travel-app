@@ -102,26 +102,48 @@ export async function findTodaysReminderTarget(today = calendarDateInTimeZone())
   };
 }
 
-export async function listReminderRecipients(): Promise<ReminderRecipient[]> {
+/**
+ * Reminder recipients for a trip: membership role `owner` only (not editors/members).
+ * If no owner membership row exists, fall back to `trips.created_by` (common for older trips).
+ * Optional `REMINDER_EMAIL_ALLOWLIST` further restricts; `reminder_preferences` opt-outs apply.
+ */
+export async function listReminderRecipients(tripId: string): Promise<ReminderRecipient[]> {
   const supabase = createServiceClient();
   const allowlist = (process.env.REMINDER_EMAIL_ALLOWLIST || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
 
+  const { data: owners, error: ownersError } = await supabase
+    .from("trip_members")
+    .select("user_id")
+    .eq("trip_id", tripId)
+    .eq("role", "owner");
+
+  if (ownersError) throw new Error(ownersError.message);
+
+  let ownerIds = (owners || []).map((row) => row.user_id as string).filter(Boolean);
+
+  if (!ownerIds.length) {
+    const { data: trip, error: tripError } = await supabase
+      .from("trips")
+      .select("created_by")
+      .eq("id", tripId)
+      .maybeSingle();
+    if (tripError) throw new Error(tripError.message);
+    if (trip?.created_by) ownerIds = [trip.created_by as string];
+  }
+
+  if (!ownerIds.length) return [];
+
   const recipients: ReminderRecipient[] = [];
-  let page = 1;
-  for (;;) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+  for (const userId of ownerIds) {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
     if (error) throw new Error(error.message);
-    for (const user of data.users) {
-      const email = user.email?.trim();
-      if (!email) continue;
-      if (allowlist.length && !allowlist.includes(email.toLowerCase())) continue;
-      recipients.push({ userId: user.id, email });
-    }
-    if (data.users.length < 200) break;
-    page += 1;
+    const email = data.user?.email?.trim();
+    if (!email) continue;
+    if (allowlist.length && !allowlist.includes(email.toLowerCase())) continue;
+    recipients.push({ userId, email });
   }
 
   if (!recipients.length) return [];
@@ -237,9 +259,9 @@ export async function runDailyReminders(options: { dryRun?: boolean; force?: boo
     return result;
   }
 
-  const recipients = await listReminderRecipients();
+  const recipients = await listReminderRecipients(target.tripId);
   if (!recipients.length) {
-    result.skippedReason = "Geen ontvangers (geen users of allemaal afgemeld).";
+    result.skippedReason = "Geen ontvangers (geen trip-owner, allowlist leeg, of allemaal afgemeld).";
     return result;
   }
 
