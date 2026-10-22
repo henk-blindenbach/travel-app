@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
+import { NavigationProgress } from "../components/NavigationProgress";
 import "./globals.css";
 import "./inline-day-detail.css";
 
@@ -12,5 +14,14 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#17355c" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="nl"><body>{children}</body></html>;
+  return (
+    <html lang="nl">
+      <body>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
+        {children}
+      </body>
+    </html>
+  );
 }

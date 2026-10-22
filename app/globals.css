@@ -58,3 +58,41 @@
 
 /* UX P2 — document search, pins, today strip, offline badge */
 .document-search{grid-column:1/-1}.document-search input[type=search]{width:100%;border:1px solid #cbd6df;border-radius:8px;background:white;padding:11px 12px;font:inherit;color:var(--ink)}.document-pinned-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}.document-pinned-section h3{font:700 1rem 'DM Sans';margin:0 0 4px}.document-pinned-section>p{color:var(--muted);font-size:.78rem;margin:0 0 8px}.document-card-pinned{border-color:#9ec2e5;background:#f7fbff}.document-card-actions{position:absolute;right:1rem;top:1rem;display:flex;flex-direction:column;gap:6px;align-items:stretch}.document-edit,.document-pin{position:static;border:1px solid #b6c8da;border-radius:9px;background:white;padding:.55rem .7rem;color:#1769e0;font:700 .78rem 'DM Sans';cursor:pointer;min-height:44px}.document-pin{color:#3d6b93}.document-open{padding-right:7.5rem}.offline-badge{color:#2f7a45!important;font-weight:700!important}.document-editor select{display:block;width:100%;margin-top:.35rem;border:1px solid #cbd6df;border-radius:8px;background:white;padding:10px;font:inherit}.today-documents{margin:1rem 0}.today-documents h2{font-size:1.45rem;letter-spacing:-.03em;margin:6px 0}.today-documents>p{color:var(--muted);font-size:.82rem;line-height:1.5}.today-document-list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}.today-document-open{display:flex;width:100%;flex-direction:column;gap:.25rem;text-align:left;border:1px solid #dce4eb;border-radius:12px;background:#f9fbfd;padding:14px 16px;cursor:pointer;min-height:64px;font:inherit;color:var(--ink)}.today-document-open span{font-size:.68rem;font-weight:700;color:#47749b;text-transform:uppercase;letter-spacing:.04em}.today-document-open b{font-size:.95rem}.today-document-open small{color:#60738d;font-size:.75rem}.today-document-open:hover{border-color:#9ec2e5;background:#f3f8fd}@media(max-width:700px){.document-card-actions{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #dce4eb}.document-edit,.document-pin{border:0;border-radius:0;width:100%}.document-pin{border-left:1px solid #dce4eb}.document-open{padding-right:1rem}.filter-controls{grid-template-columns:1fr!important}.today-document-open{min-height:72px}}
+
+/* UX P5 — mobile tap targets, documents overflow, day-header spacing, nav progress */
+.nav-progress{position:fixed;z-index:80;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#1769e8,#5aa2f5);opacity:0;pointer-events:none;transition:opacity .15s ease}
+.nav-progress.is-active{width:70%;opacity:1;animation:nav-progress-pulse 1.1s ease-in-out infinite}
+@keyframes nav-progress-pulse{0%{width:12%}50%{width:72%}100%{width:92%}}
+.trip-submenu-links>a,.new-trip-link,.all-trips-link{display:flex;align-items:center;min-height:44px;padding:10px 12px;box-sizing:border-box}
+.trip-days-menu>summary{display:flex;align-items:center;min-height:44px;padding:10px 12px}
+.trip-days-menu>a{display:flex;align-items:center;min-height:44px;padding:10px 12px;font-size:.74rem;line-height:1.3;white-space:normal;overflow:visible;text-overflow:clip}
+.plan-filters button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:10px 14px;font-size:.78rem;border-radius:12px}
+.document-edit,.document-pin{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;box-sizing:border-box}
+.dossier-list .text-button,.trip-day-detail-heading .text-button{display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:10px 8px}
+.day-summary{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;min-width:0;max-width:none}
+.day-summary b,.day-summary small,.day-summary em{display:block;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35}
+.day-summary b{font-size:.9rem}.day-summary small{color:var(--muted);font-size:.74rem}.day-summary em{margin-top:.05rem}
+.planner-page,.document-library,.document-library .planner-card,.document-card,.offline-documents{max-width:100%;overflow-x:clip}
+.document-library .planner-card-heading{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;min-width:0}
+.document-library .planner-card-heading>div{min-width:0;flex:1 1 12rem}
+.document-library .planner-card-heading .secondary-button{flex:0 1 auto}
+.document-library-controls,.filter-controls,.document-search{min-width:0;max-width:100%}
+.document-search input[type=search],.document-library-controls select{max-width:100%;box-sizing:border-box}
+.document-open,.document-open *{overflow-wrap:anywhere;word-break:break-word}
+.document-card-actions{max-width:7rem}
+@media(max-width:700px){.document-card-actions{max-width:none}}
+@media(max-width:760px){
+  .trip-plan-row .day-summary{display:grid;grid-template-columns:minmax(0,1fr);gap:.7rem;max-width:none;margin-bottom:1rem;width:100%}
+  .trip-plan-row .day-summary b,.trip-plan-row .day-summary small,.trip-plan-row .day-summary em{display:block;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.4}
+  .document-library .planner-card-heading{display:grid}
+  .document-library .planner-card-heading .secondary-button{width:100%;justify-content:center}
+  .offline-documents>div{display:grid;gap:.6rem}
+  .offline-documents .primary-button,.offline-documents .secondary-button{width:100%;min-height:48px;justify-content:center}
+}
+@media(max-width:900px){
+  .document-library .planner-card-heading{display:grid}
+  .document-open{padding-right:1rem}
+  .document-card-actions{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #dce4eb;max-width:none}
+  .document-edit,.document-pin{border:0;border-radius:0;width:100%}
+  .document-pin{border-left:1px solid #dce4eb}
+}
