@@ -1503,3 +1503,11 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - **Posts**-overzicht per reis (`/publish`): alle captions per dag en platform (Instagram feed / carousel / story, Facebook, Polarsteps), met **Kopieer caption** en thumbnails van geselecteerde foto’s. Oude `instagram`-captions worden als feed gelezen.
 - **Deel geselecteerde foto’s** is uitgeschakeld met hint zolang er geen publicatiefoto’s zijn; op iPhone deelt `navigator.share` bestanden + caption en kopieert de caption naar het klembord.
 - Captions zijn per platform bewerkbaar en opslaanbaar (`PATCH /api/day-entries/[id]/social`), met karakterteller en hashtags apart zichtbaar/bewerkbaar (waar het platform dat vraagt).
+
+### Afgerond — UX P5 mobiel en touch (22 oktober 2026)
+
+- Tap targets ≥44×44px voor reisdaglinks in het sidemenu, **Bewerken**/vastzetten op documentkaarten, dossier-tekstknoppen en planner-filterchips.
+- Documentenpagina: geen horizontale overflow meer op ~390px en ~630px (zoek/filters/kaarten breken binnen de breedte; acties stapelen eerder).
+- Planner day-card header op mobiel: titel, datum/route en dagnotitie staan op aparte regels met ruimte ertussen (geen “Faro → Amsterdam” tegen de datumregel).
+- Pagina-overgangen: bestaande `loading.tsx`-skeletons plus een dunne top-progressbalk bij soft navigatie.
+- Offline-tellertekst (“X documenten…”) volgt uploads/verwijderen en cache-wijzigingen live zonder volledige herlaad.

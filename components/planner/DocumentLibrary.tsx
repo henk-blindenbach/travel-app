@@ -8,6 +8,7 @@ import {
   offlineDocumentUrl,
   openDocumentOfflineFirst,
 } from "../../lib/offline-document";
+import { dispatchOfflineDocumentsUpdated, dispatchTripDocumentsChanged } from "../../lib/offline-document-copy";
 
 type Day = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null };
 type PlanningItem = {
@@ -80,6 +81,13 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       window.removeEventListener("nos-offline-documents-updated", refresh);
     };
   }, [tripId]);
+
+  useEffect(() => {
+    dispatchTripDocumentsChanged(
+      tripId,
+      documents.map((document) => ({ id: document.id, title: document.title })),
+    );
+  }, [documents, tripId]);
 
   const filteredDocuments = useMemo(() => {
     const byFilter = documents.filter(
@@ -267,6 +275,7 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
         next.delete(documentId);
         return next;
       });
+      dispatchOfflineDocumentsUpdated(tripId);
       setMessage("Document verwijderd.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Document kon niet worden verwijderd.");
