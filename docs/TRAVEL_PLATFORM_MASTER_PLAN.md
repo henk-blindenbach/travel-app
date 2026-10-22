@@ -1483,3 +1483,11 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - Social captions (`/api/day-entries/[id]/social`): robuustere Responses-parse, ~20s timeout, `maxDuration`, foutmelding + **Probeer opnieuw**.
 - Dagverslag-autosave (debounce + localStorage offline) en leave-waarschuwing (`beforeunload` + router-guard op terug-navigatie).
 - Ops-opruiming: oude duplicaten “Visa India Michel” en “8 Days 7 Nights for Michel”, plus Nepal Dag 1 TEST-concept, verwijderd; juiste vervangers bleven staan.
+
+### Afgerond — UX P2 documenten onderweg (22 oktober 2026)
+
+- Client-side zoeken in de documentkluis op titel, type, gekoppelde onderdelen (vluchtnummer/hotel), boekingscode en persoonsnaam in de titel; werkt ook offline. Voorbeeld: `KL0871` vindt KLM-barcodes via gekoppelde vlucht.
+- **Documenten van vandaag** op `/app/today`: vandaag + morgen + hele-reis (visa e.d.); vóór vertrek de eerste reisdag; één tik om te openen.
+- Openen is offline-first (cache/SW vóór signed URL), badge **offline beschikbaar ✓**, service worker geeft bij netwerkfout een nette 503 i.p.v. `FetchEvent` network-error.
+- Documenten vastzetten → sectie **Snel bij de hand** (`is_pinned` op `trip_documents`).
+- Multi-file upload; type en reisdag achteraf bewerkbaar in Bewerken.
