@@ -1511,3 +1511,10 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - Planner day-card header op mobiel: titel, datum/route en dagnotitie staan op aparte regels met ruimte ertussen (geen “Faro → Amsterdam” tegen de datumregel).
 - Pagina-overgangen: bestaande `loading.tsx`-skeletons plus een dunne top-progressbalk bij soft navigatie.
 - Offline-tellertekst (“X documenten…”) volgt uploads/verwijderen en cache-wijzigingen live zonder volledige herlaad.
+
+### Afgerond — UX leftovers (vlucht/activiteit, copy-dag, dossier, sessie) (22 oktober 2026)
+
+- Vluchtvelden (maatschappij, vluchtnummer, aankomstdatum, stoel, terminals) en activiteitvelden (tijd, adres, link) blijven in planner-API/schema; samenvatting toont ze nu ook in plancellen en op Vandaag.
+- **Kopieer naar andere dag** in de planningeditor (`POST /api/planning-items/copy`); CSV-import bleef zoals eerder (geen tweede import).
+- Reisdossier (reizigers/contacten/budget): duidelijkere labels, ankers, sidemenu-link **Reisdossier**, klikbare tel/mailto; geen rebuild.
+- Verlopen sessie bij document openen (en verwante auth-gated acties): duidelijke melding, daarna login met `error=session`.

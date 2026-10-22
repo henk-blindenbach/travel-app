@@ -18,13 +18,53 @@ function validEntry(entity: string, item: Record<string, unknown>) {
 }
 
 export async function POST(request: Request) {
-  try { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); const payload = await request.json(); if (!user || !validUuid(payload.tripId) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 }); const item = values(payload.entity, payload); if (!validEntry(payload.entity, item)) return NextResponse.json({ error: "Vul de verplichte velden correct in." }, { status: 400 }); const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries"; const { data, error } = await supabase.from(table).insert({ trip_id: payload.tripId, ...item }).select().single(); if (error || !data) throw error; return NextResponse.json({ item: data }); } catch { return NextResponse.json({ error: "Kon niet opslaan." }, { status: 400 }); }
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = await request.json();
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
+    if (!validUuid(payload.tripId) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 });
+    const item = values(payload.entity, payload);
+    if (!validEntry(payload.entity, item)) return NextResponse.json({ error: "Vul de verplichte velden correct in." }, { status: 400 });
+    const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries";
+    const { data, error } = await supabase.from(table).insert({ trip_id: payload.tripId, ...item }).select().single();
+    if (error || !data) throw error;
+    return NextResponse.json({ item: data });
+  } catch {
+    return NextResponse.json({ error: "Kon niet opslaan." }, { status: 400 });
+  }
 }
 
 export async function PATCH(request: Request) {
-  try { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); const payload = await request.json(); if (!user || !validUuid(payload.tripId) || !validUuid(payload.id) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 }); const item = values(payload.entity, payload); if (!validEntry(payload.entity, item)) return NextResponse.json({ error: "Vul de verplichte velden correct in." }, { status: 400 }); const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries"; const { data, error } = await supabase.from(table).update(item).eq("id", payload.id).eq("trip_id", payload.tripId).select().single(); if (error || !data) throw error; return NextResponse.json({ item: data }); } catch { return NextResponse.json({ error: "Kon niet bijwerken." }, { status: 400 }); }
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = await request.json();
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
+    if (!validUuid(payload.tripId) || !validUuid(payload.id) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 });
+    const item = values(payload.entity, payload);
+    if (!validEntry(payload.entity, item)) return NextResponse.json({ error: "Vul de verplichte velden correct in." }, { status: 400 });
+    const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries";
+    const { data, error } = await supabase.from(table).update(item).eq("id", payload.id).eq("trip_id", payload.tripId).select().single();
+    if (error || !data) throw error;
+    return NextResponse.json({ item: data });
+  } catch {
+    return NextResponse.json({ error: "Kon niet bijwerken." }, { status: 400 });
+  }
 }
 
 export async function DELETE(request: Request) {
-  try { const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); const payload = await request.json(); if (!user || !validUuid(payload.tripId) || !validUuid(payload.id) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 }); const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries"; const { error } = await supabase.from(table).delete().eq("id", payload.id).eq("trip_id", payload.tripId); if (error) throw error; return NextResponse.json({ ok: true }); } catch { return NextResponse.json({ error: "Kon niet verwijderen." }, { status: 400 }); }
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const payload = await request.json();
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
+    if (!validUuid(payload.tripId) || !validUuid(payload.id) || !tables.has(payload.entity)) return NextResponse.json({ error: "Ongeldige invoer." }, { status: 400 });
+    const table = payload.entity === "travelers" ? "trip_travelers" : payload.entity === "contacts" ? "trip_contacts" : "trip_budget_entries";
+    const { error } = await supabase.from(table).delete().eq("id", payload.id).eq("trip_id", payload.tripId);
+    if (error) throw error;
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Kon niet verwijderen." }, { status: 400 });
+  }
 }
