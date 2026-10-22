@@ -1497,3 +1497,9 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - Statuschips Concept / Klaar / Gepubliceerd op dagpagina en chronologisch overzicht; conceptenteller telt to-one `day_entries`-embeds correct (was “0 concepten”).
 - Opslaan bevestigt met **Opgeslagen ✓** + tijdstip; Terug naar reisverslag slaat eerst op (leave-guard + lokale backup).
 - Snelkoppeling **Volgende dag zonder verslag**; zichtbaarheid Privé / Niet-vermeld / Openbaar in de trip-header (Nepal-waarde ongemoeid gelaten).
+
+### Afgerond — UX P4 social posts (22 oktober 2026)
+
+- **Posts**-overzicht per reis (`/publish`): alle captions per dag en platform (Instagram feed / carousel / story, Facebook, Polarsteps), met **Kopieer caption** en thumbnails van geselecteerde foto’s. Oude `instagram`-captions worden als feed gelezen.
+- **Deel geselecteerde foto’s** is uitgeschakeld met hint zolang er geen publicatiefoto’s zijn; op iPhone deelt `navigator.share` bestanden + caption en kopieert de caption naar het klembord.
+- Captions zijn per platform bewerkbaar en opslaanbaar (`PATCH /api/day-entries/[id]/social`), met karakterteller en hashtags apart zichtbaar/bewerkbaar (waar het platform dat vraagt).
