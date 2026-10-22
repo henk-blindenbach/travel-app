@@ -1,6 +1,13 @@
 import Link from "next/link";
+import {
+  countJournalStatuses,
+  findNextDayWithoutEntry,
+  oneDayEntry,
+  statusMeta,
+  type JournalDayLike,
+} from "../../lib/journal-status";
 
-type DayEntry = { id: string; title: string | null; publication_status: "draft" | "published" };
+type DayEntry = { id: string; title: string | null; publication_status: "draft" | "ready" | "published" };
 
 export type JournalDay = {
   id: string;
@@ -8,13 +15,11 @@ export type JournalDay = {
   day_date: string;
   title: string | null;
   planned_location: string | null;
-  day_entries: DayEntry[] | null;
+  day_entries: DayEntry | DayEntry[] | null;
 };
 
-function statusMeta(entry: DayEntry | undefined) {
-  if (!entry) return { key: "empty" as const, label: "Geen verslag", action: "Schrijf verslag" };
-  if (entry.publication_status === "published") return { key: "published" as const, label: "Gepubliceerd", action: "Open verslag" };
-  return { key: "draft" as const, label: "Concept", action: "Open concept" };
+function plural(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
 }
 
 export function TripJournalOverview({ tripId, days }: { tripId: string; days: JournalDay[] }) {
@@ -31,9 +36,8 @@ export function TripJournalOverview({ tripId, days }: { tripId: string; days: Jo
     );
   }
 
-  const published = days.filter((day) => day.day_entries?.[0]?.publication_status === "published").length;
-  const drafts = days.filter((day) => day.day_entries?.[0]?.publication_status === "draft").length;
-  const empty = days.length - published - drafts;
+  const { published, ready, drafts, empty } = countJournalStatuses(days as JournalDayLike[]);
+  const nextEmpty = findNextDayWithoutEntry(days as JournalDayLike[], 0);
 
   return (
     <section className="planner-card trip-journal-overview">
@@ -42,12 +46,18 @@ export function TripJournalOverview({ tripId, days }: { tripId: string; days: Jo
         {days.length} {days.length === 1 ? "reisdag" : "reisdagen"}
       </h2>
       <p>
-        {published} gepubliceerd · {drafts} {drafts === 1 ? "concept" : "concepten"} · {empty} zonder verslag. Open een
-        dag om te schrijven, bewerken of verder te publiceren.
+        {plural(published, "gepubliceerd", "gepubliceerd")} · {plural(ready, "klaar", "klaar")} ·{" "}
+        {plural(drafts, "concept", "concepten")} · {plural(empty, "zonder verslag", "zonder verslag")}. Open een dag
+        om te schrijven, bewerken of verder te publiceren.
       </p>
+      {nextEmpty ? (
+        <Link className="primary-button blue-button journal-next-empty" href={`/app/journal/${nextEmpty.id}`}>
+          Volgende dag zonder verslag →
+        </Link>
+      ) : null}
       <div className="publication-day-list journal-day-list">
         {days.map((day) => {
-          const entry = day.day_entries?.[0];
+          const entry = oneDayEntry(day.day_entries);
           const status = statusMeta(entry);
           const dateLabel = new Intl.DateTimeFormat("nl-NL", {
             weekday: "short",

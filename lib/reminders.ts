@@ -49,6 +49,7 @@ export function appBaseUrl() {
 function classifyEntry(entry: { publication_status: string | null; body: string | null } | null) {
   if (!entry) return "missing" as const;
   if (entry.publication_status === "published") return "published" as const;
+  if (entry.publication_status === "ready") return "draft_solid" as const;
   const body = (entry.body || "").trim();
   if (body.length >= SOLID_BODY_CHARS) return "draft_solid" as const;
   return "draft_thin" as const;

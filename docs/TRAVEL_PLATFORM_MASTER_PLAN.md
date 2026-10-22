@@ -1491,3 +1491,9 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - Openen is offline-first (cache/SW vóór signed URL), badge **offline beschikbaar ✓**, service worker geeft bij netwerkfout een nette 503 i.p.v. `FetchEvent` network-error.
 - Documenten vastzetten → sectie **Snel bij de hand** (`is_pinned` op `trip_documents`).
 - Multi-file upload; type en reisdag achteraf bewerkbaar in Bewerken.
+
+### Afgerond — UX P3 reisverslag-helderheid (22 oktober 2026)
+
+- Statuschips Concept / Klaar / Gepubliceerd op dagpagina en chronologisch overzicht; conceptenteller telt to-one `day_entries`-embeds correct (was “0 concepten”).
+- Opslaan bevestigt met **Opgeslagen ✓** + tijdstip; Terug naar reisverslag slaat eerst op (leave-guard + lokale backup).
+- Snelkoppeling **Volgende dag zonder verslag**; zichtbaarheid Privé / Niet-vermeld / Openbaar in de trip-header (Nepal-waarde ongemoeid gelaten).

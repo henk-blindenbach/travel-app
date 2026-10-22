@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "../../../../../components/AppShell";
 import { TripCoverControl } from "../../../../../components/trips/TripCoverControl";
 import { TripVisibilityControl } from "../../../../../components/trips/TripVisibilityControl";
+import { TripVisibilityHeader } from "../../../../../components/trips/TripVisibilityHeader";
 import { TripJournalOverview, type JournalDay } from "../../../../../components/journal/TripJournalOverview";
 import { TripPublicationOverview } from "../../../../../components/journal/TripPublicationOverview";
 import { getPrivateTrip } from "../../../../../lib/travel-data";
@@ -74,9 +75,19 @@ export default async function TripSection({ params }: { params: Promise<{ tripId
         <Link className="back-link" href={"/app/trips/" + tripId + "/plan"}>
           ← Terug naar {journey.trip.title}
         </Link>
-        <p className="eyebrow blue">{journey.trip.title}</p>
-        <h1>{content.title}</h1>
-        <p className="journal-intro">{content.text}</p>
+        <div className="trip-section-header">
+          <div>
+            <p className="eyebrow blue">{journey.trip.title}</p>
+            <h1>{content.title}</h1>
+            <p className="journal-intro">{content.text}</p>
+          </div>
+          {(section === "journal" || section === "publish") && (
+            <TripVisibilityHeader
+              tripId={tripId}
+              initialVisibility={journey.trip.visibility || "private"}
+            />
+          )}
+        </div>
         {section === "publish" ? (
           <>
             <TripVisibilityControl
