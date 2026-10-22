@@ -4,13 +4,22 @@ import { ChangeEvent, useEffect, useEffectEvent, useRef, useState } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
+import {
+  normalizeSocialCaptions,
+  preferredShareCaption,
+  selectedPublicPhotos,
+  sharePhotosDisabledHint,
+  type SocialCaptions,
+  type SocialPlatformKey,
+} from "../../lib/social-captions";
+import { SocialCaptionsEditor } from "./SocialCaptionsEditor";
 
 type Entry = {
   id: string;
   title: string;
   actual_location: string;
   body: string;
-  social_captions?: { instagram?: string; facebook?: string; polarsteps?: string };
+  social_captions?: SocialCaptions;
   publication_status?: "draft" | "ready" | "published";
 } | null;
 
@@ -94,7 +103,10 @@ export function DayEntryEditor({
   const [statusBusy, setStatusBusy] = useState(false);
   const [captionsBusy, setCaptionsBusy] = useState(false);
   const [captionsError, setCaptionsError] = useState("");
-  const [captions, setCaptions] = useState(initialEntry?.social_captions || {});
+  const [captions, setCaptions] = useState<SocialCaptions>(
+    normalizeSocialCaptions(initialEntry?.social_captions || {}),
+  );
+  const [activeCaptionKey, setActiveCaptionKey] = useState<SocialPlatformKey>("instagram_feed");
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -388,16 +400,34 @@ export function DayEntryEditor({
   }
 
   async function savePhotosToLibrary() {
-    const selected = assets.filter((asset) => asset.is_public && asset.upload_status === "ready");
-    if (!selected.length) { setMessage("Kies eerst minstens één foto voor publicatie."); return; }
+    const selected = selectedPublicPhotos(assets);
+    if (!selected.length) {
+      setMessage(sharePhotosDisabledHint(0));
+      return;
+    }
+    const caption =
+      captions[activeCaptionKey]?.trim() || preferredShareCaption(captions);
     try {
+      if (caption) {
+        try {
+          await navigator.clipboard.writeText(caption);
+        } catch {
+          /* Clipboard may be blocked; share text below still helps on supporting browsers. */
+        }
+      }
       const files = await Promise.all(selected.map(async (asset) => {
         const response = await fetch(`/api/media/${asset.id}/original`);
         if (!response.ok) throw new Error();
-        return new File([await response.blob()], asset.original_filename, { type: response.headers.get("Content-Type") || "image/jpeg" });
+        return new File([await response.blob()], asset.original_filename, {
+          type: response.headers.get("Content-Type") || "image/jpeg",
+        });
       }));
-      if (navigator.canShare?.({ files }) && navigator.share) await navigator.share({ files, title: dayTitle });
-      else {
+      const sharePayload: ShareData = { files, title: dayTitle };
+      if (caption) sharePayload.text = caption;
+      if (navigator.canShare?.(sharePayload) && navigator.share) {
+        await navigator.share(sharePayload);
+        setMessage(caption ? "Foto’s gedeeld; caption staat op het klembord." : "Foto’s gedeeld.");
+      } else {
         files.forEach((file) => {
           const link = document.createElement("a");
           link.href = URL.createObjectURL(file);
@@ -405,8 +435,15 @@ export function DayEntryEditor({
           link.click();
           setTimeout(() => URL.revokeObjectURL(link.href), 1_000);
         });
+        setMessage(
+          caption
+            ? "Foto’s gedownload; caption gekopieerd — plak in Instagram of Facebook."
+            : "Foto’s gedownload. Maak eerst captions om mee te delen.",
+        );
       }
-    } catch { setMessage("De geselecteerde foto’s konden niet worden klaargezet."); }
+    } catch {
+      setMessage("De geselecteerde foto’s konden niet worden klaargezet.");
+    }
   }
 
   async function movePhoto(index: number, direction: -1 | 1) {
@@ -452,7 +489,7 @@ export function DayEntryEditor({
         method: "POST",
         signal: controller.signal,
       }));
-      setCaptions(data.captions);
+      setCaptions(normalizeSocialCaptions(data.captions));
       setMessage("Captions klaar.");
     } catch (error) {
       const text = error instanceof DOMException && error.name === "AbortError"
@@ -480,14 +517,12 @@ export function DayEntryEditor({
     }
   }
 
-  async function copy(value: string) {
-    await navigator.clipboard.writeText(value);
-    setMessage("Caption gekopieerd.");
-  }
-
   const chip = statusMeta(entry);
   const published = entry?.publication_status === "published";
   const ready = entry?.publication_status === "ready";
+  const selectedCount = selectedPublicPhotos(assets).length;
+  const shareDisabled = selectedCount === 0;
+  const shareHint = sharePhotosDisabledHint(selectedCount);
 
   return (
     <div className="journal-editor">
@@ -613,22 +648,37 @@ export function DayEntryEditor({
             </button>
           </p>
         ) : null}
-        {([
-          ["Instagram", captions.instagram, "https://www.instagram.com/"],
-          ["Facebook", captions.facebook, "https://www.facebook.com/"],
-          ["Polarsteps", captions.polarsteps, "https://www.polarsteps.com/"],
-        ] as const).map(([name, caption, url]) => caption && (
-          <div className="social-caption" key={name}>
-            <b>{name}</b>
-            <p>{caption}</p>
-            <div className="social-caption-actions">
-              <button className="text-button" type="button" onClick={() => void copy(caption)}>Kopieer caption</button>
-              <a className="text-button" href={url} target="_blank" rel="noreferrer">Open {name} ↗</a>
-            </div>
-          </div>
-        ))}
+        <SocialCaptionsEditor
+          entryId={entry?.id || null}
+          captions={captions}
+          activeKey={activeCaptionKey}
+          onActiveKeyChange={setActiveCaptionKey}
+          onCaptionsChange={setCaptions}
+          onMessage={setMessage}
+        />
         <div className="publication-actions">
-          <button className="secondary-button" type="button" onClick={() => void savePhotosToLibrary()}>Deel geselecteerde foto’s</button>
+          <div className="share-photos-wrap">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => void savePhotosToLibrary()}
+              disabled={shareDisabled}
+              aria-disabled={shareDisabled}
+              title={shareHint || undefined}
+            >
+              Deel geselecteerde foto’s
+            </button>
+            {shareDisabled ? (
+              <p className="share-photos-hint" role="status">{shareHint}</p>
+            ) : (
+              <p className="share-photos-hint">
+                Deelt {selectedCount} foto{selectedCount === 1 ? "" : "’s"} via het iPhone-deelmenu
+                {captions[activeCaptionKey] || preferredShareCaption(captions)
+                  ? " en kopieert de actieve caption naar het klembord."
+                  : "."}
+              </p>
+            )}
+          </div>
           <button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing || entry?.publication_status === "published"}>
             {entry?.publication_status === "published" ? "Gepubliceerd" : publishing ? "Publiceren…" : "Publiceer dag"}
           </button>
@@ -636,7 +686,7 @@ export function DayEntryEditor({
         {entry?.publication_status === "published" ? (
           <div className="published-handoff">
             <Link className="primary-button blue-button" href={`/reizen/${tripSlug}/dagen/${dayNumber}`} target="_blank">Bekijk publieke dag ↗</Link>
-            <p>Deel de geselecteerde foto’s met het systeemdeelmenu; kies Instagram, Facebook of Polarsteps en plak daar de passende caption.</p>
+            <p>Deel de geselecteerde foto’s met het systeemdeelmenu; kies Instagram of Facebook en plak daar de passende caption.</p>
           </div>
         ) : null}
       </section>

@@ -19,8 +19,8 @@ const copy: Record<string, { title: string; text: string }> = {
     text: "Foto’s blijven gekoppeld aan reisdag en verslag. Het reisbrede foto-overzicht volgt op deze structuur.",
   },
   publish: {
-    title: "Publiceren",
-    text: "Kies bewust wanneer jullie reis zichtbaar mag zijn voor vrienden en familie.",
+    title: "Posts",
+    text: "Captions per dag en platform, geselecteerde foto’s, en wanneer de reis zichtbaar mag zijn.",
   },
 };
 
@@ -50,7 +50,7 @@ export default async function TripSection({ params }: { params: Promise<{ tripId
           supabase.from("trip_covers").select("id,upload_status,updated_at").eq("trip_id", tripId).maybeSingle(),
           supabase
             .from("trip_days")
-            .select("id,day_number,day_date,title,day_entries(id,title,publication_status,social_captions,media_assets(id,is_public,upload_status))")
+            .select("id,day_number,day_date,title,day_entries(id,title,publication_status,social_captions,media_assets(id,is_public,upload_status,original_filename,sort_order))")
             .eq("trip_id", tripId)
             .order("day_number"),
         ]);
