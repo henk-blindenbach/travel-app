@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useEffectEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 
 type Entry = {
   id: string;
@@ -10,7 +11,7 @@ type Entry = {
   actual_location: string;
   body: string;
   social_captions?: { instagram?: string; facebook?: string; polarsteps?: string };
-  publication_status?: "draft" | "published";
+  publication_status?: "draft" | "ready" | "published";
 } | null;
 
 type Asset = {
@@ -35,6 +36,7 @@ type Props = {
   journalHub: string;
   initialEntry: Entry;
   initialAssets: Asset[];
+  nextEmptyDayId?: string | null;
 };
 
 const acceptedTypes = new Set(["image/heic", "image/heif", "image/jpeg", "image/png", "image/webp"]);
@@ -78,6 +80,7 @@ export function DayEntryEditor({
   journalHub,
   initialEntry,
   initialAssets,
+  nextEmptyDayId = null,
 }: Props) {
   const router = useRouter();
   const [entry, setEntry] = useState<Entry>(initialEntry);
@@ -87,6 +90,8 @@ export function DayEntryEditor({
   const [assets, setAssets] = useState<DisplayAsset[]>(initialAssets);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [statusBusy, setStatusBusy] = useState(false);
   const [captionsBusy, setCaptionsBusy] = useState(false);
   const [captionsError, setCaptionsError] = useState("");
   const [captions, setCaptions] = useState(initialEntry?.social_captions || {});
@@ -117,11 +122,16 @@ export function DayEntryEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tripDayId, ...snapshot }),
       }));
-      setEntry(data.entry);
+      setEntry((current) => ({
+        ...(current || { id: data.entry.id, title: "", actual_location: "", body: "" }),
+        ...data.entry,
+        publication_status: data.entry.publication_status || current?.publication_status || "draft",
+      }));
       baselineRef.current = snapshot;
       setDirty(false);
-      setLastSavedAt(new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }));
-      setMessage(`Automatisch opgeslagen ✓ ${new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}`);
+      const stamp = formatSavedAt();
+      setLastSavedAt(stamp);
+      setMessage(savedConfirmation());
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Automatisch opslaan mislukt; lokaal concept blijft bewaard.");
@@ -190,13 +200,19 @@ export function DayEntryEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tripDayId, title, actualLocation, body }),
       }));
-      setEntry(data.entry);
+      const nextEntry = {
+        ...(entry || { id: data.entry.id, title: "", actual_location: "", body: "" }),
+        ...data.entry,
+        publication_status: data.entry.publication_status || entry?.publication_status || "draft",
+      } as NonNullable<Entry>;
+      setEntry(nextEntry);
       baselineRef.current = { title, actualLocation, body };
       setDirty(false);
-      setLastSavedAt(new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }));
-      setMessage("Concept opgeslagen.");
+      const stamp = formatSavedAt();
+      setLastSavedAt(stamp);
+      setMessage(savedConfirmation());
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
-      return data.entry as NonNullable<Entry>;
+      return nextEntry;
     } catch (error) {
       try {
         localStorage.setItem(draftStorageKey(tripDayId), JSON.stringify({ title, actualLocation, body, savedAt: new Date().toISOString() }));
@@ -213,12 +229,65 @@ export function DayEntryEditor({
     return window.confirm("Je hebt niet-opgeslagen tekst. Toch weggaan? Een lokaal concept blijft bewaard.");
   }
 
-  function goBack() {
-    if (!confirmLeave()) return;
+  function rememberLocalDraft() {
     try {
       localStorage.setItem(draftStorageKey(tripDayId), JSON.stringify({ title, actualLocation, body, savedAt: new Date().toISOString() }));
     } catch { /* ignore */ }
-    router.push(journalHub);
+  }
+
+  async function goBack() {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      if (dirty) {
+        const saved = await saveEntry();
+        if (!saved) {
+          if (!confirmLeave()) return;
+          rememberLocalDraft();
+        }
+      }
+      router.push(journalHub);
+    } finally {
+      setLeaving(false);
+    }
+  }
+
+  async function goNextEmptyDay() {
+    if (!nextEmptyDayId) return;
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      if (dirty) {
+        const saved = await saveEntry();
+        if (!saved) {
+          if (!confirmLeave()) return;
+          rememberLocalDraft();
+        }
+      }
+      router.push(`/app/journal/${nextEmptyDayId}`);
+    } finally {
+      setLeaving(false);
+    }
+  }
+
+  async function setReadyStatus(status: "draft" | "ready") {
+    const saved = entry || await saveEntry();
+    if (!saved) return;
+    setStatusBusy(true);
+    setMessage("");
+    try {
+      const data = await responseJson(await fetch(`/api/day-entries/${saved.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      }));
+      setEntry((current) => current ? { ...current, publication_status: data.entry.publication_status } : current);
+      setMessage(status === "ready" ? "Dag gemarkeerd als klaar." : "Teruggezet naar concept.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Status kon niet worden opgeslagen.");
+    } finally {
+      setStatusBusy(false);
+    }
   }
 
   async function deleteEntry() {
@@ -416,6 +485,10 @@ export function DayEntryEditor({
     setMessage("Caption gekopieerd.");
   }
 
+  const chip = statusMeta(entry);
+  const published = entry?.publication_status === "published";
+  const ready = entry?.publication_status === "ready";
+
   return (
     <div className="journal-editor">
       <section className="entry-form-card">
@@ -423,13 +496,33 @@ export function DayEntryEditor({
           <div>
             <p className="eyebrow blue">Dagverslag</p>
             <h2>Wat maakte deze dag bijzonder?</h2>
+            <p className="journal-day-status">
+              Status: <span className={`journal-status journal-status-${chip.key}`}>{chip.label}</span>
+            </p>
           </div>
           <div className="entry-form-actions">
-            <button className="secondary-button" type="button" onClick={goBack}>← Terug naar reisverslag</button>
+            <button className="secondary-button" type="button" onClick={() => void goBack()} disabled={leaving}>
+              {leaving ? "Even geduld…" : "← Terug naar reisverslag"}
+            </button>
             <Link className="secondary-button" href={`/app/today/interview?day=${tripDayId}`}>🎙 Vertel het</Link>
             <button className="secondary-button" type="button" onClick={() => void saveEntry()} disabled={saving}>
-              {saving ? "Opslaan…" : "Concept opslaan"}
+              {saving ? "Opslaan…" : lastSavedAt ? `Opgeslagen ✓ ${lastSavedAt}` : "Concept opslaan"}
             </button>
+            {!published ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => void setReadyStatus(ready ? "draft" : "ready")}
+                disabled={statusBusy || saving || (!entry && !body.trim())}
+              >
+                {statusBusy ? "Status…" : ready ? "Terug naar concept" : "Markeer als klaar"}
+              </button>
+            ) : null}
+            {nextEmptyDayId ? (
+              <button className="secondary-button" type="button" onClick={() => void goNextEmptyDay()} disabled={leaving}>
+                Volgende dag zonder verslag →
+              </button>
+            ) : null}
             <button className="secondary-button" type="button" onClick={() => void deleteEntry()} disabled={deleting || (!entry && !body && !title)}>
               {deleting ? "Verwijderen…" : "Verwijderen"}
             </button>

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       title: safeText(payload.title, 160),
       actual_location: safeText(payload.actualLocation, 160),
       body: safeText(payload.body, 20_000),
-    }, { onConflict: "trip_day_id" }).select("id,trip_day_id,title,actual_location,body,updated_at").single();
+    }, { onConflict: "trip_day_id" }).select("id,trip_day_id,title,actual_location,body,publication_status,updated_at").single();
 
     if (error) return NextResponse.json({ error: "Het verslag kon niet worden opgeslagen." }, { status: 400 });
     return NextResponse.json({ entry: data });
