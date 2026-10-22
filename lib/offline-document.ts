@@ -1,5 +1,11 @@
 /** Shared offline-first document open helpers for client components. */
 
+import {
+  SESSION_EXPIRED_DOCUMENT_MESSAGE,
+  SessionExpiredError,
+  sessionExpiredLoginPath,
+} from "./session-expired";
+
 export function offlineDocumentUrl(documentId: string) {
   return "/offline-documents/" + documentId;
 }
@@ -30,24 +36,29 @@ export async function listOfflineDocumentIds(tripId: string) {
   }
 }
 
+export type OpenDocumentResult =
+  | { source: "offline" }
+  | { source: "network" }
+  | { source: "session-expired"; message: string; loginPath: string };
+
 /** Prefer cache/SW copy; fall back to signed URL from the API. */
-export async function openDocumentOfflineFirst(documentId: string) {
+export async function openDocumentOfflineFirst(documentId: string): Promise<OpenDocumentResult> {
   const offline = await matchOfflineDocument(documentId);
   if (offline) {
     const url = URL.createObjectURL(await offline.blob());
     window.open(url, "_blank", "noopener,noreferrer");
-    return { source: "offline" as const };
+    return { source: "offline" };
   }
 
   const response = await fetch("/api/documents/" + documentId);
   if (response.status === 401) {
-    window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
-    return { source: "login" as const };
+    const loginPath = sessionExpiredLoginPath();
+    throw new SessionExpiredError(SESSION_EXPIRED_DOCUMENT_MESSAGE, loginPath);
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.signedUrl) {
     throw new Error(data.error || "Document kon niet worden geopend.");
   }
   window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  return { source: "network" as const };
+  return { source: "network" };
 }

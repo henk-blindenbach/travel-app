@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { documentTypeLabel } from "../../lib/document-search";
 import { openDocumentOfflineFirst, listOfflineDocumentIds } from "../../lib/offline-document";
+import { isSessionExpiredError, redirectAfterSessionExpired } from "../../lib/session-expired";
 
 export type TodayDocumentRow = {
   id: string;
@@ -40,6 +41,11 @@ export function TodayDocuments({ tripId, documents, focusLabel = "Documenten van
       const result = await openDocumentOfflineFirst(id);
       if (result.source === "offline") setMessage("Offline kopie geopend.");
     } catch (error) {
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+        return;
+      }
       setMessage(error instanceof Error ? error.message : "Document kon niet worden geopend.");
     }
   }

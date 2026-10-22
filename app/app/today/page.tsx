@@ -34,9 +34,17 @@ async function loadRoadDocs(tripId: string, dayIds: string[]) {
     location: string | null;
     departure_time: string | null;
     arrival_time: string | null;
+    arrives_on: string | null;
     booking_reference: string | null;
     address: string | null;
     contact_phone: string | null;
+    carrier: string | null;
+    flight_number: string | null;
+    departure_terminal: string | null;
+    arrival_terminal: string | null;
+    seat_number: string | null;
+    external_url: string | null;
+    duration_minutes: number | null;
   }[] = [];
   let documents: DocRow[] = [];
   if (!hasSupabaseEnv()) return { planningItems, documents };
@@ -46,7 +54,9 @@ async function loadRoadDocs(tripId: string, dayIds: string[]) {
       dayIds.length
         ? supabase
             .from("planning_items")
-            .select("id,trip_day_id,kind,title,location,departure_time,arrival_time,booking_reference,address,contact_phone")
+            .select(
+              "id,trip_day_id,kind,title,location,departure_time,arrival_time,arrives_on,booking_reference,address,contact_phone,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,duration_minutes",
+            )
             .eq("trip_id", tripId)
             .in("trip_day_id", dayIds)
             .order("sort_order")

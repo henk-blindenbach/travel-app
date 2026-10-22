@@ -111,7 +111,8 @@ export function PlanImport({ tripId, onImported }: Props) {
           <p>
             Upload een CSV met dagen en/of planningonderdelen. Rijen matchen op{" "}
             <code>day_number</code>; onderdelen op dag + type + titel. Bestaande data die niet in het
-            bestand staat blijft staan. Excel (.xlsx) volgt later — exporteer nu als CSV.
+            bestand staat blijft staan. Excel (.xlsx) volgt later — exporteer nu als CSV. Eén onderdeel
+            naar een andere dag zetten kan ook vanuit de plannereditor (Kopieer naar andere dag).
           </p>
         </div>
         <Link className="secondary-button" href="/templates/plan-import-template.csv" download>

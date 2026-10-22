@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ documentId
     if (!validUuid(documentId)) return NextResponse.json({ error: "Ongeldig document." }, { status: 400 });
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in om dit document te openen." }, { status: 401 });
     const { data: document } = await supabase.from("trip_documents").select("object_path").eq("id", documentId).eq("upload_status", "ready").maybeSingle();
     if (!document) return NextResponse.json({ error: "Document niet gevonden." }, { status: 404 });
     const { data, error } = await supabase.storage.from("trip-documents").createSignedUrl(document.object_path, 60 * 10);
@@ -25,7 +25,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ documen
     if (!validUuid(documentId)) return NextResponse.json({ error: "Ongeldig document." }, { status: 400 });
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
 
     const { data: document } = await supabase
       .from("trip_documents")

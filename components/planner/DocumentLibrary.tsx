@@ -9,6 +9,12 @@ import {
   openDocumentOfflineFirst,
 } from "../../lib/offline-document";
 import { dispatchOfflineDocumentsUpdated, dispatchTripDocumentsChanged } from "../../lib/offline-document-copy";
+import {
+  SessionExpiredError,
+  isSessionExpiredError,
+  redirectAfterSessionExpired,
+  sessionExpiredLoginPath,
+} from "../../lib/session-expired";
 
 type Day = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null };
 type PlanningItem = {
@@ -39,10 +45,16 @@ const kindLabels: Record<string, string> = { flight: "Vlucht", stay: "Verblijf",
 async function json(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    if (response.status === 401) window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
+    if (response.status === 401) {
+      throw new SessionExpiredError(data.error, sessionExpiredLoginPath());
+    }
     throw new Error(data.error || "Er ging iets mis.");
   }
   return data;
+}
+
+function messageFromError(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export function DocumentLibrary({ tripId, days, planningItems, initialDocuments }: Props) {
@@ -163,7 +175,12 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       }
       setMessage(uploaded === 1 ? "Document veilig opgeslagen." : uploaded + " documenten veilig opgeslagen.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Upload mislukt.");
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+      } else {
+        setMessage(error instanceof Error ? error.message : "Upload mislukt.");
+      }
     } finally {
       setSaving(false);
     }
@@ -181,6 +198,11 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       const result = await openDocumentOfflineFirst(documentId);
       if (result.source === "offline") setMessage("Offline kopie geopend.");
     } catch (error) {
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+        return;
+      }
       setMessage(error instanceof Error ? error.message : "Document kon niet worden geopend.");
     }
   }
@@ -225,7 +247,12 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       setEditingId(null);
       setMessage("Document bijgewerkt.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Document kon niet worden bijgewerkt.");
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+      } else {
+        setMessage(messageFromError(error, "Document kon niet worden bijgewerkt."));
+      }
     } finally {
       setSaving(false);
     }
@@ -250,7 +277,12 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       setDocuments((current) => current.map((entry) => (entry.id === document.id ? { ...entry, is_pinned: next } : entry)));
       setMessage(next ? "Document vastgezet bij Snel bij de hand." : "Document niet langer vastgezet.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Vastzetten mislukt.");
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+      } else {
+        setMessage(messageFromError(error, "Vastzetten mislukt."));
+      }
     } finally {
       setSaving(false);
     }
@@ -278,7 +310,12 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
       dispatchOfflineDocumentsUpdated(tripId);
       setMessage("Document verwijderd.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Document kon niet worden verwijderd.");
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+      } else {
+        setMessage(messageFromError(error, "Document kon niet worden verwijderd."));
+      }
     } finally {
       setSaving(false);
     }

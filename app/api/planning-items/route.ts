@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
     const payload = await request.json();
     if (!validUuid(payload.tripId) || !validUuid(payload.tripDayId) || !kinds.has(payload.kind) || !statuses.has(payload.status) || !safeText(payload.title, 200)) return NextResponse.json({ error: "Vul een titel, type en dag in." }, { status: 400 });
     const day = await requireMember(supabase, payload.tripId, payload.tripDayId);
@@ -48,7 +48,7 @@ export async function PATCH(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in." }, { status: 401 });
     const payload = await request.json();
     if (!validUuid(payload.tripId) || !validUuid(payload.itemId) || !validUuid(payload.tripDayId) || !kinds.has(payload.kind) || !statuses.has(payload.status) || !safeText(payload.title, 200)) return NextResponse.json({ error: "Vul een titel, type en dag in." }, { status: 400 });
     const day = await requireMember(supabase, payload.tripId, payload.tripDayId);

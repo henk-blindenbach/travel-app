@@ -8,6 +8,11 @@ import {
   TRIP_DOCUMENTS_CHANGED,
   type TripDocumentsChangedDetail,
 } from "../../lib/offline-document-copy";
+import {
+  SESSION_EXPIRED_DOCUMENT_MESSAGE,
+  redirectAfterSessionExpired,
+  sessionExpiredLoginPath,
+} from "../../lib/session-expired";
 
 type Document = { id: string; title: string };
 
@@ -102,7 +107,8 @@ export function OfflineDocumentCache({ tripId, endsOn, documents: initialDocumen
         setStatus(`Document ${index + 1} van ${documents.length} wordt bewaard…`);
         const response = await fetch("/api/documents/" + document.id);
         if (response.status === 401) {
-          window.location.assign("/login?next=" + encodeURIComponent(window.location.pathname));
+          setStatus(SESSION_EXPIRED_DOCUMENT_MESSAGE);
+          redirectAfterSessionExpired(sessionExpiredLoginPath());
           return;
         }
         const data = await response.json();
