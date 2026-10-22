@@ -59,6 +59,7 @@ function messageFromError(error: unknown, fallback: string) {
 
 export function DocumentLibrary({ tripId, days, planningItems, initialDocuments }: Props) {
   const [documents, setDocuments] = useState(initialDocuments);
+  const [uploadTitle, setUploadTitle] = useState("");
   const [documentType, setDocumentType] = useState("other");
   const [tripDayId, setTripDayId] = useState("");
   const [planningItemIds, setPlanningItemIds] = useState<string[]>([]);
@@ -74,6 +75,7 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
   const [saving, setSaving] = useState(false);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
+  const uploadCardRef = useRef<HTMLElement>(null);
 
   const itemsById = useMemo(() => Object.fromEntries(planningItems.map((item) => [item.id, item])), [planningItems]);
 
@@ -144,7 +146,14 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
     setMessage("");
     let uploaded = 0;
     try {
+      const sharedTitle = uploadTitle.trim();
       for (const file of list) {
+        const fileTitle =
+          list.length === 1 && sharedTitle
+            ? sharedTitle
+            : sharedTitle
+              ? sharedTitle + " · " + file.name.replace(/\.[^.]+$/, "")
+              : file.name.replace(/\.[^.]+$/, "");
         const init = await json(
           await fetch("/api/documents/init", {
             method: "POST",
@@ -154,7 +163,7 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
               tripDayId: tripDayId || null,
               planningItemIds,
               documentType,
-              title: file.name.replace(/\.[^.]+$/, ""),
+              title: fileTitle,
               filename: file.name,
               mimeType: file.type,
               byteSize: file.size,
@@ -170,9 +179,20 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
             body: JSON.stringify({ documentId: init.document.id }),
           }),
         );
-        setDocuments((current) => [{ ...complete.document, planningItemIds, is_pinned: false }, ...current]);
+        setDocuments((current) => [
+          {
+            ...complete.document,
+            trip_day_id: complete.document.trip_day_id ?? (tripDayId || null),
+            document_type: complete.document.document_type || documentType,
+            title: complete.document.title || fileTitle,
+            planningItemIds,
+            is_pinned: false,
+          },
+          ...current,
+        ]);
         uploaded += 1;
       }
+      setUploadTitle("");
       setMessage(uploaded === 1 ? "Document veilig opgeslagen." : uploaded + " documenten veilig opgeslagen.");
     } catch (error) {
       if (isSessionExpiredError(error)) {
@@ -409,7 +429,11 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
               {filteredDocuments.length} {filteredDocuments.length === 1 ? "document" : "documenten"} zichtbaar
             </p>
           </div>
-          <button className="secondary-button" type="button" onClick={() => fileRef.current?.click()}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => uploadCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
             + Document uploaden
           </button>
         </div>
@@ -464,14 +488,24 @@ export function DocumentLibrary({ tripId, days, planningItems, initialDocuments 
         ) : null}
       </section>
 
-      <section className="planner-card document-upload-card">
+      <section className="planner-card document-upload-card" ref={uploadCardRef}>
         <div className="planner-card-heading">
           <div>
             <h2>Document toevoegen</h2>
-            <p>Kies één of meerdere bestanden. Type en reisdag kun je daarna in Bewerken aanpassen.</p>
+            <p>Titel, type, reisdag en koppeling worden meteen bij de upload opgeslagen.</p>
           </div>
         </div>
         <div className="document-library-controls">
+          <label>
+            Titel
+            <input
+              value={uploadTitle}
+              maxLength={200}
+              placeholder="Leeg = bestandsnaam"
+              onChange={(event) => setUploadTitle(event.target.value)}
+              autoComplete="off"
+            />
+          </label>
           <label>
             Type
             <select value={documentType} onChange={(event) => setDocumentType(event.target.value)}>

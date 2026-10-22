@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { validUuid } from "../../../../lib/journal";
-import { isTripMember } from "../../../../lib/membership";
 import { createServiceClient, hasServiceRoleEnv } from "../../../../lib/supabase/admin";
 import { createClient } from "../../../../lib/supabase/server";
 
@@ -33,9 +32,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ documen
       .eq("id", documentId)
       .maybeSingle();
     if (!document) return NextResponse.json({ error: "Document niet gevonden." }, { status: 404 });
-    if (!(await isTripMember(supabase, document.trip_id, user.id))) {
-      return NextResponse.json({ error: "Alleen reisgenoten mogen dit document verwijderen." }, { status: 403 });
-    }
 
     if (document.object_path) {
       const storage = hasServiceRoleEnv() ? createServiceClient() : supabase;

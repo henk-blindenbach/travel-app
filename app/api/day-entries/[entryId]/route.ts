@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { validUuid } from "../../../../lib/journal";
-import { isTripMember } from "../../../../lib/membership";
 import { deleteOriginal } from "../../../../lib/scaleway";
 import { createServiceClient, hasServiceRoleEnv } from "../../../../lib/supabase/admin";
 import { createClient } from "../../../../lib/supabase/server";
@@ -21,9 +20,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ entryId
       .eq("id", entryId)
       .maybeSingle();
     if (!entry) return NextResponse.json({ error: "Verslag niet gevonden." }, { status: 404 });
-    if (!(await isTripMember(supabase, entry.trip_id, user.id))) {
-      return NextResponse.json({ error: "Alleen reisgenoten mogen dit verslag verwijderen." }, { status: 403 });
-    }
 
     const assets = Array.isArray(entry.media_assets) ? entry.media_assets : [];
     const webPaths = assets.map((asset) => asset.web_object_path).filter(Boolean) as string[];

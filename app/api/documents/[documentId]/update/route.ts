@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { safeText, validUuid } from "../../../../../lib/journal";
-import { isTripMember } from "../../../../../lib/membership";
 import { createClient } from "../../../../../lib/supabase/server";
 
 const documentTypes = new Set([
@@ -44,9 +43,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ do
 
     const { data: document } = await supabase.from("trip_documents").select("id,trip_id").eq("id", documentId).maybeSingle();
     if (!document) return NextResponse.json({ error: "Document niet gevonden." }, { status: 404 });
-    if (!(await isTripMember(supabase, document.trip_id, user.id))) {
-      return NextResponse.json({ error: "Alleen reisgenoten mogen dit document bewerken." }, { status: 403 });
-    }
 
     if (tripDayId) {
       const { data: day } = await supabase.from("trip_days").select("id").eq("id", tripDayId).eq("trip_id", document.trip_id).maybeSingle();
