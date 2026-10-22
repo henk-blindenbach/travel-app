@@ -40,6 +40,7 @@ export function OfflineDocumentCache({ tripId, endsOn, documents }: { tripId: st
       }
       localStorage.setItem("nos-offline-trip", JSON.stringify({ tripId, savedAt: new Date().toISOString() }));
       setStatus(saved + " documenten zijn offline beschikbaar op dit apparaat.");
+      window.dispatchEvent(new CustomEvent("nos-offline-documents-updated", { detail: { tripId, saved } }));
     } catch { setStatus("Offline opslaan lukte niet. Controleer je verbinding en probeer opnieuw."); } finally { setSaving(false); }
   }
 

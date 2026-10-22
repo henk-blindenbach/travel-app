@@ -9,8 +9,8 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
-    const { data: document, error } = await supabase.from("trip_documents").update({ upload_status: "ready" }).eq("id", documentId).select("id,trip_day_id,planning_item_id,document_type,title,original_filename,upload_status").single();
+    const { data: document, error } = await supabase.from("trip_documents").update({ upload_status: "ready" }).eq("id", documentId).select("id,trip_day_id,planning_item_id,document_type,title,original_filename,upload_status,is_pinned").single();
     if (error || !document) return NextResponse.json({ error: "Document kon niet worden voltooid." }, { status: 400 });
-    return NextResponse.json({ document });
+    return NextResponse.json({ document: { ...document, is_pinned: Boolean(document.is_pinned) } });
   } catch { return NextResponse.json({ error: "Document kon niet worden voltooid." }, { status: 500 }); }
 }
