@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/AppShell";
 import { DayEntryEditor } from "../../../../components/journal/DayEntryEditor";
@@ -31,5 +30,5 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
 
   const formattedDate = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${day.day_date}T12:00:00`));
   const journalHub = `/app/trips/${trip.id}/journal`;
-  return <AppShell active="trips"><div className="journal-page"><Link className="back-link" href={journalHub}>← Terug naar reisverslag</Link><p className="eyebrow blue">Reisdag {day.day_number} · {formattedDate}</p><h1>{day.title || "Dagverslag"}</h1><p className="journal-intro">Leg de dag vast wanneer het uitkomt. Het verslag en de foto’s zijn alleen zichtbaar voor jullie reisgenoten.</p><DayEntryEditor tripDayId={day.id} tripSlug={trip.slug} dayNumber={day.day_number} dayTitle={day.title || ""} plannedLocation={day.planned_location} initialEntry={entry} initialAssets={assets} /></div></AppShell>;
+  return <AppShell active="trips"><div className="journal-page"><p className="eyebrow blue">Reisdag {day.day_number} · {formattedDate}</p><h1>{day.title || "Dagverslag"}</h1><p className="journal-intro">Leg de dag vast wanneer het uitkomt. Het verslag en de foto’s zijn alleen zichtbaar voor jullie reisgenoten.</p><DayEntryEditor tripDayId={day.id} tripSlug={trip.slug} dayNumber={day.day_number} dayTitle={day.title || ""} plannedLocation={day.planned_location} journalHub={journalHub} initialEntry={entry} initialAssets={assets} /></div></AppShell>;
 }

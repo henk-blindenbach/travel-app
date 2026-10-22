@@ -1475,3 +1475,11 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - Rijen `day` werken `trip_days` bij op `day_number`; rijen `item` matchen `planning_items` op dag + kind + titel (anders insert). Geen blinde deletes.
 - Generieke template: `/templates/plan-import-template.csv` + `docs/PLAN_CSV_IMPORT.md`. Native `.xlsx` blijft een dunne follow-up (zelfde kolommen via Excel-export naar CSV).
 - Bewust buiten: copy-day, dossier/budget/open-punten-import, bulk-Nominatim tijdens import (lat/lng-kolommen of later dag opslaan).
+
+### Afgerond — UX P1 blockers onderweg (22 oktober 2026)
+
+- Documenten en dagverslagen hebben een **Verwijderen**-actie met bevestiging; storage-object, DB-rij, planningkoppelingen en offline cache worden opgeruimd. Alleen trip members mogen verwijderen (API-check + `GRANT DELETE` / storage DELETE-policy).
+- Interview opent de reisdag uit de URL (niet meer via featured limit-5 / Annapurna-fallback). Bij AI-fout blijven antwoorden bewaard als platte tekst in het concept.
+- Social captions (`/api/day-entries/[id]/social`): robuustere Responses-parse, ~20s timeout, `maxDuration`, foutmelding + **Probeer opnieuw**.
+- Dagverslag-autosave (debounce + localStorage offline) en leave-waarschuwing (`beforeunload` + router-guard op terug-navigatie).
+- Ops-opruiming: oude duplicaten “Visa India Michel” en “8 Days 7 Nights for Michel”, plus Nepal Dag 1 TEST-concept, verwijderd; juiste vervangers bleven staan.
