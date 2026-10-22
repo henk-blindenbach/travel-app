@@ -19,6 +19,13 @@ export type PlanningSummaryItem = {
   ends_on?: string | null;
 };
 
+function shortTime(value: string | null | undefined) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const match = text.match(/^(\d{2}:\d{2})/);
+  return match ? match[1] : text;
+}
+
 function push(bits: string[], value: string | null | undefined, prefix = "") {
   const text = String(value || "").trim();
   if (text) bits.push(prefix ? prefix + text : text);
@@ -31,9 +38,9 @@ export function planningItemSummaryBits(item: PlanningSummaryItem): string[] {
   if (kind === "flight") {
     push(bits, item.carrier);
     push(bits, item.flight_number);
-    push(bits, item.departure_time);
+    push(bits, shortTime(item.departure_time));
     if (item.arrives_on) push(bits, "aankomst " + item.arrives_on);
-    push(bits, item.arrival_time);
+    push(bits, shortTime(item.arrival_time));
     push(bits, item.departure_terminal, "vertrek T");
     push(bits, item.arrival_terminal, "aankomst T");
     push(bits, item.seat_number, "stoel ");
@@ -42,7 +49,7 @@ export function planningItemSummaryBits(item: PlanningSummaryItem): string[] {
   }
 
   if (kind === "activity" || kind === "transport" || kind === "permit") {
-    push(bits, item.departure_time);
+    push(bits, shortTime(item.departure_time));
     push(bits, item.location);
     push(bits, item.address);
     push(bits, item.booking_reference);

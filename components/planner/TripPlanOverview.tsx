@@ -34,7 +34,11 @@ async function json(response: Response) {
   }
   return data;
 }
-function fieldValue(item: Item | null | undefined, field: keyof Item) { return String(item?.[field] ?? ""); }
+function fieldValue(item: Item | null | undefined, field: keyof Item) {
+  const raw = String(item?.[field] ?? "");
+  if ((field === "departure_time" || field === "arrival_time") && /^\d{2}:\d{2}/.test(raw)) return raw.slice(0, 5);
+  return raw;
+}
 function fields(form: FormData) { const get = (name: string) => form.get(name); return { location: get("location"), details: get("details"), endsOn: get("endsOn"), arrivesOn: get("arrivesOn"), bookingReference: get("bookingReference"), ticketNumber: get("ticketNumber"), departureTime: get("departureTime"), arrivalTime: get("arrivalTime"), carrier: get("carrier"), flightNumber: get("flightNumber"), departureTerminal: get("departureTerminal"), arrivalTerminal: get("arrivalTerminal"), seatNumber: get("seatNumber"), externalUrl: get("externalUrl"), address: get("address"), contactPhone: get("contactPhone"), priceAmount: get("priceAmount"), currency: get("currency"), paymentStatus: get("paymentStatus"), isOptional: get("isOptional") === "on", durationMinutes: get("durationMinutes"), altitudeM: get("altitudeM") }; }
 function PlanningFields({ kind, item }: { kind: string; item?: Item | null }) { return <>
   <label>Titel<input required name="title" maxLength={200} defaultValue={fieldValue(item, "title")} placeholder={`Naam van ${labels[kind].toLowerCase()}`} /></label>
