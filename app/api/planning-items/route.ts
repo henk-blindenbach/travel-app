@@ -7,7 +7,7 @@ const kinds = new Set(["accommodation", "flight", "transport", "activity", "perm
 const statuses = new Set(["option", "planned", "confirmed"]);
 const paymentStatuses = new Set(["unknown", "unpaid", "paid"]);
 const ITEM_RETURN =
-  "id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
+  "id,trip_day_id,kind,status,title,map_label,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
 
 function isoDate(value: unknown) { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null; }
 function time(value: unknown) { return typeof value === "string" && /^\d{2}:\d{2}$/.test(value) ? value : null; }
@@ -47,12 +47,14 @@ export async function POST(request: Request) {
     const placeText = placeQueryFromFields(location, fields.address);
     const coords = await resolveStoredCoords({ placeText, payload, existingPlaceText: null, existingLatitude: null, existingLongitude: null });
 
+    const mapLabel = safeText(payload.mapLabel, 120) || null;
     const { data: item, error } = await supabase.from("planning_items").insert({
       trip_id: payload.tripId,
       trip_day_id: payload.tripDayId,
       kind: payload.kind,
       status: payload.status,
       title: safeText(payload.title, 200),
+      map_label: mapLabel,
       details: safeText(payload.details, 4_000),
       location,
       starts_at: safeText(payload.startsAt, 5) || null,
@@ -107,6 +109,7 @@ export async function PATCH(request: Request) {
       kind: payload.kind,
       status: payload.status,
       title: safeText(payload.title, 200),
+      map_label: safeText(payload.mapLabel, 120) || null,
       details: safeText(payload.details, 4_000),
       location,
       ends_on: endsOn,

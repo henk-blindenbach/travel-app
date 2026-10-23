@@ -1,7 +1,7 @@
 import { createClient, hasSupabaseEnv } from "./supabase/server";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
-import type { MapPinKind, TripMapPin } from "./map-types";
-import { PLANNING_KIND_LABELS, isPlanningMapKind } from "./map-types";
+import type { TripMapPin } from "./map-types";
+import { PLANNING_KIND_LABELS, isPlanningMapKind, planningPinLabel } from "./map-types";
 
 type PlannedDayRow = {
   id: string;
@@ -18,6 +18,7 @@ type PlanningItemRow = {
   trip_day_id: string;
   kind: string;
   title: string;
+  map_label: string | null;
   location: string | null;
   address: string | null;
   latitude: number | null;
@@ -54,7 +55,9 @@ type PublicPlanningPoint = {
   trip_id: string;
   kind: string;
   title: string;
+  map_label: string | null;
   place: string;
+  label: string;
   latitude: number;
   longitude: number;
 };
@@ -118,7 +121,7 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
         .order("day_number"),
       supabase
         .from("planning_items")
-        .select("id,trip_day_id,kind,title,location,address,latitude,longitude")
+        .select("id,trip_day_id,kind,title,map_label,location,address,latitude,longitude")
         .eq("trip_id", tripId)
         .not("latitude", "is", null)
         .not("longitude", "is", null)
@@ -158,7 +161,7 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
         kind,
         latitude: item.latitude,
         longitude: item.longitude,
-        label: item.title,
+        label: planningPinLabel(item.map_label, item.location, item.title),
         subtitle: place ? `${kindLabel} · ${place}` : kindLabel,
         href: `/app/trips/${tripId}/plan`,
       });
@@ -202,7 +205,7 @@ export async function getPublicTripMapPins(tripId: string, tripSlug: string): Pr
         .order("day_number"),
       client
         .from("public_trip_planning_map_points")
-        .select("id,trip_id,kind,title,place,latitude,longitude")
+        .select("id,trip_id,kind,title,map_label,place,label,latitude,longitude")
         .eq("trip_id", tripId),
       client
         .from("public_trip_visited_map_points")
@@ -236,13 +239,15 @@ export async function getPublicTripMapPins(tripId: string, tripSlug: string): Pr
     for (const point of (planningResult.data || []) as PublicPlanningPoint[]) {
       const kind = asPlanningKind(point.kind);
       if (!kind) continue;
+      const pinLabel = (point.label || "").trim()
+        || planningPinLabel(point.map_label, point.place, point.title);
       planning.push({
         id: `public-item-${point.id}`,
         kind,
         latitude: point.latitude,
         longitude: point.longitude,
-        label: point.title,
-        subtitle: point.place && point.place !== point.title ? point.place : PLANNING_KIND_LABELS[kind],
+        label: pinLabel,
+        subtitle: point.place && point.place !== pinLabel ? point.place : PLANNING_KIND_LABELS[kind],
       });
     }
 
