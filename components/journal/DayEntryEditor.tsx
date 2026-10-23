@@ -10,8 +10,10 @@ import {
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 import { shareJpegFilename } from "../../lib/share-export";
 import {
-  downloadShareBatch,
-  shareDownloadMessage,
+  shareDataCandidates,
+  shareSuccessMessage,
+  shareUnsupportedMessage,
+  tryNavigatorShare,
 } from "../../lib/share-photos";
 import {
   normalizeSocialCaptions,
@@ -638,7 +640,7 @@ export function DayEntryEditor({
         try {
           await navigator.clipboard.writeText(caption);
         } catch {
-          /* Clipboard may be blocked; download still proceeds. */
+          /* Clipboard may be blocked; share sheet still proceeds. */
         }
       }
       setShareFeedback("JPEG + dagkaarten klaarmaken…");
@@ -658,19 +660,33 @@ export function DayEntryEditor({
         ),
       ]);
       const files = [startCard, ...photoFiles, endCard];
-      setShareFeedback(
-        files.length > 1
-          ? `Zip maken (${files.length} JPEG)…`
-          : "Downloaden…",
-      );
-      const mode = await downloadShareBatch(files, `Dag-${dayNumber}-delen.zip`);
-      const ok = shareDownloadMessage({
-        photoCount: photoFiles.length,
-        captionPresent: Boolean(caption),
-        mode,
+      setShareFeedback(`Deelmenu openen (${files.length} JPEG)…`);
+      const candidates = shareDataCandidates({
+        files,
+        title: dayTitle || `Dag ${dayNumber}`,
+        text: caption,
       });
-      setShareFeedback(ok);
-      setMessage(ok);
+      const result = await tryNavigatorShare(candidates);
+      if (result === "shared") {
+        const ok = shareSuccessMessage({
+          photoCount: photoFiles.length,
+          fileCount: files.length,
+          captionPresent: Boolean(caption),
+        });
+        setShareFeedback(ok);
+        setMessage(ok);
+        return;
+      }
+      if (result === "aborted") {
+        setShareFeedback("Delen geannuleerd.");
+        return;
+      }
+      const unsupported = shareUnsupportedMessage({
+        fileCount: files.length,
+        captionPresent: Boolean(caption),
+      });
+      setShareFeedback(unsupported);
+      setMessage(unsupported);
     } catch (error) {
       const fail = error instanceof Error
         ? error.message
@@ -1025,8 +1041,8 @@ export function DayEntryEditor({
           </button>
         </div>
         <p className="entry-helper">
-          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> downloadt een zip met JPEG’s
-          (dagkaart start → foto’s → dagkaart eind) en zet de actieve caption op het klembord — er is geen aparte cloudmap.
+          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> opent het systeemdeelmenu met JPEG’s
+          (dagkaart start → foto’s → dagkaart eind); op iPhone kun je alles in één keer Opslaan in Foto’s. Caption gaat naar het klembord.
         </p>
         {captionsError ? (
           <p className="form-message" role="alert">
@@ -1060,7 +1076,7 @@ export function DayEntryEditor({
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
               <p className="share-photos-hint">
-                Download {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} + dagkaarten als één zip
+                Deel {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} + dagkaarten via het deelmenu (Opslaan → Foto’s)
                 {selectedCount > readySelectedCount
                   ? ` (${selectedCount - readySelectedCount} nog niet klaar worden overgeslagen)`
                   : ""}
