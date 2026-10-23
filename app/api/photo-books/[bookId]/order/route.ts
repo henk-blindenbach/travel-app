@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validUuid } from "../../../../../lib/journal";
-import { loadPhotoBookAssets, loadRouteSummary, PHOTO_BOOK_SELECT } from "../../../../../lib/photo-book-assets";
+import { loadPhotoBookAssets, loadRouteSummary, loadTripCountries, PHOTO_BOOK_SELECT } from "../../../../../lib/photo-book-assets";
 import {
   buildPhotoBookExport,
   parseRecipient,
@@ -77,10 +77,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ boo
 
     const assets = await loadPhotoBookAssets(supabase, bookId, true);
     const routeSummary = await loadRouteSummary(supabase, book.trip_id);
+    const countries = await loadTripCountries(supabase, book.trip_id);
     const exportPayload = buildPhotoBookExport({
       book: book as PhotoBookRow,
       assets,
       routeSummary,
+      countries,
     });
 
     const recipient = parseRecipient(book.recipient);

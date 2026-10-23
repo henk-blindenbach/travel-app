@@ -9,7 +9,22 @@ type MediaEmbed = {
   book_favorite: boolean;
   upload_status: string;
   original_object_key: string;
-  day_entries: { day_number: number; title: string | null } | { day_number: number; title: string | null }[] | null;
+  day_entries:
+    | {
+        day_number: number;
+        title: string | null;
+        body?: string | null;
+        actual_location?: string | null;
+        day_date?: string | null;
+      }
+    | {
+        day_number: number;
+        title: string | null;
+        body?: string | null;
+        actual_location?: string | null;
+        day_date?: string | null;
+      }[]
+    | null;
 };
 
 export const PHOTO_BOOK_SELECT =
@@ -22,7 +37,7 @@ export async function loadPhotoBookAssets(
 ): Promise<ExportAsset[]> {
   const { data: items } = await supabase
     .from("photo_book_items")
-    .select("id,media_asset_id,sort_order,caption_override,media_assets(id,original_filename,caption,book_favorite,upload_status,original_object_key,day_entries(day_number,title))")
+    .select("id,media_asset_id,sort_order,caption_override,media_assets(id,original_filename,caption,book_favorite,upload_status,original_object_key,day_entries(day_number,title,body,actual_location,day_date))")
     .eq("photo_book_id", bookId)
     .order("sort_order");
 
@@ -46,6 +61,9 @@ export async function loadPhotoBookAssets(
       caption: (item.caption_override || media.caption || "").trim(),
       dayNumber: entry?.day_number ?? null,
       dayTitle: entry?.title ?? null,
+      dayBody: entry?.body?.trim() || null,
+      dayLocation: entry?.actual_location?.trim() || null,
+      dayDate: entry?.day_date || null,
       favorite: Boolean(media.book_favorite),
       downloadUrl,
     });
@@ -69,4 +87,15 @@ export async function loadRouteSummary(supabase: SupabaseClient, tripId: string)
     return `Dag ${day.day_number}: ${place}`;
   });
   return parts.join(" · ");
+}
+
+/** Trip countries for chapter pages when the trip spans more than one country. */
+export async function loadTripCountries(supabase: SupabaseClient, tripId: string): Promise<string[]> {
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("countries")
+    .eq("id", tripId)
+    .maybeSingle();
+  if (!trip || !Array.isArray(trip.countries)) return [];
+  return trip.countries.map((country: unknown) => String(country || "").trim()).filter(Boolean);
 }
