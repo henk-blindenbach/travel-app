@@ -19,9 +19,24 @@ type Entry = {
   title: string;
   actual_location: string;
   body: string;
+  actual_latitude?: number | null;
+  actual_longitude?: number | null;
   social_captions?: SocialCaptions;
   publication_status?: "draft" | "ready" | "published";
 } | null;
+
+type CoordinateStatus = "geocoded" | "manual" | "unchanged" | "failed" | "cleared" | "skipped";
+
+function formatCoord(value: number | null | undefined) {
+  return value === null || value === undefined || !Number.isFinite(value) ? "" : String(Math.round(value * 1e5) / 1e5);
+}
+
+function parseCoordInput(value: string) {
+  const text = value.trim().replace(",", ".");
+  if (!text) return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : NaN;
+}
 
 type Asset = {
   id: string;
@@ -111,6 +126,9 @@ export function DayEntryEditor({
   const [deleting, setDeleting] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [clearCoordinates, setClearCoordinates] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const baselineRef = useRef({
     title: initialEntry?.title || dayTitle || "",
@@ -118,6 +136,36 @@ export function DayEntryEditor({
     body: initialEntry?.body || "",
   });
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function coordPayload() {
+    const payload: Record<string, unknown> = {};
+    if (clearCoordinates) {
+      payload.clearCoordinates = true;
+      return payload;
+    }
+    const latitude = parseCoordInput(manualLat);
+    const longitude = parseCoordInput(manualLng);
+    if (Number.isNaN(latitude as number) || Number.isNaN(longitude as number)) {
+      throw new Error("Lat/lng moeten geldige getallen zijn, of laat beide leeg.");
+    }
+    if ((latitude === null) !== (longitude === null)) {
+      throw new Error("Vul lat én lng in, of laat beide leeg voor automatische geocode.");
+    }
+    if (latitude !== null && longitude !== null) {
+      payload.latitude = latitude;
+      payload.longitude = longitude;
+    }
+    return payload;
+  }
+
+  function pinFeedback(status: CoordinateStatus | undefined, latitude: number | null | undefined, longitude: number | null | undefined) {
+    const pin = latitude != null && longitude != null ? `${formatCoord(latitude)}, ${formatCoord(longitude)}` : "";
+    if (status === "geocoded" && pin) return ` Kaartpin: ${pin}.`;
+    if (status === "manual" && pin) return ` Handmatige pin: ${pin}.`;
+    if (status === "failed") return " Geen kaartpin gevonden — vul een duidelijker plaats in of lat/lng.";
+    if (status === "cleared") return " Kaartpin verwijderd.";
+    return "";
+  }
 
   const onAutosave = useEffectEvent(async (snapshot: { title: string; actualLocation: string; body: string }) => {
     try {
@@ -129,10 +177,11 @@ export function DayEntryEditor({
     }
     setSaving(true);
     try {
+      const coords = coordPayload();
       const data = await responseJson(await fetch("/api/day-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripDayId, ...snapshot }),
+        body: JSON.stringify({ tripDayId, ...snapshot, ...coords }),
       }));
       setEntry((current) => ({
         ...(current || { id: data.entry.id, title: "", actual_location: "", body: "" }),
@@ -141,9 +190,13 @@ export function DayEntryEditor({
       }));
       baselineRef.current = snapshot;
       setDirty(false);
+      setClearCoordinates(false);
+      setManualLat("");
+      setManualLng("");
       const stamp = formatSavedAt();
       setLastSavedAt(stamp);
-      setMessage(savedConfirmation());
+      const status = data.coordinateStatus as CoordinateStatus | undefined;
+      setMessage(savedConfirmation() + pinFeedback(status, data.entry.actual_latitude, data.entry.actual_longitude));
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Automatisch opslaan mislukt; lokaal concept blijft bewaard.");
@@ -207,10 +260,11 @@ export function DayEntryEditor({
     setSaving(true);
     setMessage("");
     try {
+      const coords = coordPayload();
       const data = await responseJson(await fetch("/api/day-entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripDayId, title, actualLocation, body }),
+        body: JSON.stringify({ tripDayId, title, actualLocation, body, ...coords }),
       }));
       const nextEntry = {
         ...(entry || { id: data.entry.id, title: "", actual_location: "", body: "" }),
@@ -220,9 +274,13 @@ export function DayEntryEditor({
       setEntry(nextEntry);
       baselineRef.current = { title, actualLocation, body };
       setDirty(false);
+      setClearCoordinates(false);
+      setManualLat("");
+      setManualLng("");
       const stamp = formatSavedAt();
       setLastSavedAt(stamp);
-      setMessage(savedConfirmation());
+      const status = data.coordinateStatus as CoordinateStatus | undefined;
+      setMessage(savedConfirmation() + pinFeedback(status, data.entry.actual_latitude, data.entry.actual_longitude));
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
       return nextEntry;
     } catch (error) {
@@ -564,7 +622,11 @@ export function DayEntryEditor({
           </div>
         </div>
         <label>Eigen titel<input value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} placeholder="Bijvoorbeeld: Stilte boven de wolken" /></label>
-        <label>Waar waren jullie?<input value={actualLocation} maxLength={160} onChange={(event) => setActualLocation(event.target.value)} placeholder={plannedLocation || "Plaats of gebied"} /></label>
+        <label>Waar waren jullie?<input value={actualLocation} maxLength={160} onChange={(event) => setActualLocation(event.target.value)} placeholder={plannedLocation || "Plaats of gebied"} /><small>Bij wijziging zoekt de app een publieke kaartpin (geen EXIF). Boekingscodes horen hier niet.</small></label>
+        <label>Breedtegraad (lat)<input value={manualLat} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_latitude) || "bijv. 27.7172"} onChange={(event) => setManualLat(event.target.value)} /><small>Optioneel · vul beide in om de pin handmatig te zetten</small></label>
+        <label>Lengtegraad (lng)<input value={manualLng} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_longitude) || "bijv. 85.3240"} onChange={(event) => setManualLng(event.target.value)} /></label>
+        <label className="optional-toggle"><input type="checkbox" checked={clearCoordinates} onChange={(event) => setClearCoordinates(event.target.checked)} /> Kaartpin wissen</label>
+        <p className="day-pin-status" role="status">{entry?.actual_latitude != null && entry?.actual_longitude != null ? `Huidige pin: ${formatCoord(entry.actual_latitude)}, ${formatCoord(entry.actual_longitude)}` : "Nog geen kaartpin voor deze bezochte plek."}</p>
         <label>Het verslag<textarea value={body} maxLength={20_000} onChange={(event) => setBody(event.target.value)} placeholder="Schrijf hier vrijuit wat er gebeurde, wat je zag en hoe het voelde…" rows={11} /></label>
         <p className="entry-helper">
           Concepten worden automatisch opgeslagen{lastSavedAt ? ` · laatste keer ${lastSavedAt}` : ""}. Offline blijft een lokale kopie bewaard.

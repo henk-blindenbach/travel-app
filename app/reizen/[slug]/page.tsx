@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicHeader } from "../../../components/PublicHeader";
+import { TripMapLoader } from "../../../components/map/TripMapLoader";
 import { getPublicTrip } from "../../../lib/travel-data";
+import { getPublicTripMapPins } from "../../../lib/trip-map-data";
 
 export default async function PublicTrip({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const result = await getPublicTrip(slug);
   if (!result) notFound();
   const { trip, days } = result;
+  const pins = await getPublicTripMapPins(trip.id, trip.slug);
+
   return (
     <>
       <div className="public-trip-hero">
@@ -20,6 +24,26 @@ export default async function PublicTrip({ params }: { params: Promise<{ slug: s
       </div>
       <main className="public-trip">
         <Link className="back-link" href="/">← Alle reizen</Link>
+        {pins.length ? (
+          <section className="trip-map-preview" aria-label="Routekaart">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow blue">Route</p>
+                <h2>Op de kaart</h2>
+              </div>
+              <Link href={`/reizen/${trip.slug}/route`}>Volledige kaart</Link>
+            </div>
+            <TripMapLoader pins={pins} compact showRouteToggle={false} defaultShowRoute />
+          </section>
+        ) : (
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow blue">Route</p>
+              <h2>Kaart volgt</h2>
+            </div>
+            <Link href={`/reizen/${trip.slug}/route`}>Bekijk de route</Link>
+          </div>
+        )}
         <div className="section-heading">
           <div>
             <p className="eyebrow blue">Reisdagboek</p>

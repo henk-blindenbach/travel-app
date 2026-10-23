@@ -2,15 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TripMapLoader } from "../../../../components/map/TripMapLoader";
 import { getPublicTripBySlug } from "../../../../lib/public-travel-data";
-import { getPublicTripMapPins } from "../../../../lib/trip-map-data";
+import { countPinsByKind, getPublicTripMapPins } from "../../../../lib/trip-map-data";
 
 export default async function PublicRoute({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const result = await getPublicTripBySlug(slug);
   if (!result) notFound();
   const pins = await getPublicTripMapPins(result.trip.id, result.trip.slug);
-  const planned = pins.filter((pin) => pin.kind === "planned").length;
-  const published = pins.filter((pin) => pin.kind === "published").length;
+  const counts = countPinsByKind(pins);
 
   return (
     <main className="public-trip trip-map-public">
@@ -18,12 +17,13 @@ export default async function PublicRoute({ params }: { params: Promise<{ slug: 
       <p className="eyebrow blue">Route</p>
       <h1>{result.trip.title}</h1>
       <p className="journal-intro">
-        Geplande plekken uit de reisplanning. Gepubliceerde dagen krijgen een eigen markering.
-        Precieze fotolocaties blijven privé.
+        Geplande plekken en openbare planningpins (alleen titel + plaats). Gepubliceerde dagen staan op de
+        bezochte plek als die is gezet. Precieze fotolocaties blijven privé.
       </p>
       <div className="trip-map-legend" aria-label="Legenda">
-        <span><i className="trip-map-swatch planned" /> Gepland ({planned})</span>
-        <span><i className="trip-map-swatch published" /> Gepubliceerde dag ({published})</span>
+        <span><i className="trip-map-swatch planned" /> Gepland ({counts.planned})</span>
+        <span><i className="trip-map-swatch item" /> Planning ({counts.planning})</span>
+        <span><i className="trip-map-swatch published" /> Bezocht / gepubliceerd ({counts.published})</span>
       </div>
       <TripMapLoader pins={pins} />
       <h2 className="trip-map-list-heading">Verhalen in volgorde</h2>
