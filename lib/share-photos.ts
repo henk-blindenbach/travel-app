@@ -34,12 +34,16 @@ export function canSharePayload(payload: ShareData): boolean {
 /**
  * Try navigator.share with the first shareable candidate.
  * Returns "shared" | "aborted" | "unsupported".
+ * Some mobile browsers lie about canShare for files — after candidates fail the
+ * check we still attempt share() once with the last files-only payload.
  */
 export async function tryNavigatorShare(candidates: ShareData[]): Promise<"shared" | "aborted" | "unsupported"> {
   if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
     return "unsupported";
   }
+  let lastFilesOnly: ShareData | null = null;
   for (const payload of candidates) {
+    if (payload.files?.length && !payload.text) lastFilesOnly = payload;
     if (!canSharePayload(payload)) continue;
     try {
       await navigator.share(payload);
@@ -47,6 +51,14 @@ export async function tryNavigatorShare(candidates: ShareData[]): Promise<"share
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return "aborted";
       /* Try next candidate (e.g. files-only after files+text fails). */
+    }
+  }
+  if (lastFilesOnly) {
+    try {
+      await navigator.share(lastFilesOnly);
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return "aborted";
     }
   }
   return "unsupported";
@@ -65,4 +77,12 @@ export function downloadFilesLocally(files: File[]) {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1_000);
   }
+}
+
+export function shareUnsupportedMessage(captionPresent: boolean): string {
+  const base =
+    "Het systeemdeelmenu opende niet (vaak bij HEIC of deze browser). Er is een JPEG-download gestart — op iPhone werkt delen betrouwbaarder in Safari.";
+  return captionPresent
+    ? `${base} Caption staat op het klembord.`
+    : base;
 }
