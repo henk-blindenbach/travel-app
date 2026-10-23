@@ -4,7 +4,7 @@ import { buildCopiedPlanningItem, COPY_SELECT, type CopyablePlanningItem } from 
 import { createClient } from "../../../../lib/supabase/server";
 
 const ITEM_RETURN =
-  "id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
+  "id,trip_day_id,kind,status,title,map_label,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
 
 export async function POST(request: Request) {
   try {

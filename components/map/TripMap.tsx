@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { TripMapPin } from "../../lib/map-types";
-import { isPlanningMapKind } from "../../lib/map-types";
+import { dayRoutePins, isPlanningMapKind } from "../../lib/map-types";
 
 const OSM_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -51,10 +51,7 @@ function popupHtml(pin: TripMapPin) {
 }
 
 function routeCoordinates(pins: TripMapPin[]): [number, number][] {
-  return pins
-    .filter((pin) => pin.kind === "planned" && typeof pin.dayNumber === "number")
-    .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0))
-    .map((pin) => [pin.longitude, pin.latitude] as [number, number]);
+  return dayRoutePins(pins).map((pin) => [pin.longitude, pin.latitude] as [number, number]);
 }
 
 function syncRouteLine(map: maplibregl.Map, coordinates: [number, number][], showRoute: boolean) {

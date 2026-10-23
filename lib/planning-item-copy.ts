@@ -7,6 +7,7 @@ export type CopyablePlanningItem = {
   kind: string;
   status: string;
   title: string;
+  map_label?: string | null;
   details: string | null;
   location: string | null;
   starts_at: string | null;
@@ -56,6 +57,7 @@ export function buildCopiedPlanningItem(
     kind: source.kind,
     status: source.status,
     title: source.title,
+    map_label: source.map_label || null,
     details: source.details || "",
     location: source.location || "",
     starts_at: source.starts_at,
@@ -86,4 +88,4 @@ export function buildCopiedPlanningItem(
 }
 
 export const COPY_SELECT =
-  "id,trip_id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
+  "id,trip_id,trip_day_id,kind,status,title,map_label,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";

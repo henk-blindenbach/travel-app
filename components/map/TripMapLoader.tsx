@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import type { TripMapPin } from "../../lib/map-types";
+import { dayRoutePins } from "../../lib/map-types";
 
 const TripMap = dynamic(() => import("./TripMap").then((mod) => mod.TripMap), {
   ssr: false,
@@ -21,21 +22,19 @@ export function TripMapLoader({
   defaultShowRoute?: boolean;
 }) {
   const [showRoute, setShowRoute] = useState(defaultShowRoute);
-  const canToggleRoute = useMemo(
-    () => pins.filter((pin) => pin.kind === "planned" && typeof pin.dayNumber === "number").length >= 2,
-    [pins],
-  );
+  const canToggleRoute = useMemo(() => dayRoutePins(pins).length >= 2, [pins]);
 
   return (
     <div className={compact ? "trip-map-loader is-compact" : "trip-map-loader"}>
       {showRouteToggle && canToggleRoute ? (
-        <label className="trip-map-route-toggle">
+        <label className="trip-map-route-toggle" title="Lijn tussen dagen in volgorde">
           <input
             type="checkbox"
             checked={showRoute}
             onChange={(event) => setShowRoute(event.target.checked)}
+            aria-label="Lijn tussen dagen tonen"
           />
-          Dagvolgorde-lijn
+          <span className="trip-map-route-toggle-text">Lijn</span>
         </label>
       ) : null}
       <TripMap pins={pins} showRoute={showRoute && canToggleRoute} compact={compact} />
