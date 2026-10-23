@@ -2,6 +2,8 @@ import { createClient, hasSupabaseEnv } from "./supabase/server";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import type { TripMapPin } from "./map-types";
 import { PLANNING_KIND_LABELS, isPlanningMapKind, planningPinLabel } from "./map-types";
+import { DEFAULT_LOCALE, type Locale } from "./i18n/config";
+import { getDictionary, t } from "./i18n/dictionary";
 
 type PlannedDayRow = {
   id: string;
@@ -193,7 +195,19 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
 }
 
 /** Privacy A: planned + public planning pins + published actual_location. No EXIF GPS for anon. */
-export async function getPublicTripMapPins(tripId: string, tripSlug: string): Promise<TripMapPin[]> {
+export async function getPublicTripMapPins(
+  tripId: string,
+  tripSlug: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<TripMapPin[]> {
+  const dict = getDictionary(locale).map;
+  const kindLabels = {
+    accommodation: dict.accommodation,
+    activity: dict.activity,
+    transport: dict.transport,
+    flight: dict.flight,
+    permit: dict.permit,
+  } as const;
   if (!hasSupabaseEnv()) return [];
   try {
     const client = publicClient();
@@ -228,8 +242,8 @@ export async function getPublicTripMapPins(tripId: string, tripSlug: string): Pr
         longitude: point.longitude,
         label: point.label,
         subtitle: showPublished
-          ? `Gepubliceerd · dag ${point.day_number}`
-          : `Gepland · dag ${point.day_number}`,
+          ? t(dict.publishedDay, { n: point.day_number })
+          : t(dict.plannedDay, { n: point.day_number }),
         href: point.day_published ? `/reizen/${tripSlug}/dagen/${point.day_number}` : undefined,
         dayNumber: point.day_number,
       };
@@ -247,7 +261,7 @@ export async function getPublicTripMapPins(tripId: string, tripSlug: string): Pr
         latitude: point.latitude,
         longitude: point.longitude,
         label: pinLabel,
-        subtitle: point.place && point.place !== pinLabel ? point.place : PLANNING_KIND_LABELS[kind],
+        subtitle: point.place && point.place !== pinLabel ? point.place : kindLabels[kind],
       });
     }
 
@@ -257,7 +271,7 @@ export async function getPublicTripMapPins(tripId: string, tripSlug: string): Pr
       latitude: point.latitude,
       longitude: point.longitude,
       label: point.label,
-      subtitle: `Bezocht · dag ${point.day_number}`,
+      subtitle: t(dict.visitedDay, { n: point.day_number }),
       href: `/reizen/${tripSlug}/dagen/${point.day_number}`,
       dayNumber: point.day_number,
     }));

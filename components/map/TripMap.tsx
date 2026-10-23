@@ -38,12 +38,24 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function popupHtml(pin: TripMapPin) {
+export type TripMapLabels = {
+  open: string;
+  ariaLabel: string;
+  empty: string;
+};
+
+const DEFAULT_MAP_LABELS: TripMapLabels = {
+  open: "Openen →",
+  ariaLabel: "Reiskaart",
+  empty: "Nog geen kaartpunten. Vul een plaats in bij een reisdag of planningonderdeel om een pin te krijgen.",
+};
+
+function popupHtml(pin: TripMapPin, openLabel: string) {
   const thumb = pin.thumbnailUrl
     ? `<img class="trip-map-popup-thumb" src="${escapeHtml(pin.thumbnailUrl)}" alt="" />`
     : "";
   const link = pin.href
-    ? `<a class="trip-map-popup-link" href="${escapeHtml(pin.href)}">Openen →</a>`
+    ? `<a class="trip-map-popup-link" href="${escapeHtml(pin.href)}">${escapeHtml(openLabel)}</a>`
     : "";
   return `<div class="trip-map-popup">${thumb}<div><strong>${escapeHtml(pin.label)}</strong>${
     pin.subtitle ? `<small>${escapeHtml(pin.subtitle)}</small>` : ""
@@ -94,11 +106,13 @@ export function TripMap({
   className,
   showRoute = true,
   compact = false,
+  labels = DEFAULT_MAP_LABELS,
 }: {
   pins: TripMapPin[];
   className?: string;
   showRoute?: boolean;
   compact?: boolean;
+  labels?: TripMapLabels;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -151,7 +165,7 @@ export function TripMap({
         }
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([pin.longitude, pin.latitude])
-          .setPopup(new maplibregl.Popup({ offset: 16, maxWidth: "240px" }).setHTML(popupHtml(pin)))
+          .setPopup(new maplibregl.Popup({ offset: 16, maxWidth: "240px" }).setHTML(popupHtml(pin, labels.open)))
           .addTo(map);
         markers.push(marker);
         bounds.extend([pin.longitude, pin.latitude]);
@@ -170,7 +184,7 @@ export function TripMap({
     return () => {
       markers.forEach((marker) => marker.remove());
     };
-  }, [pins, showRoute, compact]);
+  }, [pins, showRoute, compact, labels.open]);
 
   const shellClass = [
     "trip-map-shell",
@@ -182,9 +196,9 @@ export function TripMap({
 
   return (
     <div className={shellClass}>
-      <div ref={containerRef} className="trip-map-canvas" role="region" aria-label="Reiskaart" />
+      <div ref={containerRef} className="trip-map-canvas" role="region" aria-label={labels.ariaLabel} />
       {!pins.length ? (
-        <p className="trip-map-empty">Nog geen kaartdpunten. Vul een plaats in bij een reisdag of planningonderdeel om een pin te krijgen.</p>
+        <p className="trip-map-empty">{labels.empty}</p>
       ) : null}
     </div>
   );
