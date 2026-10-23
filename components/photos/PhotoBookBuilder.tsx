@@ -25,6 +25,12 @@ type BookSummary = {
   prodigi_order_id: string | null;
   prodigi_status: string | null;
   last_error: string | null;
+  intro_text?: string | null;
+  studio_project_id?: string | null;
+  studio_preview_url?: string | null;
+  studio_status?: string | null;
+  studio_template_id?: string | null;
+  preview_acknowledged_at?: string | null;
   updated_at: string;
 };
 
@@ -51,6 +57,9 @@ type ProdigiStatus = {
   env: string;
   baseUrl: string;
   defaultSku: string;
+  studioTemplateId: string | null;
+  studioConfigured: boolean;
+  studioBaseUrl: string;
 };
 
 const emptyRecipient: RecipientForm = {
@@ -111,6 +120,7 @@ export function PhotoBookBuilder({
   const [bookId, setBookId] = useState<string | null>(null);
   const [title, setTitle] = useState(tripTitle);
   const [subtitle, setSubtitle] = useState("");
+  const [introText, setIntroText] = useState("");
   const [sku, setSku] = useState(prodigi.defaultSku);
   const [copies, setCopies] = useState(1);
   const [destinationCountryCode, setDestinationCountryCode] = useState("PT");
@@ -119,6 +129,12 @@ export function PhotoBookBuilder({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [status, setStatus] = useState("draft");
   const [lastError, setLastError] = useState<string | null>(null);
+  const [studioProjectId, setStudioProjectId] = useState<string | null>(null);
+  const [studioPreviewUrl, setStudioPreviewUrl] = useState<string | null>(null);
+  const [studioStatus, setStudioStatus] = useState<string | null>(null);
+  const [previewAckedAt, setPreviewAckedAt] = useState<string | null>(null);
+  const [previewAckChecked, setPreviewAckChecked] = useState(false);
+  const [confirmLive, setConfirmLive] = useState(false);
   const [exportJson, setExportJson] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -141,17 +157,7 @@ export function PhotoBookBuilder({
           if (!detail.ok || cancelled) return;
           const book = detailData.book as BookSummary;
           const items = (detailData.items || []) as BookItem[];
-          setBookId(book.id);
-          setTitle(book.title);
-          setSubtitle(book.subtitle || "");
-          setSku(book.sku);
-          setCopies(book.copies);
-          setDestinationCountryCode(book.destination_country_code);
-          setShippingMethod(book.shipping_method);
-          setRecipient(recipientFromBook(book.recipient));
-          setSelectedIds(items.map((item) => item.media_asset_id));
-          setStatus(book.status);
-          setLastError(book.last_error);
+          applyBook(book, items);
         }
       } catch {
         if (!cancelled) setMessage("Fotoboeken konden niet worden geladen.");
@@ -161,6 +167,27 @@ export function PhotoBookBuilder({
       cancelled = true;
     };
   }, [tripId]);
+
+  function applyBook(book: BookSummary, items: BookItem[]) {
+    setBookId(book.id);
+    setTitle(book.title);
+    setSubtitle(book.subtitle || "");
+    setIntroText(book.intro_text || "");
+    setSku(book.sku);
+    setCopies(book.copies);
+    setDestinationCountryCode(book.destination_country_code);
+    setShippingMethod(book.shipping_method);
+    setRecipient(recipientFromBook(book.recipient));
+    setSelectedIds(items.map((item) => item.media_asset_id));
+    setStatus(book.status);
+    setLastError(book.last_error);
+    setStudioProjectId(book.studio_project_id || null);
+    setStudioPreviewUrl(book.studio_preview_url || null);
+    setStudioStatus(book.studio_status || null);
+    setPreviewAckedAt(book.preview_acknowledged_at || null);
+    setPreviewAckChecked(Boolean(book.preview_acknowledged_at));
+    setConfirmLive(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -186,19 +213,7 @@ export function PhotoBookBuilder({
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Laden mislukt.");
     if (cancelled) return;
-    const book = data.book as BookSummary;
-    const items = (data.items || []) as BookItem[];
-    setBookId(book.id);
-    setTitle(book.title);
-    setSubtitle(book.subtitle || "");
-    setSku(book.sku);
-    setCopies(book.copies);
-    setDestinationCountryCode(book.destination_country_code);
-    setShippingMethod(book.shipping_method);
-    setRecipient(recipientFromBook(book.recipient));
-    setSelectedIds(items.map((item) => item.media_asset_id));
-    setStatus(book.status);
-    setLastError(book.last_error);
+    applyBook(data.book as BookSummary, (data.items || []) as BookItem[]);
     setExportJson("");
   }
 
@@ -254,6 +269,7 @@ export function PhotoBookBuilder({
         body: JSON.stringify({
           title,
           subtitle,
+          introText,
           sku,
           copies,
           destinationCountryCode,
@@ -273,6 +289,7 @@ export function PhotoBookBuilder({
       if (!itemsResponse.ok) throw new Error(itemsData.error || "Selectie opslaan mislukt.");
 
       setStatus(metaData.book.status);
+      setIntroText(metaData.book.intro_text || "");
       setBooks((current) => current.map((book) => (book.id === bookId ? { ...book, ...metaData.book } : book)));
       setMessage(`Opgeslagen: ${selectedIds.length} foto’s in volgorde.`);
     } catch (error) {
@@ -300,6 +317,9 @@ export function PhotoBookBuilder({
       if (!response.ok) throw new Error(data.error || "Export mislukt.");
       setStatus(data.book.status);
       setLastError(data.book.last_error);
+      setStudioProjectId(data.book.studio_project_id || studioProjectId);
+      setStudioPreviewUrl(data.book.studio_preview_url || studioPreviewUrl);
+      setPreviewAckedAt(data.book.preview_acknowledged_at || previewAckedAt);
       setExportJson(JSON.stringify(data.export, null, 2));
       setMessage(data.message || "Export klaar.");
     } catch (error) {
@@ -317,6 +337,7 @@ export function PhotoBookBuilder({
       body: JSON.stringify({
         title,
         subtitle,
+        introText,
         sku,
         copies,
         destinationCountryCode,
@@ -331,10 +352,80 @@ export function PhotoBookBuilder({
     });
   }
 
+  async function syncStudio() {
+    if (!bookId) return;
+    if (!prodigi.configured) {
+      setMessage("PRODIGI_API_KEY ontbreekt — Studio-sync niet mogelijk.");
+      return;
+    }
+    if (!prodigi.studioConfigured) {
+      setMessage("PRODIGI_STUDIO_TEMPLATE_ID ontbreekt. Publiceer een template in Prodigi Studio en zet de id in Vercel/Cursor env.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      await saveMetaAndItemsQuiet();
+      const response = await fetch(`/api/photo-books/${bookId}/studio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Studio-sync mislukt.");
+      const book = data.book as BookSummary;
+      setStatus(book.status);
+      setLastError(book.last_error);
+      setSku(book.sku || sku);
+      setStudioProjectId(book.studio_project_id || null);
+      setStudioPreviewUrl(book.studio_preview_url || null);
+      setStudioStatus(book.studio_status || null);
+      setPreviewAckedAt(null);
+      setPreviewAckChecked(false);
+      setBooks((current) => current.map((item) => (item.id === bookId ? { ...item, ...book } : item)));
+      setMessage(data.message || "Studio-project bijgewerkt.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Studio-sync mislukt.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function acknowledgePreview(acknowledged: boolean) {
+    if (!bookId) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/photo-books/${bookId}/preview-ack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acknowledged }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Preview-bevestiging mislukt.");
+      setPreviewAckedAt(data.book.preview_acknowledged_at || null);
+      setPreviewAckChecked(Boolean(data.book.preview_acknowledged_at));
+      setMessage(data.message || (acknowledged ? "Preview bevestigd." : "Bevestiging gewist."));
+    } catch (error) {
+      setPreviewAckChecked(Boolean(previewAckedAt));
+      setMessage(error instanceof Error ? error.message : "Preview-bevestiging mislukt.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitOrder() {
     if (!bookId) return;
     if (!prodigi.configured) {
       setMessage("PRODIGI_API_KEY ontbreekt. Export wel mogelijk; echte order pas na Henk’s Prodigi-setup.");
+      return;
+    }
+    if (!studioProjectId || !previewAckedAt) {
+      setMessage("Eerst Studio-sync + preview bekijken en bevestigen vóór bestellen.");
+      return;
+    }
+    if (prodigi.env === "live" && !confirmLive) {
+      setMessage("Live-omgeving: vink “Bevestig live-order” aan. Zonder confirmLive wordt niets verstuurd.");
       return;
     }
     setBusy(true);
@@ -344,7 +435,7 @@ export function PhotoBookBuilder({
       const response = await fetch(`/api/photo-books/${bookId}/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmLive: prodigi.env === "live" }),
+        body: JSON.stringify({ confirmLive: prodigi.env === "live" ? confirmLive : false }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -362,6 +453,13 @@ export function PhotoBookBuilder({
   }
 
   const unselectedCandidates = candidates.filter((photo) => !selectedIds.includes(photo.id));
+  const canOrder = Boolean(
+    prodigi.configured
+    && studioProjectId
+    && previewAckedAt
+    && status !== "submitted"
+    && (prodigi.env !== "live" || confirmLive),
+  );
 
   return (
     <div className="photo-book-builder">
@@ -419,6 +517,16 @@ export function PhotoBookBuilder({
               <label>
                 Ondertitel
                 <input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={200} />
+              </label>
+              <label className="photo-book-intro-field">
+                Intro (optioneel)
+                <textarea
+                  value={introText}
+                  onChange={(event) => setIntroText(event.target.value)}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder="Korte intro voor het boek (Studio-slot intro.body)"
+                />
               </label>
               <label>
                 Prodigi SKU
@@ -581,11 +689,71 @@ export function PhotoBookBuilder({
           </section>
 
           <section className="planner-card">
+            <p className="eyebrow blue">Studio-preview</p>
+            <h2>Prodigi Studio (B1)</h2>
+            <p>
+              Sync vult een gepubliceerde Studio-template met cover, intro, dagtitels en foto’s + bijschriften.
+              Preview is verplicht vóór bestellen. Live-order nooit zonder <code>confirmLive</code>.
+            </p>
+            <p className="photo-book-studio-meta">
+              Template: {prodigi.studioConfigured ? "gezet via env" : "ontbreekt (PRODIGI_STUDIO_TEMPLATE_ID)"}
+              {" · "}
+              Project: {studioProjectId || "nog niet gesynchroniseerd"}
+              {" · "}
+              Status: {studioStatus || "—"}
+            </p>
+            <div className="photo-book-actions">
+              <button
+                className="primary-button blue-button"
+                type="button"
+                disabled={busy || !prodigi.configured || !prodigi.studioConfigured || status === "submitted"}
+                onClick={() => void syncStudio()}
+              >
+                Sync naar Prodigi Studio
+              </button>
+              {studioPreviewUrl ? (
+                <a className="secondary-button" href={studioPreviewUrl} target="_blank" rel="noreferrer">
+                  Open Studio-preview
+                </a>
+              ) : null}
+            </div>
+            {studioPreviewUrl ? (
+              <div className="photo-book-preview-frame">
+                <iframe title="Prodigi Studio preview" src={studioPreviewUrl} loading="lazy" />
+              </div>
+            ) : (
+              <p className="form-message">Nog geen preview. Sync eerst naar Studio (na selectie + adres). Embed kan door Studio worden geblokkeerd — gebruik dan de open-link.</p>
+            )}
+            <label className="photo-book-ack">
+              <input
+                type="checkbox"
+                checked={previewAckChecked}
+                disabled={busy || !studioProjectId || status === "submitted"}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setPreviewAckChecked(next);
+                  void acknowledgePreview(next);
+                }}
+              />
+              Ik heb de Studio-preview bekeken en ga akkoord met deze layout vóór bestellen
+              {previewAckedAt ? ` (bevestigd ${new Date(previewAckedAt).toLocaleString("nl-NL")})` : ""}
+            </label>
+            {!prodigi.studioConfigured ? (
+              <p className="form-message">
+                Henk: maak in <a href="https://studio.prodigi.com/" target="_blank" rel="noreferrer">Prodigi Studio</a> een
+                photobook-template, publiceer die, en zet <code>PRODIGI_STUDIO_TEMPLATE_ID</code> + optioneel{" "}
+                <code>PRODIGI_DEFAULT_SKU</code>. Aanbevolen text-slots: <code>cover.title</code>, <code>cover.subtitle</code>,{" "}
+                <code>intro.body</code>, <code>day.N.title</code>, <code>photo.*.caption</code>, <code>route.summary</code>.
+              </p>
+            ) : null}
+          </section>
+
+          <section className="planner-card">
             <p className="eyebrow blue">Export / order</p>
             <h2>Klaar voor Prodigi</h2>
             <p>
-              Export bouwt een vendor-neutraal payload + Prodigi quote/order-draft. Zonder API-key blijft de knop
-              “Bestellen” bewust geblokkeerd — er wordt nooit een nep-order als geslaagd getoond.
+              Export bouwt structuur + quote-draft. Bestellen gaat via Studio (print-ready) en alleen na preview-ack.
+              Status <code>submitted</code> alleen na echte API-response — nooit gesimuleerd.
             </p>
             <div className="photo-book-actions">
               <button className="primary-button blue-button" type="button" disabled={busy} onClick={() => void runExport(false)}>
@@ -594,14 +762,26 @@ export function PhotoBookBuilder({
               <button className="secondary-button" type="button" disabled={busy || !prodigi.configured} onClick={() => void runExport(true)}>
                 Export + Prodigi-quote
               </button>
-              <button className="secondary-button" type="button" disabled={busy || !prodigi.configured || status === "submitted"} onClick={() => void submitOrder()}>
-                {prodigi.configured ? `Bestel via Prodigi (${prodigi.env})` : "Bestellen (wacht op PRODIGI_API_KEY)"}
+              <button className="secondary-button" type="button" disabled={busy || !canOrder} onClick={() => void submitOrder()}>
+                {prodigi.configured ? `Bestel via Studio (${prodigi.env})` : "Bestellen (wacht op PRODIGI_API_KEY)"}
               </button>
             </div>
+            {prodigi.env === "live" ? (
+              <label className="photo-book-ack">
+                <input
+                  type="checkbox"
+                  checked={confirmLive}
+                  disabled={busy || status === "submitted"}
+                  onChange={(event) => setConfirmLive(event.target.checked)}
+                />
+                Bevestig live-order (écht drukwerk / verzending — nooit automatisch)
+              </label>
+            ) : null}
             {!prodigi.configured ? (
               <p className="form-message">
-                Henk: maak een Prodigi-account, zet <code>PRODIGI_API_KEY</code> (sandbox) in Vercel. Optioneel{" "}
-                <code>PRODIGI_ENV</code>, <code>PRODIGI_DEFAULT_SKU</code>. Zie <code>docs/PHOTOBOOK_PRODIGI.md</code>.
+                Henk: zet <code>PRODIGI_API_KEY</code> (sandbox) in Vercel. Optioneel <code>PRODIGI_ENV</code>,{" "}
+                <code>PRODIGI_DEFAULT_SKU</code>, verplicht voor B1: <code>PRODIGI_STUDIO_TEMPLATE_ID</code>. Zie{" "}
+                <code>docs/PHOTOBOOK_PRODIGI.md</code>.
               </p>
             ) : null}
             {exportJson ? (
