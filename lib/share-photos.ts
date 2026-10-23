@@ -2,6 +2,8 @@
  * Client helpers for downloading selected journal JPEGs (camera-roll friendly).
  */
 
+import { zipSync } from "fflate";
+
 export type SharePhotoFile = {
   file: File;
   name: string;
@@ -34,7 +36,6 @@ export function canSharePayload(payload: ShareData): boolean {
 /**
  * Try navigator.share with the first shareable candidate.
  * Returns "shared" | "aborted" | "unsupported".
- * Kept for optional use; primary journal path is sequential JPEG download.
  */
 export async function tryNavigatorShare(candidates: ShareData[]): Promise<"shared" | "aborted" | "unsupported"> {
   if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
@@ -49,7 +50,6 @@ export async function tryNavigatorShare(candidates: ShareData[]): Promise<"share
       return "shared";
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return "aborted";
-      /* Try next candidate (e.g. files-only after files+text fails). */
     }
   }
   if (lastFilesOnly) {
@@ -72,7 +72,7 @@ function triggerFileDownload(file: File) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2_000);
+  setTimeout(() => URL.revokeObjectURL(url), 4_000);
 }
 
 /** Fire all downloads immediately (desktop; browsers often only keep the first). */
@@ -81,8 +81,8 @@ export function downloadFilesLocally(files: File[]) {
 }
 
 /**
- * Sequential JPEG downloads with a short gap so iOS Safari can hand each file
- * to Photos / Files instead of collapsing a multi-file burst into one save.
+ * Sequential JPEG downloads with a short gap.
+ * Kept for single-file cases; iOS Safari typically only honors one <a download> per gesture.
  */
 export async function downloadFilesSequentially(
   files: File[],
@@ -96,22 +96,80 @@ export async function downloadFilesSequentially(
   }
 }
 
+/** Unique entry names inside a zip when originals collide. */
+export function uniqueZipEntryName(name: string, used: Set<string>): string {
+  if (!used.has(name)) {
+    used.add(name);
+    return name;
+  }
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  let n = 2;
+  let candidate = `${base}-${n}${ext}`;
+  while (used.has(candidate)) {
+    n += 1;
+    candidate = `${base}-${n}${ext}`;
+  }
+  used.add(candidate);
+  return candidate;
+}
+
+/**
+ * Pack JPEGs into one zip so the full batch (cards + photos) survives browsers
+ * that only allow a single download per tap (notably iOS Safari).
+ * level 0 = store; JPEGs are already compressed.
+ */
+export async function zipJpegFiles(files: File[], zipName: string): Promise<File> {
+  const used = new Set<string>();
+  const entries: Record<string, Uint8Array> = {};
+  for (const file of files) {
+    const name = uniqueZipEntryName(file.name || "foto.jpg", used);
+    entries[name] = new Uint8Array(await file.arrayBuffer());
+  }
+  const zipped = zipSync(entries, { level: 0 });
+  /* Copy into a fresh ArrayBuffer-backed view for File/Blob typings. */
+  const copy = new Uint8Array(zipped.byteLength);
+  copy.set(zipped);
+  return new File([copy], zipName, { type: "application/zip" });
+}
+
+/** Download one file (zip or single JPEG). */
+export function downloadFileLocally(file: File) {
+  triggerFileDownload(file);
+}
+
+/**
+ * Deliver the share batch: one zip when multiple files (iOS-safe full set),
+ * otherwise a single JPEG download.
+ */
+export async function downloadShareBatch(files: File[], zipName: string): Promise<"zip" | "single"> {
+  if (files.length === 0) return "single";
+  if (files.length === 1) {
+    downloadFileLocally(files[0]);
+    return "single";
+  }
+  const zip = await zipJpegFiles(files, zipName);
+  downloadFileLocally(zip);
+  return "zip";
+}
+
 /** Success copy when Delen downloads JPEGs (incl. day cards) to the device. */
 export function shareDownloadMessage(input: {
   photoCount: number;
   captionPresent: boolean;
+  mode: "zip" | "single";
 }): string {
   const n = input.photoCount;
-  const photos =
-    n === 1
-      ? "1 foto"
-      : `${n} foto’s`;
+  const photos = n === 1 ? "1 foto" : `${n} foto’s`;
   const base =
-    `${photos} + dagkaarten (JPEG) worden gedownload. Op iPhone: bewaar ze in Foto’s (Safari werkt het best).`;
+    input.mode === "zip"
+      ? `${photos} + dagkaarten zitten in één zip (JPEG). Open in Bestanden en bewaar in Foto’s.`
+      : `${photos} + dagkaarten (JPEG) gedownload. Op iPhone: bewaar in Foto’s (Safari).`;
   return input.captionPresent ? `${base} Caption staat op het klembord.` : base;
 }
 
 /** @deprecated Prefer shareDownloadMessage — download is now the primary path. */
 export function shareUnsupportedMessage(captionPresent: boolean): string {
-  return shareDownloadMessage({ photoCount: 0, captionPresent });
+  return shareDownloadMessage({ photoCount: 0, captionPresent, mode: "zip" });
 }

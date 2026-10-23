@@ -10,7 +10,7 @@ import {
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 import { shareJpegFilename } from "../../lib/share-export";
 import {
-  downloadFilesSequentially,
+  downloadShareBatch,
   shareDownloadMessage,
 } from "../../lib/share-photos";
 import {
@@ -658,11 +658,16 @@ export function DayEntryEditor({
         ),
       ]);
       const files = [startCard, ...photoFiles, endCard];
-      setShareFeedback(`Downloaden (${files.length} JPEG)…`);
-      await downloadFilesSequentially(files);
+      setShareFeedback(
+        files.length > 1
+          ? `Zip maken (${files.length} JPEG)…`
+          : "Downloaden…",
+      );
+      const mode = await downloadShareBatch(files, `Dag-${dayNumber}-delen.zip`);
       const ok = shareDownloadMessage({
         photoCount: photoFiles.length,
         captionPresent: Boolean(caption),
+        mode,
       });
       setShareFeedback(ok);
       setMessage(ok);
@@ -1020,8 +1025,8 @@ export function DayEntryEditor({
           </button>
         </div>
         <p className="entry-helper">
-          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> downloadt klaargemaakte foto’s als JPEG
-          (met een dagkaart vóór en na), en zet de actieve caption op het klembord — er is geen aparte cloudmap.
+          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> downloadt een zip met JPEG’s
+          (dagkaart start → foto’s → dagkaart eind) en zet de actieve caption op het klembord — er is geen aparte cloudmap.
         </p>
         {captionsError ? (
           <p className="form-message" role="alert">
@@ -1055,7 +1060,7 @@ export function DayEntryEditor({
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
               <p className="share-photos-hint">
-                Download {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} als JPEG plus dagkaarten (start/eind)
+                Download {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} + dagkaarten als één zip
                 {selectedCount > readySelectedCount
                   ? ` (${selectedCount - readySelectedCount} nog niet klaar worden overgeslagen)`
                   : ""}
