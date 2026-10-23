@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { TripMapPin } from "../../lib/map-types";
+import { isPlanningMapKind } from "../../lib/map-types";
 
 const OSM_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -19,10 +20,18 @@ const OSM_STYLE: maplibregl.StyleSpecification = {
   layers: [{ id: "osm", type: "raster", source: "osm" }],
 };
 
+const ROUTE_SOURCE = "trip-day-route";
+const ROUTE_LAYER = "trip-day-route-line";
+
 const KIND_CLASS: Record<TripMapPin["kind"], string> = {
   planned: "trip-map-marker planned",
   visited: "trip-map-marker visited",
   published: "trip-map-marker published",
+  accommodation: "trip-map-marker item accommodation",
+  activity: "trip-map-marker item activity",
+  transport: "trip-map-marker item transport",
+  flight: "trip-map-marker item flight",
+  permit: "trip-map-marker item permit",
 };
 
 function escapeHtml(value: string) {
@@ -41,7 +50,59 @@ function popupHtml(pin: TripMapPin) {
   }${link}</div></div>`;
 }
 
-export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: string }) {
+function routeCoordinates(pins: TripMapPin[]): [number, number][] {
+  return pins
+    .filter((pin) => pin.kind === "planned" && typeof pin.dayNumber === "number")
+    .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0))
+    .map((pin) => [pin.longitude, pin.latitude] as [number, number]);
+}
+
+function syncRouteLine(map: maplibregl.Map, coordinates: [number, number][], showRoute: boolean) {
+  const hasLine = showRoute && coordinates.length >= 2;
+  const geojson = {
+    type: "FeatureCollection" as const,
+    features: hasLine
+      ? [
+          {
+            type: "Feature" as const,
+            properties: {},
+            geometry: { type: "LineString" as const, coordinates },
+          },
+        ]
+      : [],
+  };
+
+  if (map.getSource(ROUTE_SOURCE)) {
+    (map.getSource(ROUTE_SOURCE) as maplibregl.GeoJSONSource).setData(geojson);
+    return;
+  }
+  if (!hasLine) return;
+
+  map.addSource(ROUTE_SOURCE, { type: "geojson", data: geojson });
+  map.addLayer({
+    id: ROUTE_LAYER,
+    type: "line",
+    source: ROUTE_SOURCE,
+    layout: { "line-join": "round", "line-cap": "round" },
+    paint: {
+      "line-color": "#1769e8",
+      "line-width": 2.5,
+      "line-opacity": 0.55,
+    },
+  });
+}
+
+export function TripMap({
+  pins,
+  className,
+  showRoute = true,
+  compact = false,
+}: {
+  pins: TripMapPin[];
+  className?: string;
+  showRoute?: boolean;
+  compact?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
@@ -52,7 +113,7 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
       container: containerRef.current,
       style: OSM_STYLE,
       center: [5.2, 52.1],
-      zoom: 3,
+      zoom: compact ? 2.5 : 3,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -62,7 +123,7 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -70,10 +131,13 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
 
     const markers: maplibregl.Marker[] = [];
     const bounds = new maplibregl.LngLatBounds();
+    const lineCoords = routeCoordinates(pins);
 
     const render = () => {
       markers.forEach((marker) => marker.remove());
       markers.length = 0;
+      syncRouteLine(map, lineCoords, showRoute);
+
       if (!pins.length) return;
 
       pins.forEach((pin) => {
@@ -81,6 +145,9 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
         el.type = "button";
         el.className = KIND_CLASS[pin.kind];
         el.setAttribute("aria-label", pin.label);
+        if (isPlanningMapKind(pin.kind)) {
+          el.dataset.kind = pin.kind;
+        }
         if (pin.thumbnailUrl && pin.kind === "visited") {
           el.style.backgroundImage = `url(${pin.thumbnailUrl})`;
           el.classList.add("has-thumb");
@@ -94,9 +161,9 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
       });
 
       if (pins.length === 1) {
-        map.flyTo({ center: [pins[0].longitude, pins[0].latitude], zoom: 10, essential: true });
+        map.flyTo({ center: [pins[0].longitude, pins[0].latitude], zoom: compact ? 8 : 10, essential: true });
       } else if (pins.length > 1) {
-        map.fitBounds(bounds, { padding: 56, maxZoom: 11, duration: 700 });
+        map.fitBounds(bounds, { padding: compact ? 28 : 56, maxZoom: compact ? 9 : 11, duration: 700 });
       }
     };
 
@@ -106,13 +173,21 @@ export function TripMap({ pins, className }: { pins: TripMapPin[]; className?: s
     return () => {
       markers.forEach((marker) => marker.remove());
     };
-  }, [pins]);
+  }, [pins, showRoute, compact]);
+
+  const shellClass = [
+    "trip-map-shell",
+    compact ? "is-compact" : "",
+    className || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={className ? `trip-map-shell ${className}` : "trip-map-shell"}>
+    <div className={shellClass}>
       <div ref={containerRef} className="trip-map-canvas" role="region" aria-label="Reiskaart" />
       {!pins.length ? (
-        <p className="trip-map-empty">Nog geen kaartdpunten. Vul een plaats in bij een reisdag om een pin te krijgen.</p>
+        <p className="trip-map-empty">Nog geen kaartdpunten. Vul een plaats in bij een reisdag of planningonderdeel om een pin te krijgen.</p>
       ) : null}
     </div>
   );

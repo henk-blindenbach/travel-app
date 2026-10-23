@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { geocodePlace, readExplicitCoords } from "../../../../lib/geocode";
 import { safeText, validUuid } from "../../../../lib/journal";
+import { resolveStoredCoords, type CoordinateStatus } from "../../../../lib/resolve-coords";
 import { createClient } from "../../../../lib/supabase/server";
 
 const statuses = new Set(["planned", "in_progress", "completed", "skipped"]);
 function isoDate(value: unknown) { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : ""; }
 
-export type CoordinateStatus = "geocoded" | "manual" | "unchanged" | "failed" | "cleared" | "skipped";
+export type { CoordinateStatus };
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ dayId: string }> }) {
   try {
@@ -44,27 +44,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ da
     let coordinateStatus: CoordinateStatus = "skipped";
 
     if (coordsReady) {
-      let plannedLatitude: number | null = (existing as { planned_latitude: number | null }).planned_latitude ?? null;
-      let plannedLongitude: number | null = (existing as { planned_longitude: number | null }).planned_longitude ?? null;
-      const explicit = readExplicitCoords(payload);
-      const clearCoords = payload.clearCoordinates === true;
-      if (!plannedLocation || clearCoords) {
-        plannedLatitude = null;
-        plannedLongitude = null;
-        coordinateStatus = "cleared";
-      } else if (explicit) {
-        plannedLatitude = explicit.latitude;
-        plannedLongitude = explicit.longitude;
-        coordinateStatus = "manual";
-      } else if (plannedLocation !== existing?.planned_location || plannedLatitude === null || plannedLongitude === null) {
-        const geocoded = await geocodePlace(plannedLocation);
-        plannedLatitude = geocoded?.latitude ?? null;
-        plannedLongitude = geocoded?.longitude ?? null;
-        coordinateStatus = geocoded ? "geocoded" : "failed";
-      } else {
-        coordinateStatus = "unchanged";
-      }
-      updatePayload = { ...baseUpdate, planned_latitude: plannedLatitude, planned_longitude: plannedLongitude };
+      const coords = await resolveStoredCoords({
+        placeText: plannedLocation,
+        existingPlaceText: (existing as { planned_location: string | null }).planned_location,
+        existingLatitude: (existing as { planned_latitude: number | null }).planned_latitude,
+        existingLongitude: (existing as { planned_longitude: number | null }).planned_longitude,
+        payload,
+        coordsReady: true,
+      });
+      coordinateStatus = coords.status;
+      updatePayload = { ...baseUpdate, planned_latitude: coords.latitude, planned_longitude: coords.longitude };
       selectCols += ",planned_latitude,planned_longitude";
     }
 

@@ -31,6 +31,8 @@ export type CopyablePlanningItem = {
   duration_minutes: number | null;
   altitude_m: number | null;
   sort_order: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export function buildCopiedPlanningItem(
@@ -78,8 +80,10 @@ export function buildCopiedPlanningItem(
     duration_minutes: source.duration_minutes,
     altitude_m: source.altitude_m,
     sort_order: nextSortOrder,
+    latitude: source.latitude ?? null,
+    longitude: source.longitude ?? null,
   };
 }
 
 export const COPY_SELECT =
-  "id,trip_id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order";
+  "id,trip_id,trip_day_id,kind,status,title,details,location,starts_at,ends_on,arrives_on,booking_reference,ticket_number,departure_time,arrival_time,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,address,contact_phone,price_amount,currency,payment_status,is_optional,duration_minutes,altitude_m,sort_order,latitude,longitude";
