@@ -102,3 +102,7 @@
 .public-page-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}.public-page-top .back-link{margin-bottom:0}.public-locale-bar .lang-toggle button{color:var(--ink)}
 
 .journal-translation-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.journal-translation-column h3{margin:0 0 4px;font-size:1.05rem;letter-spacing:-.03em}.journal-translation-column label{display:grid;gap:7px;font-size:.78rem;font-weight:700;margin-top:14px}.journal-translation-column input,.journal-translation-column textarea{width:100%;border:1px solid #cbd6df;background:#fff;border-radius:9px;padding:12px;font:400 .92rem 'DM Sans',sans-serif;color:var(--ink);resize:vertical}.journal-translation-column textarea{line-height:1.55;min-height:160px}@media(max-width:760px){.journal-translation-grid{grid-template-columns:1fr}}
+
+.journal-photo figcaption{white-space:normal}
+.journal-photo figcaption small.photo-error-detail{white-space:normal;line-height:1.35;color:#8a4b2f;margin-top:6px}
+.photo-processing-hint{display:block;font:500 .7rem 'DM Sans';color:#667c8e;max-width:16rem;line-height:1.35}
