@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicLocaleControls } from "../../../../../components/PublicLocaleControls";
 import { getDictionary, getLocale, LOCALE_DATE, t } from "../../../../../lib/i18n";
-import { getPublicDayByNumber } from "../../../../../lib/public-travel-data";
+import { getPublicDayByNumber, localizePublicDay } from "../../../../../lib/public-travel-data";
 
 export default async function PublicDay({
   params,
@@ -16,7 +16,8 @@ export default async function PublicDay({
   if (!Number.isInteger(dayNumberValue)) notFound();
   const result = await getPublicDayByNumber(slug, dayNumberValue);
   if (!result) notFound();
-  const { trip, days, entry, media } = result;
+  const { trip, days, media } = result;
+  const entry = localizePublicDay(result.entry, locale);
   const currentIndex = days.findIndex((day) => day.id === entry.id);
   const previous = currentIndex > 0 ? days[currentIndex - 1] : null;
   const next = currentIndex < days.length - 1 ? days[currentIndex + 1] : null;
@@ -25,6 +26,7 @@ export default async function PublicDay({
     month: "short",
     year: "numeric",
   }).format(new Date(entry.day_date + "T12:00:00"));
+  const bodyParagraphs = (entry.body || "").split("\n\n").filter(Boolean);
 
   return (
     <main className="public-day">
@@ -53,7 +55,7 @@ export default async function PublicDay({
         </div>
       ) : null}
       <article>
-        {entry.body.split("\n\n").map((paragraph, index) =>
+        {bodyParagraphs.map((paragraph, index) =>
           paragraph.startsWith("## ") ? (
             <h2 key={index}>{paragraph.slice(3)}</h2>
           ) : (

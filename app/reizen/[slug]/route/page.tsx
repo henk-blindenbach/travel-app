@@ -4,7 +4,7 @@ import { PublicLocaleControls } from "../../../../components/PublicLocaleControl
 import { TripMapLoader } from "../../../../components/map/TripMapLoader";
 import { getDictionary, getLocale, LOCALE_DATE, t } from "../../../../lib/i18n";
 import { mapChromeLabels } from "../../../../lib/i18n/map-labels";
-import { getPublicTripBySlug } from "../../../../lib/public-travel-data";
+import { getPublicTripBySlug, localizePublicDay } from "../../../../lib/public-travel-data";
 import { countPinsByKind, getPublicTripMapPins } from "../../../../lib/trip-map-data";
 
 export default async function PublicRoute({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,19 +46,22 @@ export default async function PublicRoute({ params }: { params: Promise<{ slug: 
       <TripMapLoader pins={pins} labels={mapLabels} />
       <h2 className="trip-map-list-heading">{dict.route.storiesInOrder}</h2>
       <ol className="public-day-timeline">
-        {result.days.map((day) => (
-          <li key={day.id}>
-            <span>{t(dict.route.dayN, { n: day.day_number })}</span>
-            <Link href={"/reizen/" + result.trip.slug + "/dagen/" + day.day_number}>
-              <div>
-                <p>{formatShort(day.day_date)}</p>
-                <h3>{day.actual_location || dict.route.onTheWay}</h3>
-                <small>{day.title || dict.route.travelStory}</small>
-              </div>
-              <b>→</b>
-            </Link>
-          </li>
-        ))}
+        {result.days.map((rawDay) => {
+          const day = localizePublicDay(rawDay, locale);
+          return (
+            <li key={day.id}>
+              <span>{t(dict.route.dayN, { n: day.day_number })}</span>
+              <Link href={"/reizen/" + result.trip.slug + "/dagen/" + day.day_number}>
+                <div>
+                  <p>{formatShort(day.day_date)}</p>
+                  <h3>{day.actual_location || dict.route.onTheWay}</h3>
+                  <small>{day.title || dict.route.travelStory}</small>
+                </div>
+                <b>→</b>
+              </Link>
+            </li>
+          );
+        })}
       </ol>
       {!result.days.length ? <p className="public-empty">{dict.route.listEmpty}</p> : null}
     </main>

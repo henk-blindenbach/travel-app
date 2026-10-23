@@ -3,6 +3,10 @@
 import { ChangeEvent, useEffect, useEffectEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  normalizeEntryTranslations,
+  type EntryI18nMap,
+} from "../../lib/entry-i18n";
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 import {
   normalizeSocialCaptions,
@@ -19,11 +23,26 @@ type Entry = {
   title: string;
   actual_location: string;
   body: string;
+  title_i18n?: EntryI18nMap | null;
+  body_i18n?: EntryI18nMap | null;
+  actual_location_i18n?: EntryI18nMap | null;
   actual_latitude?: number | null;
   actual_longitude?: number | null;
   social_captions?: SocialCaptions;
   publication_status?: "draft" | "ready" | "published";
 } | null;
+
+function translationFieldsFromEntry(entry: Entry) {
+  const maps = normalizeEntryTranslations(entry || {});
+  return {
+    enTitle: maps.title_i18n.en || "",
+    enLocation: maps.actual_location_i18n.en || "",
+    enBody: maps.body_i18n.en || "",
+    ptTitle: maps.title_i18n.pt || "",
+    ptLocation: maps.actual_location_i18n.pt || "",
+    ptBody: maps.body_i18n.pt || "",
+  };
+}
 
 type CoordinateStatus = "geocoded" | "manual" | "unchanged" | "failed" | "cleared" | "skipped";
 
@@ -124,6 +143,16 @@ export function DayEntryEditor({
   const [activeCaptionKey, setActiveCaptionKey] = useState<SocialPlatformKey>("instagram_feed");
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [translateBusy, setTranslateBusy] = useState(false);
+  const [translationsBusy, setTranslationsBusy] = useState(false);
+  const [showTranslateOffer, setShowTranslateOffer] = useState(false);
+  const initialTranslations = translationFieldsFromEntry(initialEntry);
+  const [enTitle, setEnTitle] = useState(initialTranslations.enTitle);
+  const [enLocation, setEnLocation] = useState(initialTranslations.enLocation);
+  const [enBody, setEnBody] = useState(initialTranslations.enBody);
+  const [ptTitle, setPtTitle] = useState(initialTranslations.ptTitle);
+  const [ptLocation, setPtLocation] = useState(initialTranslations.ptLocation);
+  const [ptBody, setPtBody] = useState(initialTranslations.ptBody);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [manualLat, setManualLat] = useState("");
@@ -167,6 +196,17 @@ export function DayEntryEditor({
     return "";
   }
 
+  function applyTranslationEntry(next: NonNullable<Entry>) {
+    setEntry(next);
+    const fields = translationFieldsFromEntry(next);
+    setEnTitle(fields.enTitle);
+    setEnLocation(fields.enLocation);
+    setEnBody(fields.enBody);
+    setPtTitle(fields.ptTitle);
+    setPtLocation(fields.ptLocation);
+    setPtBody(fields.ptBody);
+  }
+
   const onAutosave = useEffectEvent(async (snapshot: { title: string; actualLocation: string; body: string }) => {
     try {
       localStorage.setItem(draftStorageKey(tripDayId), JSON.stringify({ ...snapshot, savedAt: new Date().toISOString() }));
@@ -183,11 +223,12 @@ export function DayEntryEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tripDayId, ...snapshot, ...coords }),
       }));
-      setEntry((current) => ({
-        ...(current || { id: data.entry.id, title: "", actual_location: "", body: "" }),
+      const nextEntry = {
+        ...(entry || { id: data.entry.id, title: "", actual_location: "", body: "" }),
         ...data.entry,
-        publication_status: data.entry.publication_status || current?.publication_status || "draft",
-      }));
+        publication_status: data.entry.publication_status || entry?.publication_status || "draft",
+      } as NonNullable<Entry>;
+      applyTranslationEntry(nextEntry);
       baselineRef.current = snapshot;
       setDirty(false);
       setClearCoordinates(false);
@@ -197,6 +238,7 @@ export function DayEntryEditor({
       setLastSavedAt(stamp);
       const status = data.coordinateStatus as CoordinateStatus | undefined;
       setMessage(savedConfirmation() + pinFeedback(status, data.entry.actual_latitude, data.entry.actual_longitude));
+      if (snapshot.body.trim()) setShowTranslateOffer(true);
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Automatisch opslaan mislukt; lokaal concept blijft bewaard.");
@@ -271,7 +313,7 @@ export function DayEntryEditor({
         ...data.entry,
         publication_status: data.entry.publication_status || entry?.publication_status || "draft",
       } as NonNullable<Entry>;
-      setEntry(nextEntry);
+      applyTranslationEntry(nextEntry);
       baselineRef.current = { title, actualLocation, body };
       setDirty(false);
       setClearCoordinates(false);
@@ -281,6 +323,7 @@ export function DayEntryEditor({
       setLastSavedAt(stamp);
       const status = data.coordinateStatus as CoordinateStatus | undefined;
       setMessage(savedConfirmation() + pinFeedback(status, data.entry.actual_latitude, data.entry.actual_longitude));
+      if (body.trim()) setShowTranslateOffer(true);
       try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
       return nextEntry;
     } catch (error) {
@@ -535,6 +578,61 @@ export function DayEntryEditor({
     event.target.value = "";
   }
 
+  async function translateWithAi() {
+    const saved = entry || await saveEntry();
+    if (!saved) return;
+    if (!body.trim() && !saved.body?.trim()) {
+      setMessage("Schrijf eerst een Nederlands verslag vóór je vertaalt.");
+      return;
+    }
+    setTranslateBusy(true);
+    setMessage("");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 45_000);
+    try {
+      const data = await responseJson(await fetch(`/api/day-entries/${saved.id}/translate`, {
+        method: "POST",
+        signal: controller.signal,
+      }));
+      applyTranslationEntry(data.entry);
+      setShowTranslateOffer(false);
+      setMessage("EN- en PT-vertalingen klaar. Controleer ze vóór je publiceert.");
+    } catch (error) {
+      const text = error instanceof DOMException && error.name === "AbortError"
+        ? "Vertalen duurde te lang."
+        : error instanceof Error ? error.message : "Vertalen lukte niet.";
+      setMessage(text);
+    } finally {
+      window.clearTimeout(timeout);
+      setTranslateBusy(false);
+    }
+  }
+
+  async function saveTranslations() {
+    const saved = entry || await saveEntry();
+    if (!saved) return;
+    setTranslationsBusy(true);
+    setMessage("");
+    try {
+      const data = await responseJson(await fetch(`/api/day-entries/${saved.id}/translations`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title_i18n: { en: enTitle, pt: ptTitle },
+          body_i18n: { en: enBody, pt: ptBody },
+          actual_location_i18n: { en: enLocation, pt: ptLocation },
+        }),
+      }));
+      applyTranslationEntry(data.entry);
+      setShowTranslateOffer(false);
+      setMessage("Vertalingen opgeslagen.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Vertalingen opslaan lukte niet.");
+    } finally {
+      setTranslationsBusy(false);
+    }
+  }
+
   async function makeCaptions() {
     if (!entry) { setCaptionsError("Sla eerst het verslag op."); return; }
     setCaptionsBusy(true);
@@ -581,6 +679,8 @@ export function DayEntryEditor({
   const selectedCount = selectedPublicPhotos(assets).length;
   const shareDisabled = selectedCount === 0;
   const shareHint = sharePhotosDisabledHint(selectedCount);
+  const hasEnOrPt =
+    Boolean(enTitle.trim() || enBody.trim() || enLocation.trim() || ptTitle.trim() || ptBody.trim() || ptLocation.trim());
 
   return (
     <div className="journal-editor">
@@ -629,9 +729,61 @@ export function DayEntryEditor({
         <p className="day-pin-status" role="status">{entry?.actual_latitude != null && entry?.actual_longitude != null ? `Huidige pin: ${formatCoord(entry.actual_latitude)}, ${formatCoord(entry.actual_longitude)}` : "Nog geen kaartpin voor deze bezochte plek."}</p>
         <label>Het verslag<textarea value={body} maxLength={20_000} onChange={(event) => setBody(event.target.value)} placeholder="Schrijf hier vrijuit wat er gebeurde, wat je zag en hoe het voelde…" rows={11} /></label>
         <p className="entry-helper">
-          Concepten worden automatisch opgeslagen{lastSavedAt ? ` · laatste keer ${lastSavedAt}` : ""}. Offline blijft een lokale kopie bewaard.
+          Schrijf in het Nederlands. Concepten worden automatisch opgeslagen{lastSavedAt ? ` · laatste keer ${lastSavedAt}` : ""}. Offline blijft een lokale kopie bewaard.
         </p>
         {message && <p className="form-message" role="status">{message}</p>}
+      </section>
+
+      <section className="entry-photos-card">
+        <div className="entry-form-heading">
+          <div>
+            <p className="eyebrow blue">Vertalingen</p>
+            <h2>Engels &amp; Portugees</h2>
+          </div>
+          <div className="entry-form-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => void translateWithAi()}
+              disabled={translateBusy || saving || (!entry && !body.trim())}
+            >
+              {translateBusy ? "Vertalen…" : "Vertaal naar EN/PT"}
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => void saveTranslations()}
+              disabled={translationsBusy || (!entry && !hasEnOrPt)}
+            >
+              {translationsBusy ? "Opslaan…" : "Vertalingen opslaan"}
+            </button>
+          </div>
+        </div>
+        <p className="entry-helper">
+          Na een geslaagde NL-opslag kun je EN/PT laten genereren. Controleer of pas de tekst aan vóór publicatie — er is geen stille auto-vertaling.
+        </p>
+        {showTranslateOffer && !hasEnOrPt ? (
+          <p className="form-message" role="status">
+            Concept opgeslagen. Wil je nu EN- en PT-vertalingen genereren?{" "}
+            <button className="text-button" type="button" onClick={() => void translateWithAi()} disabled={translateBusy}>
+              Vertaal naar EN/PT
+            </button>
+          </p>
+        ) : null}
+        <div className="journal-translation-grid">
+          <div className="journal-translation-column">
+            <h3>English</h3>
+            <label>Title<input value={enTitle} maxLength={160} onChange={(event) => setEnTitle(event.target.value)} /></label>
+            <label>Place<input value={enLocation} maxLength={160} onChange={(event) => setEnLocation(event.target.value)} /></label>
+            <label>Story<textarea value={enBody} maxLength={20_000} rows={8} onChange={(event) => setEnBody(event.target.value)} /></label>
+          </div>
+          <div className="journal-translation-column">
+            <h3>Português</h3>
+            <label>Título<input value={ptTitle} maxLength={160} onChange={(event) => setPtTitle(event.target.value)} /></label>
+            <label>Lugar<input value={ptLocation} maxLength={160} onChange={(event) => setPtLocation(event.target.value)} /></label>
+            <label>Relato<textarea value={ptBody} maxLength={20_000} rows={8} onChange={(event) => setPtBody(event.target.value)} /></label>
+          </div>
+        </div>
       </section>
 
       <section className="entry-photos-card">
