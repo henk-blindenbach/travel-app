@@ -66,9 +66,33 @@ type Asset = {
   book_candidate?: boolean;
   book_favorite?: boolean;
   upload_status: "uploading" | "processing" | "ready" | "failed";
+  processing_error?: string | null;
 };
 
 type DisplayAsset = Asset & { webUrl?: string; localUrl?: string; previewMissing?: boolean };
+
+function photoStatusLabel(asset: DisplayAsset) {
+  if (asset.upload_status === "ready" && !asset.previewMissing) return "Private webversie";
+  if (asset.processing_error) {
+    if (/origineel ontbreekt/i.test(asset.processing_error)) return "Origineel ontbreekt";
+    if (/toegang|niet leesbaar|niet ingesteld/i.test(asset.processing_error)) return "Origineel niet leesbaar";
+    return "Verwerken mislukt";
+  }
+  if (asset.upload_status === "failed" || asset.previewMissing) return "Verwerken mislukt";
+  return asset.upload_status;
+}
+
+function photoPlaceholderLabel(asset: DisplayAsset) {
+  if (asset.processing_error && /origineel ontbreekt/i.test(asset.processing_error)) {
+    return "Origineel ontbreekt — upload opnieuw";
+  }
+  if (asset.processing_error && /toegang|niet leesbaar|niet ingesteld/i.test(asset.processing_error)) {
+    return "Origineel niet leesbaar";
+  }
+  if (asset.upload_status === "failed" || asset.previewMissing) return "Verwerken mislukt";
+  if (asset.upload_status === "ready") return "Voorbeeld laden…";
+  return "Wordt verwerkt…";
+}
 
 type TripVisibility = "private" | "unlisted" | "public";
 
@@ -312,7 +336,7 @@ export function DayEntryEditor({
   async function reprocessAsset(assetId: string) {
     setMessage("");
     setAssets((current) => current.map((asset) => asset.id === assetId
-      ? { ...asset, upload_status: "processing", previewMissing: false, webUrl: undefined }
+      ? { ...asset, upload_status: "processing", processing_error: null, previewMissing: false, webUrl: undefined }
       : asset));
     try {
       const complete = await responseJson(await fetch("/api/media/complete", {
@@ -321,15 +345,16 @@ export function DayEntryEditor({
         body: JSON.stringify({ assetId }),
       }));
       setAssets((current) => current.map((asset) => asset.id === assetId
-        ? { ...asset, ...complete.asset, previewMissing: false }
+        ? { ...asset, ...complete.asset, processing_error: null, previewMissing: false }
         : asset));
       await loadWebUrl(assetId);
       setMessage("Webversie opnieuw gemaakt.");
     } catch (error) {
+      const text = error instanceof Error ? error.message : "Opnieuw verwerken lukte niet. Upload de foto opnieuw als het blijft misgaan.";
       setAssets((current) => current.map((asset) => asset.id === assetId
-        ? { ...asset, upload_status: "failed", previewMissing: true }
+        ? { ...asset, upload_status: "failed", previewMissing: true, processing_error: text }
         : asset));
-      setMessage(error instanceof Error ? error.message : "Opnieuw verwerken lukte niet. Upload de foto opnieuw als het blijft misgaan.");
+      setMessage(text);
     }
   }
 
@@ -506,15 +531,16 @@ export function DayEntryEditor({
         body: JSON.stringify({ assetId: pendingId }),
       }));
       setAssets((current) => current.map((asset) => asset.id === pendingId
-        ? { ...asset, ...complete.asset }
+        ? { ...asset, ...complete.asset, processing_error: null }
         : asset));
       await loadWebUrl(pendingId);
       setMessage("Foto veilig opgeslagen en omgezet naar een webversie.");
     } catch (error) {
       if (assetId) {
         const failedId = assetId;
+        const text = error instanceof Error ? error.message : "De foto kon niet worden geüpload.";
         setAssets((current) => current.map((asset) => asset.id === failedId
-          ? { ...asset, upload_status: "failed", previewMissing: true }
+          ? { ...asset, upload_status: "failed", previewMissing: true, processing_error: text }
           : asset));
       }
       setMessage(error instanceof Error ? error.message : "De foto kon niet worden geüpload.");
@@ -879,26 +905,23 @@ export function DayEntryEditor({
                     {asset.upload_status === "failed" || asset.previewMissing
                       ? (
                         <>
-                          <span>{asset.upload_status === "failed" ? "Verwerken mislukt" : "Voorbeeld ontbreekt"}</span>
-                          <button type="button" className="text-button" onClick={() => void reprocessAsset(asset.id)}>
-                            Opnieuw verwerken
-                          </button>
+                          <span>{photoPlaceholderLabel(asset)}</span>
+                          {asset.processing_error && /origineel ontbreekt/i.test(asset.processing_error) ? (
+                            <span className="photo-processing-hint">Kies de foto opnieuw via “Foto’s kiezen”.</span>
+                          ) : (
+                            <button type="button" className="text-button" onClick={() => void reprocessAsset(asset.id)}>
+                              Opnieuw verwerken
+                            </button>
+                          )}
                         </>
                       )
-                      : asset.upload_status === "ready"
-                        ? "Voorbeeld laden…"
-                        : "Wordt verwerkt…"}
+                      : photoPlaceholderLabel(asset)}
                   </div>
                 )}
                 <figcaption>
                   {asset.original_filename}
-                  <small>
-                    {asset.upload_status === "ready" && !asset.previewMissing
-                      ? "Private webversie"
-                      : asset.upload_status === "failed" || asset.previewMissing
-                        ? "Webversie ontbreekt"
-                        : asset.upload_status}
-                  </small>
+                  <small>{photoStatusLabel(asset)}</small>
+                  {asset.processing_error ? <small className="photo-error-detail">{asset.processing_error}</small> : null}
                   <div className="photo-order-actions">
                     <button type="button" className="text-button" disabled={index === 0} onClick={() => void movePhoto(index, -1)}>↑ Eerder</button>
                     <button type="button" className="text-button" disabled={index === assets.length - 1} onClick={() => void movePhoto(index, 1)}>Later ↓</button>

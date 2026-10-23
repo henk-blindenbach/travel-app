@@ -1,5 +1,9 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { classifyOriginalFetchError, OriginalFetchError } from "./scaleway-errors";
+
+export { OriginalFetchError } from "./scaleway-errors";
+export type { OriginalFetchCode } from "./scaleway-errors";
 
 type ScalewayConfig = {
   endpoint: string;
@@ -17,7 +21,7 @@ function config(): ScalewayConfig {
   const secretAccessKey = process.env.SCALEWAY_SECRET_ACCESS_KEY;
 
   if (!endpoint || !region || !bucket || !accessKeyId || !secretAccessKey) {
-    throw new Error("De private foto-opslag is nog niet ingesteld.");
+    throw new OriginalFetchError("not_configured", "De private foto-opslag is nog niet ingesteld.");
   }
 
   return { endpoint, region, bucket, accessKeyId, secretAccessKey };
@@ -51,10 +55,16 @@ export async function createOriginalDownloadUrl(key: string, expiresInSeconds = 
 }
 
 export async function fetchOriginal(key: string) {
-  const settings = config();
-  const result = await client(settings).send(new GetObjectCommand({ Bucket: settings.bucket, Key: key }));
-  if (!result.Body) throw new Error("Het geüploade origineel kon niet worden gelezen.");
-  return Buffer.from(await result.Body.transformToByteArray());
+  try {
+    const settings = config();
+    const result = await client(settings).send(new GetObjectCommand({ Bucket: settings.bucket, Key: key }));
+    if (!result.Body) {
+      throw new OriginalFetchError("read_failed", "Het geüploade origineel kon niet worden gelezen.");
+    }
+    return Buffer.from(await result.Body.transformToByteArray());
+  } catch (error) {
+    throw classifyOriginalFetchError(error);
+  }
 }
 
 export async function deleteOriginal(key: string) {

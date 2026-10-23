@@ -38,6 +38,7 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
     caption: string;
     sort_order: number;
     upload_status: "uploading" | "processing" | "ready" | "failed";
+    processing_error?: string | null;
     is_public?: boolean;
     book_candidate?: boolean;
     book_favorite?: boolean;
@@ -51,7 +52,7 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
         supabase
           .from("day_entries")
           .select(
-            "id,title,actual_location,body,title_i18n,body_i18n,actual_location_i18n,actual_latitude,actual_longitude,social_captions,publication_status,media_assets(id,original_filename,caption,sort_order,upload_status,is_public,book_candidate,book_favorite)",
+            "id,title,actual_location,body,title_i18n,body_i18n,actual_location_i18n,actual_latitude,actual_longitude,social_captions,publication_status,media_assets(id,original_filename,caption,sort_order,upload_status,processing_error,is_public,book_candidate,book_favorite)",
           )
           .eq("trip_day_id", day.id)
           .maybeSingle(),
