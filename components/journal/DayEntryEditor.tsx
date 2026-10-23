@@ -9,8 +9,14 @@ import {
 } from "../../lib/entry-i18n";
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 import {
+  downloadFilesLocally,
+  shareDataCandidates,
+  tryNavigatorShare,
+} from "../../lib/share-photos";
+import {
   normalizeSocialCaptions,
   preferredShareCaption,
+  readyPublicPhotos,
   selectedPublicPhotos,
   sharePhotosDisabledHint,
   type SocialCaptions,
@@ -173,6 +179,9 @@ export function DayEntryEditor({
   const [activeCaptionKey, setActiveCaptionKey] = useState<SocialPlatformKey>("instagram_feed");
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState("");
   const [translateBusy, setTranslateBusy] = useState(false);
   const [translationsBusy, setTranslationsBusy] = useState(false);
   const [showTranslateOffer, setShowTranslateOffer] = useState(false);
@@ -580,14 +589,37 @@ export function DayEntryEditor({
     } catch { setMessage("De fotoboekkeuze kon niet worden opgeslagen."); }
   }
 
+  async function deleteAsset(assetId: string, filename: string) {
+    if (!window.confirm(`Foto «${filename}» definitief verwijderen? Dit wist de database-rij en de opslagkopieën van deze foto.`)) {
+      return;
+    }
+    setDeletingAssetId(assetId);
+    setMessage("");
+    try {
+      await responseJson(await fetch(`/api/media/${assetId}`, { method: "DELETE" }));
+      setAssets((current) => current.filter((asset) => asset.id !== assetId));
+      setMessage("Foto verwijderd.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "De foto kon niet worden verwijderd.");
+    } finally {
+      setDeletingAssetId(null);
+    }
+  }
+
   async function savePhotosToLibrary() {
     const selected = selectedPublicPhotos(assets);
-    if (!selected.length) {
-      setMessage(sharePhotosDisabledHint(0));
+    const ready = readyPublicPhotos(assets);
+    const hint = sharePhotosDisabledHint(selected.length, ready.length);
+    if (hint) {
+      setShareFeedback(hint);
+      setMessage(hint);
       return;
     }
     const caption =
       captions[activeCaptionKey]?.trim() || preferredShareCaption(captions);
+    setSharing(true);
+    setShareFeedback("Foto’s ophalen…");
+    setMessage("");
     try {
       if (caption) {
         try {
@@ -596,41 +628,44 @@ export function DayEntryEditor({
           /* Clipboard may be blocked; share text below still helps on supporting browsers. */
         }
       }
-      const notReady = selected.filter((asset) => asset.upload_status !== "ready");
-      if (notReady.length) {
-        setMessage("Eerst opnieuw verwerken: minstens één geselecteerde foto is nog niet klaar (geen webversie).");
-        return;
-      }
-      const files = await Promise.all(selected.map(async (asset) => {
+      const files = await Promise.all(ready.map(async (asset) => {
         const response = await fetch(`/api/media/${asset.id}/original`);
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || `Origineel van «${asset.original_filename}» kon niet worden opgehaald.`);
+        }
         return new File([await response.blob()], asset.original_filename, {
           type: response.headers.get("Content-Type") || "image/jpeg",
         });
       }));
-      const sharePayload: ShareData = { files, title: dayTitle };
-      if (caption) sharePayload.text = caption;
-      if (navigator.canShare?.(sharePayload) && navigator.share) {
-        await navigator.share(sharePayload);
-        setMessage(caption
+      const candidates = shareDataCandidates({ files, title: dayTitle || "Foto’s", text: caption });
+      const result = await tryNavigatorShare(candidates);
+      if (result === "shared") {
+        const ok = caption
           ? "Foto’s naar het deelmenu gezet; caption staat op het klembord (niets geüpload naar een cloudmap)."
-          : "Foto’s naar het deelmenu gezet (niets geüpload naar een cloudmap).");
-      } else {
-        files.forEach((file) => {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(file);
-          link.download = file.name;
-          link.click();
-          setTimeout(() => URL.revokeObjectURL(link.href), 1_000);
-        });
-        setMessage(
-          caption
-            ? "Foto’s lokaal gedownload; caption gekopieerd — plak in Instagram of Facebook. Geen aparte cloudmap."
-            : "Foto’s lokaal gedownload. Maak eerst captions om mee te delen.",
-        );
+          : "Foto’s naar het deelmenu gezet (niets geüpload naar een cloudmap).";
+        setShareFeedback(ok);
+        setMessage(ok);
+        return;
       }
-    } catch {
-      setMessage("De geselecteerde foto’s konden niet worden klaargezet (origineel ontbreekt of is nog niet verwerkt).");
+      if (result === "aborted") {
+        setShareFeedback("Delen geannuleerd.");
+        return;
+      }
+      downloadFilesLocally(files);
+      const downloaded = caption
+        ? "Foto’s lokaal gedownload; caption gekopieerd — plak in Instagram of Facebook. Geen aparte cloudmap."
+        : "Foto’s lokaal gedownload. Maak eerst captions om mee te delen.";
+      setShareFeedback(downloaded);
+      setMessage(downloaded);
+    } catch (error) {
+      const fail = error instanceof Error
+        ? error.message
+        : "De geselecteerde foto’s konden niet worden klaargezet (origineel ontbreekt of is nog niet verwerkt).";
+      setShareFeedback(fail);
+      setMessage(fail);
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -773,8 +808,9 @@ export function DayEntryEditor({
   const published = entry?.publication_status === "published";
   const ready = entry?.publication_status === "ready";
   const selectedCount = selectedPublicPhotos(assets).length;
-  const shareDisabled = selectedCount === 0;
-  const shareHint = sharePhotosDisabledHint(selectedCount);
+  const readySelectedCount = readyPublicPhotos(assets).length;
+  const shareDisabled = readySelectedCount === 0;
+  const shareHint = sharePhotosDisabledHint(selectedCount, readySelectedCount);
   const publicDayHref = `/reizen/${shareSlug}/dagen/${dayNumber}`;
   const shareableTrip = tripVisibility === "public" || tripVisibility === "unlisted";
   const hasEnOrPt =
@@ -925,6 +961,14 @@ export function DayEntryEditor({
                   <div className="photo-order-actions">
                     <button type="button" className="text-button" disabled={index === 0} onClick={() => void movePhoto(index, -1)}>↑ Eerder</button>
                     <button type="button" className="text-button" disabled={index === assets.length - 1} onClick={() => void movePhoto(index, 1)}>Later ↓</button>
+                    <button
+                      type="button"
+                      className="text-button danger-button"
+                      disabled={deletingAssetId === asset.id}
+                      onClick={() => void deleteAsset(asset.id, asset.original_filename)}
+                    >
+                      {deletingAssetId === asset.id ? "Verwijderen…" : "Verwijderen"}
+                    </button>
                   </div>
                   <label className="photo-caption-label">
                     Bijschrift
@@ -993,22 +1037,28 @@ export function DayEntryEditor({
               className="secondary-button"
               type="button"
               onClick={() => void savePhotosToLibrary()}
-              disabled={shareDisabled}
-              aria-disabled={shareDisabled}
+              disabled={shareDisabled || sharing}
+              aria-disabled={shareDisabled || sharing}
               title={shareHint || undefined}
             >
-              Deel geselecteerde foto’s
+              {sharing ? "Delen…" : "Deel geselecteerde foto’s"}
             </button>
             {shareDisabled ? (
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
               <p className="share-photos-hint">
-                Zet {selectedCount} foto{selectedCount === 1 ? "" : "’s"} klaar op dit apparaat (deelmenu of download)
+                Zet {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} op dit apparaat (deelmenu of download)
+                {selectedCount > readySelectedCount
+                  ? ` (${selectedCount - readySelectedCount} nog niet klaar worden overgeslagen)`
+                  : ""}
                 {captions[activeCaptionKey] || preferredShareCaption(captions)
                   ? "; caption gaat naar het klembord. Geen cloudmap."
                   : ". Geen cloudmap."}
               </p>
             )}
+            {shareFeedback ? (
+              <p className="share-photos-hint" role="status">{shareFeedback}</p>
+            ) : null}
           </div>
           <button className="primary-button blue-button" type="button" onClick={() => void publish()} disabled={publishing || entry?.publication_status === "published"}>
             {entry?.publication_status === "published" ? "Gepubliceerd" : publishing ? "Publiceren…" : "Publiceer dag"}
