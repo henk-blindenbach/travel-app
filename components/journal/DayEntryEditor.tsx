@@ -10,10 +10,8 @@ import {
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
 import { shareJpegFilename } from "../../lib/share-export";
 import {
-  downloadFilesLocally,
-  shareDataCandidates,
-  shareUnsupportedMessage,
-  tryNavigatorShare,
+  downloadFilesSequentially,
+  shareDownloadMessage,
 } from "../../lib/share-photos";
 import {
   normalizeSocialCaptions,
@@ -608,6 +606,19 @@ export function DayEntryEditor({
     }
   }
 
+  async function fetchShareJpeg(url: string, fallbackName: string): Promise<File> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || `«${fallbackName}» kon niet worden gedownload.`);
+    }
+    const headerName = response.headers.get("X-Share-Filename");
+    const filename = headerName || fallbackName;
+    return new File([await response.blob()], filename, {
+      type: response.headers.get("Content-Type") || "image/jpeg",
+    });
+  }
+
   async function savePhotosToLibrary() {
     const selected = selectedPublicPhotos(assets);
     const ready = readyPublicPhotos(assets);
@@ -627,40 +638,34 @@ export function DayEntryEditor({
         try {
           await navigator.clipboard.writeText(caption);
         } catch {
-          /* Clipboard may be blocked; share text below still helps on supporting browsers. */
+          /* Clipboard may be blocked; download still proceeds. */
         }
       }
-      setShareFeedback("Deelformaat klaarmaken (JPEG)…");
-      const files = await Promise.all(ready.map(async (asset) => {
-        const response = await fetch(`/api/media/${asset.id}/share`);
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || `Deelformaat van «${asset.original_filename}» kon niet worden gemaakt.`);
-        }
-        const headerName = response.headers.get("X-Share-Filename");
-        const filename = headerName || shareJpegFilename(asset.original_filename);
-        return new File([await response.blob()], filename, {
-          type: response.headers.get("Content-Type") || "image/jpeg",
-        });
-      }));
-      const candidates = shareDataCandidates({ files, title: dayTitle || "Foto’s", text: caption });
-      const result = await tryNavigatorShare(candidates);
-      if (result === "shared") {
-        const ok = caption
-          ? "Foto’s (JPEG) naar het deelmenu gezet; caption staat op het klembord (niets geüpload naar een cloudmap)."
-          : "Foto’s (JPEG) naar het deelmenu gezet (niets geüpload naar een cloudmap).";
-        setShareFeedback(ok);
-        setMessage(ok);
-        return;
-      }
-      if (result === "aborted") {
-        setShareFeedback("Delen geannuleerd.");
-        return;
-      }
-      downloadFilesLocally(files);
-      const downloaded = shareUnsupportedMessage(Boolean(caption));
-      setShareFeedback(downloaded);
-      setMessage(downloaded);
+      setShareFeedback("JPEG + dagkaarten klaarmaken…");
+      const [startCard, photoFiles, endCard] = await Promise.all([
+        fetchShareJpeg(
+          `/api/trip-days/${tripDayId}/share-card?slot=start`,
+          `Dag-${dayNumber}-start.jpg`,
+        ),
+        Promise.all(ready.map((asset) =>
+          fetchShareJpeg(
+            `/api/media/${asset.id}/share`,
+            shareJpegFilename(asset.original_filename),
+          ))),
+        fetchShareJpeg(
+          `/api/trip-days/${tripDayId}/share-card?slot=eind`,
+          `Dag-${dayNumber}-eind.jpg`,
+        ),
+      ]);
+      const files = [startCard, ...photoFiles, endCard];
+      setShareFeedback(`Downloaden (${files.length} JPEG)…`);
+      await downloadFilesSequentially(files);
+      const ok = shareDownloadMessage({
+        photoCount: photoFiles.length,
+        captionPresent: Boolean(caption),
+      });
+      setShareFeedback(ok);
+      setMessage(ok);
     } catch (error) {
       const fail = error instanceof Error
         ? error.message
@@ -1015,8 +1020,8 @@ export function DayEntryEditor({
           </button>
         </div>
         <p className="entry-helper">
-          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> zet klaargemaakte foto’s om naar JPEG (ook HEIC),
-          opent het systeemdeelmenu (of start een download), en zet de actieve caption op het klembord — er is geen aparte cloudmap.
+          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> downloadt klaargemaakte foto’s als JPEG
+          (met een dagkaart vóór en na), en zet de actieve caption op het klembord — er is geen aparte cloudmap.
         </p>
         {captionsError ? (
           <p className="form-message" role="alert">
@@ -1050,7 +1055,7 @@ export function DayEntryEditor({
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
               <p className="share-photos-hint">
-                Zet {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} op dit apparaat (deelmenu of download)
+                Download {readySelectedCount} klaargemaakte foto{readySelectedCount === 1 ? "" : "’s"} als JPEG plus dagkaarten (start/eind)
                 {selectedCount > readySelectedCount
                   ? ` (${selectedCount - readySelectedCount} nog niet klaar worden overgeslagen)`
                   : ""}
