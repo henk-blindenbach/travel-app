@@ -70,9 +70,12 @@ type Asset = {
 
 type DisplayAsset = Asset & { webUrl?: string; localUrl?: string };
 
+type TripVisibility = "private" | "unlisted" | "public";
+
 type Props = {
   tripDayId: string;
   tripSlug: string;
+  tripVisibility?: TripVisibility;
   dayNumber: number;
   dayTitle: string;
   plannedLocation: string | null;
@@ -117,6 +120,7 @@ function readLocalDraft(tripDayId: string) {
 export function DayEntryEditor({
   tripDayId,
   tripSlug,
+  tripVisibility: initialVisibility = "private",
   dayNumber,
   dayTitle,
   plannedLocation,
@@ -127,6 +131,8 @@ export function DayEntryEditor({
 }: Props) {
   const router = useRouter();
   const [entry, setEntry] = useState<Entry>(initialEntry);
+  const [shareSlug, setShareSlug] = useState(tripSlug);
+  const [tripVisibility, setTripVisibility] = useState<TripVisibility>(initialVisibility);
   const [title, setTitle] = useState(initialEntry?.title || dayTitle || "");
   const [actualLocation, setActualLocation] = useState(initialEntry?.actual_location || plannedLocation || "");
   const [body, setBody] = useState(initialEntry?.body || "");
@@ -665,7 +671,16 @@ export function DayEntryEditor({
     try {
       const data = await responseJson(await fetch(`/api/day-entries/${entry.id}/publish`, { method: "POST" }));
       setEntry((current) => current ? { ...current, publication_status: data.entry.publication_status } : current);
-      setMessage("Dag gepubliceerd. Controleer hem nog even en deel daarna waar je wilt.");
+      if (data.trip?.slug) setShareSlug(data.trip.slug);
+      if (data.trip?.visibility === "public" || data.trip?.visibility === "unlisted" || data.trip?.visibility === "private") {
+        setTripVisibility(data.trip.visibility);
+      }
+      const promoted = initialVisibility === "private" && data.trip?.visibility === "unlisted";
+      setMessage(
+        promoted
+          ? "Dag gepubliceerd. De reis staat nu op niet-vermeld zodat de directe link werkt."
+          : "Dag gepubliceerd. Controleer hem nog even en deel daarna waar je wilt.",
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Publiceren lukte niet.");
     } finally {
@@ -679,6 +694,8 @@ export function DayEntryEditor({
   const selectedCount = selectedPublicPhotos(assets).length;
   const shareDisabled = selectedCount === 0;
   const shareHint = sharePhotosDisabledHint(selectedCount);
+  const publicDayHref = `/reizen/${shareSlug}/dagen/${dayNumber}`;
+  const shareableTrip = tripVisibility === "public" || tripVisibility === "unlisted";
   const hasEnOrPt =
     Boolean(enTitle.trim() || enBody.trim() || enLocation.trim() || ptTitle.trim() || ptBody.trim() || ptLocation.trim());
 
@@ -899,7 +916,15 @@ export function DayEntryEditor({
         </div>
         {entry?.publication_status === "published" ? (
           <div className="published-handoff">
-            <Link className="primary-button blue-button" href={`/reizen/${tripSlug}/dagen/${dayNumber}`} target="_blank">Bekijk publieke dag ↗</Link>
+            {shareableTrip ? (
+              <Link className="primary-button blue-button" href={publicDayHref} target="_blank" rel="noreferrer">
+                Bekijk publieke dag ↗
+              </Link>
+            ) : (
+              <p className="share-photos-hint" role="status">
+                Zet de reis op niet-vermeld of openbaar onder Publiceren om de publieke daglink te openen.
+              </p>
+            )}
             <p>Deel de geselecteerde foto’s met het systeemdeelmenu; kies Instagram of Facebook en plak daar de passende caption.</p>
           </div>
         ) : null}
