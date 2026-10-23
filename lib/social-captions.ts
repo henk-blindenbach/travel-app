@@ -158,9 +158,14 @@ export function readyPublicPhotos<T extends { is_public?: boolean; upload_status
   return assets.filter((asset) => Boolean(asset.is_public) && asset.upload_status === "ready");
 }
 
-export function sharePhotosDisabledHint(selectedCount: number) {
-  if (selectedCount > 0) return "";
-  return "Selecteer eerst minstens één foto met «Gebruik voor publicatie en social».";
+export function sharePhotosDisabledHint(selectedCount: number, readyCount = selectedCount) {
+  if (selectedCount <= 0) {
+    return "Selecteer eerst minstens één foto met «Gebruik voor publicatie en social».";
+  }
+  if (readyCount <= 0) {
+    return "Geselecteerde foto’s zijn nog niet klaar — verwerk of upload opnieuw vóór delen.";
+  }
+  return "";
 }
 
 /** OpenAI JSON schema for generating all platform captions. */
