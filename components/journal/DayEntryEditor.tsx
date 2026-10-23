@@ -68,7 +68,7 @@ type Asset = {
   upload_status: "uploading" | "processing" | "ready" | "failed";
 };
 
-type DisplayAsset = Asset & { webUrl?: string; localUrl?: string };
+type DisplayAsset = Asset & { webUrl?: string; localUrl?: string; previewMissing?: boolean };
 
 type TripVisibility = "private" | "unlisted" | "public";
 
@@ -298,9 +298,38 @@ export function DayEntryEditor({
   async function loadWebUrl(assetId: string) {
     try {
       const data = await responseJson(await fetch(`/api/media/${assetId}/web-url`));
-      setAssets((current) => current.map((asset) => asset.id === assetId ? { ...asset, webUrl: data.signedUrl } : asset));
+      setAssets((current) => current.map((asset) => asset.id === assetId
+        ? { ...asset, webUrl: data.signedUrl, previewMissing: false, localUrl: undefined }
+        : asset));
     } catch {
-      setMessage("Een opgeslagen foto kon niet worden geopend.");
+      setAssets((current) => current.map((asset) => asset.id === assetId
+        ? { ...asset, previewMissing: true }
+        : asset));
+      setMessage("Een opgeslagen foto kon niet worden geopend. Probeer opnieuw te verwerken.");
+    }
+  }
+
+  async function reprocessAsset(assetId: string) {
+    setMessage("");
+    setAssets((current) => current.map((asset) => asset.id === assetId
+      ? { ...asset, upload_status: "processing", previewMissing: false, webUrl: undefined }
+      : asset));
+    try {
+      const complete = await responseJson(await fetch("/api/media/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assetId }),
+      }));
+      setAssets((current) => current.map((asset) => asset.id === assetId
+        ? { ...asset, ...complete.asset, previewMissing: false }
+        : asset));
+      await loadWebUrl(assetId);
+      setMessage("Webversie opnieuw gemaakt.");
+    } catch (error) {
+      setAssets((current) => current.map((asset) => asset.id === assetId
+        ? { ...asset, upload_status: "failed", previewMissing: true }
+        : asset));
+      setMessage(error instanceof Error ? error.message : "Opnieuw verwerken lukte niet. Upload de foto opnieuw als het blijft misgaan.");
     }
   }
 
@@ -450,25 +479,44 @@ export function DayEntryEditor({
       return;
     }
 
+    let assetId: string | undefined;
     try {
       const init = await responseJson(await fetch("/api/media/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dayEntryId: savedEntry.id, filename: file.name, contentType, byteSize: file.size }),
       }));
-      const pending: DisplayAsset = { ...init.asset, original_filename: file.name, caption: "", sort_order: assets.length, localUrl: URL.createObjectURL(file) };
+      const pendingId: string = init.asset.id;
+      assetId = pendingId;
+      const pending: DisplayAsset = {
+        ...init.asset,
+        original_filename: file.name,
+        caption: "",
+        sort_order: assets.length,
+        localUrl: URL.createObjectURL(file),
+      };
       setAssets((current) => [...current, pending]);
       await responseJson(await fetch(init.uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: file }));
+      setAssets((current) => current.map((asset) => asset.id === pendingId
+        ? { ...asset, upload_status: "processing" }
+        : asset));
       const complete = await responseJson(await fetch("/api/media/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetId: init.asset.id }),
+        body: JSON.stringify({ assetId: pendingId }),
       }));
-      setAssets((current) => current.map((asset) => asset.id === init.asset.id ? { ...asset, ...complete.asset, localUrl: undefined } : asset));
-      await loadWebUrl(init.asset.id);
+      setAssets((current) => current.map((asset) => asset.id === pendingId
+        ? { ...asset, ...complete.asset }
+        : asset));
+      await loadWebUrl(pendingId);
       setMessage("Foto veilig opgeslagen en omgezet naar een webversie.");
     } catch (error) {
-      setAssets((current) => current.map((asset) => asset.id === (error as { assetId?: string }).assetId ? { ...asset, upload_status: "failed" } : asset));
+      if (assetId) {
+        const failedId = assetId;
+        setAssets((current) => current.map((asset) => asset.id === failedId
+          ? { ...asset, upload_status: "failed", previewMissing: true }
+          : asset));
+      }
       setMessage(error instanceof Error ? error.message : "De foto kon niet worden geüpload.");
     }
   }
@@ -522,6 +570,11 @@ export function DayEntryEditor({
           /* Clipboard may be blocked; share text below still helps on supporting browsers. */
         }
       }
+      const notReady = selected.filter((asset) => asset.upload_status !== "ready");
+      if (notReady.length) {
+        setMessage("Eerst opnieuw verwerken: minstens één geselecteerde foto is nog niet klaar (geen webversie).");
+        return;
+      }
       const files = await Promise.all(selected.map(async (asset) => {
         const response = await fetch(`/api/media/${asset.id}/original`);
         if (!response.ok) throw new Error();
@@ -533,7 +586,9 @@ export function DayEntryEditor({
       if (caption) sharePayload.text = caption;
       if (navigator.canShare?.(sharePayload) && navigator.share) {
         await navigator.share(sharePayload);
-        setMessage(caption ? "Foto’s gedeeld; caption staat op het klembord." : "Foto’s gedeeld.");
+        setMessage(caption
+          ? "Foto’s naar het deelmenu gezet; caption staat op het klembord (niets geüpload naar een cloudmap)."
+          : "Foto’s naar het deelmenu gezet (niets geüpload naar een cloudmap).");
       } else {
         files.forEach((file) => {
           const link = document.createElement("a");
@@ -544,12 +599,12 @@ export function DayEntryEditor({
         });
         setMessage(
           caption
-            ? "Foto’s gedownload; caption gekopieerd — plak in Instagram of Facebook."
-            : "Foto’s gedownload. Maak eerst captions om mee te delen.",
+            ? "Foto’s lokaal gedownload; caption gekopieerd — plak in Instagram of Facebook. Geen aparte cloudmap."
+            : "Foto’s lokaal gedownload. Maak eerst captions om mee te delen.",
         );
       }
     } catch {
-      setMessage("De geselecteerde foto’s konden niet worden klaargezet.");
+      setMessage("De geselecteerde foto’s konden niet worden klaargezet (origineel ontbreekt of is nog niet verwerkt).");
     }
   }
 
@@ -817,12 +872,33 @@ export function DayEntryEditor({
           <div className="journal-photo-grid">
             {assets.map((asset, index) => (
               <figure key={asset.id} className="journal-photo">
-                {asset.webUrl || asset.localUrl
-                  ? <img src={asset.webUrl || asset.localUrl} alt={asset.caption || asset.original_filename} />
-                  : <div className="photo-processing">{asset.upload_status === "failed" ? "Mislukt" : "Wordt verwerkt…"}</div>}
+                {asset.webUrl || asset.localUrl ? (
+                  <img src={asset.webUrl || asset.localUrl} alt={asset.caption || asset.original_filename} />
+                ) : (
+                  <div className="photo-processing">
+                    {asset.upload_status === "failed" || asset.previewMissing
+                      ? (
+                        <>
+                          <span>{asset.upload_status === "failed" ? "Verwerken mislukt" : "Voorbeeld ontbreekt"}</span>
+                          <button type="button" className="text-button" onClick={() => void reprocessAsset(asset.id)}>
+                            Opnieuw verwerken
+                          </button>
+                        </>
+                      )
+                      : asset.upload_status === "ready"
+                        ? "Voorbeeld laden…"
+                        : "Wordt verwerkt…"}
+                  </div>
+                )}
                 <figcaption>
                   {asset.original_filename}
-                  <small>{asset.upload_status === "ready" ? "Private webversie" : asset.upload_status}</small>
+                  <small>
+                    {asset.upload_status === "ready" && !asset.previewMissing
+                      ? "Private webversie"
+                      : asset.upload_status === "failed" || asset.previewMissing
+                        ? "Webversie ontbreekt"
+                        : asset.upload_status}
+                  </small>
                   <div className="photo-order-actions">
                     <button type="button" className="text-button" disabled={index === 0} onClick={() => void movePhoto(index, -1)}>↑ Eerder</button>
                     <button type="button" className="text-button" disabled={index === assets.length - 1} onClick={() => void movePhoto(index, 1)}>Later ↓</button>
@@ -869,7 +945,8 @@ export function DayEntryEditor({
           </button>
         </div>
         <p className="entry-helper">
-          Kies eerst de foto’s met <b>Gebruik voor publicatie en social</b>. Daarna deel je ze via het iPhone-deelmenu en plak je de juiste caption in het gekozen platform.
+          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> haalt de privé-originelen even naar dit apparaat,
+          opent het systeemdeelmenu (of downloadt ze), en zet de actieve caption op het klembord — er is geen aparte cloudmap of staging-folder.
         </p>
         {captionsError ? (
           <p className="form-message" role="alert">
@@ -903,10 +980,10 @@ export function DayEntryEditor({
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
               <p className="share-photos-hint">
-                Deelt {selectedCount} foto{selectedCount === 1 ? "" : "’s"} via het iPhone-deelmenu
+                Zet {selectedCount} foto{selectedCount === 1 ? "" : "’s"} klaar op dit apparaat (deelmenu of download)
                 {captions[activeCaptionKey] || preferredShareCaption(captions)
-                  ? " en kopieert de actieve caption naar het klembord."
-                  : "."}
+                  ? "; caption gaat naar het klembord. Geen cloudmap."
+                  : ". Geen cloudmap."}
               </p>
             )}
           </div>

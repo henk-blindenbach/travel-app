@@ -6,6 +6,8 @@ import { fetchOriginal } from "../../../../lib/scaleway";
 import { createClient } from "../../../../lib/supabase/server";
 
 export const runtime = "nodejs";
+/** Allow Sharp + Scaleway round-trip on large phone photos / HEIC. */
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
@@ -19,13 +21,23 @@ export async function POST(request: Request) {
     assetId = payload.assetId;
 
     const { data: asset } = await supabase.from("media_assets")
-      .select("id,original_object_key,web_object_path")
+      .select("id,original_object_key,web_object_path,upload_status")
       .eq("id", assetId)
       .single();
     if (!asset) return NextResponse.json({ error: "Geen toegang tot deze foto." }, { status: 404 });
 
+    // Idempotent: safe to re-run for ready/failed rows when the web object is missing.
     await supabase.from("media_assets").update({ upload_status: "processing" }).eq("id", asset.id);
-    const original = await fetchOriginal(asset.original_object_key);
+    let original: Buffer;
+    try {
+      original = await fetchOriginal(asset.original_object_key);
+    } catch {
+      await supabase.from("media_assets").update({ upload_status: "failed" }).eq("id", asset.id);
+      return NextResponse.json(
+        { error: "Het privé-origineel ontbreekt in de opslag. Upload de foto opnieuw." },
+        { status: 422 },
+      );
+    }
     const metadata = await exifr.parse(original, ["DateTimeOriginal", "CreateDate", "latitude", "longitude"])
       .catch(() => null);
     const webImage = await sharp(original, { limitInputPixels: 80_000_000 })
@@ -55,6 +67,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ asset: completeAsset });
   } catch {
     if (supabase && assetId) await supabase.from("media_assets").update({ upload_status: "failed" }).eq("id", assetId);
-    return NextResponse.json({ error: "De webversie kon niet worden gemaakt. Probeer deze foto opnieuw." }, { status: 500 });
+    return NextResponse.json({ error: "De webversie kon niet worden gemaakt. Probeer opnieuw te verwerken of upload de foto opnieuw." }, { status: 500 });
   }
 }
