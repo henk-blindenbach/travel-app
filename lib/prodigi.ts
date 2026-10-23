@@ -69,11 +69,15 @@ export function hasProdigiConfig() {
 }
 
 export function prodigiConfigStatus() {
+  const studioTemplateId = process.env.PRODIGI_STUDIO_TEMPLATE_ID?.trim() || null;
   return {
     configured: hasProdigiConfig(),
     env: envName(),
     baseUrl: prodigiBaseUrl(),
     defaultSku: process.env.PRODIGI_DEFAULT_SKU?.trim() || "BOOK-FE-A4-P-HARD-G",
+    studioTemplateId,
+    studioConfigured: Boolean(studioTemplateId),
+    studioBaseUrl: process.env.PRODIGI_STUDIO_BASE_URL?.trim() || "https://studio.prodigi.com",
   };
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeText, validUuid } from "../../../../lib/journal";
 import type { PhotoBookStatus } from "../../../../lib/photo-book";
 import { PHOTO_BOOK_STATUSES } from "../../../../lib/photo-book";
+import { PHOTO_BOOK_SELECT } from "../../../../lib/photo-book-assets";
 import type { ProdigiShippingMethod } from "../../../../lib/prodigi";
 import { createClient } from "../../../../lib/supabase/server";
 
@@ -17,7 +18,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ bookId: st
 
     const { data: book, error } = await supabase
       .from("photo_books")
-      .select("id,trip_id,title,subtitle,status,sku,copies,destination_country_code,shipping_method,recipient,export_payload,prodigi_quote,prodigi_order_id,prodigi_status,last_error,created_at,updated_at")
+      .select(PHOTO_BOOK_SELECT)
       .eq("id", bookId)
       .maybeSingle();
     if (error || !book) return NextResponse.json({ error: "Fotoboek niet gevonden." }, { status: 404 });
@@ -51,6 +52,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ bo
       updates.title = title;
     }
     if (typeof body.subtitle === "string") updates.subtitle = safeText(body.subtitle, 200) || null;
+    if (typeof body.introText === "string") updates.intro_text = safeText(body.introText, 2000) || null;
     if (typeof body.sku === "string") updates.sku = safeText(body.sku, 80) || undefined;
     if (typeof body.copies === "number" && Number.isInteger(body.copies) && body.copies >= 1 && body.copies <= 20) {
       updates.copies = body.copies;
@@ -75,7 +77,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ bo
       .from("photo_books")
       .update(updates)
       .eq("id", bookId)
-      .select("id,trip_id,title,subtitle,status,sku,copies,destination_country_code,shipping_method,recipient,prodigi_order_id,prodigi_status,last_error,updated_at")
+      .select(PHOTO_BOOK_SELECT)
       .single();
     if (error || !data) return NextResponse.json({ error: "Fotoboek kon niet worden opgeslagen." }, { status: 400 });
     return NextResponse.json({ book: data });

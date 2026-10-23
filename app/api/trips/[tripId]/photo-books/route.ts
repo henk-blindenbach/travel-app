@@ -13,7 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ tripId: st
 
     const { data, error } = await supabase
       .from("photo_books")
-      .select("id,trip_id,title,subtitle,status,sku,copies,destination_country_code,shipping_method,recipient,prodigi_order_id,prodigi_status,last_error,created_at,updated_at")
+      .select("id,trip_id,title,subtitle,status,sku,copies,destination_country_code,shipping_method,recipient,prodigi_order_id,prodigi_status,last_error,studio_project_id,studio_preview_url,studio_status,preview_acknowledged_at,created_at,updated_at")
       .eq("trip_id", tripId)
       .order("updated_at", { ascending: false });
     if (error) return NextResponse.json({ error: "Fotoboeken konden niet worden geladen." }, { status: 400 });

@@ -65,8 +65,8 @@ export default async function TripPhotoBookPage({ params }: { params: Promise<{ 
         <p className="eyebrow blue">{journey.trip.title}</p>
         <h1>Fotoboek</h1>
         <p className="journal-intro">
-          Stel een privéconcept samen uit fotoboek-kandidaten, bepaal volgorde en metadata, en exporteer naar Prodigi.
-          Een echte printorder gaat alleen door als de Prodigi API geconfigureerd is — anders blijft het bij “klaar voor Prodigi”.
+          Stel een privéconcept samen uit fotoboek-kandidaten, sync naar Prodigi Studio voor layout/preview, en bestel pas
+          na preview-bevestiging. Live fulfilment alleen met expliciete bevestiging — nooit automatisch.
         </p>
         <p className="photo-book-pool-meta">
           {candidates.length} kandidaat{candidates.length === 1 ? "" : "en"}
