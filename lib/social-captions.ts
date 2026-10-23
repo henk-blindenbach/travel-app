@@ -144,10 +144,18 @@ export function preferredShareCaption(captions: SocialCaptions | null | undefine
   return "";
 }
 
+/** Photos marked for publication/social (checkbox). Enables share even while processing. */
 export function selectedPublicPhotos<T extends { is_public?: boolean; upload_status?: string }>(
   assets: T[],
 ) {
-  return assets.filter((asset) => asset.is_public && asset.upload_status === "ready");
+  return assets.filter((asset) => Boolean(asset.is_public));
+}
+
+/** Marked photos that finished processing — used for public gallery counts. */
+export function readyPublicPhotos<T extends { is_public?: boolean; upload_status?: string }>(
+  assets: T[],
+) {
+  return assets.filter((asset) => Boolean(asset.is_public) && asset.upload_status === "ready");
 }
 
 export function sharePhotosDisabledHint(selectedCount: number) {

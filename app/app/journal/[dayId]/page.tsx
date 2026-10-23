@@ -98,6 +98,7 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
         <DayEntryEditor
           tripDayId={day.id}
           tripSlug={trip.slug}
+          tripVisibility={trip.visibility || "private"}
           dayNumber={day.day_number}
           dayTitle={day.title || ""}
           plannedLocation={day.planned_location}

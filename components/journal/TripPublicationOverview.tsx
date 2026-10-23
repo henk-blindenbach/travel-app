@@ -7,6 +7,7 @@ import {
   SOCIAL_PLATFORMS,
   hasAnyCaption,
   normalizeSocialCaptions,
+  readyPublicPhotos,
   type SocialCaptions,
 } from "../../lib/social-captions";
 
@@ -35,9 +36,7 @@ type Day = {
 };
 
 function PostPhotoThumbs({ assets }: { assets: MediaAsset[] }) {
-  const selected = assets
-    .filter((asset) => asset.is_public && asset.upload_status === "ready")
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const selected = readyPublicPhotos(assets).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -122,7 +121,7 @@ export function TripPublicationOverview({ tripSlug, days }: { tripSlug: string; 
           const entry = oneDayEntry(day.day_entries);
           const status = statusMeta(entry);
           const captions = normalizeSocialCaptions(entry?.social_captions);
-          const publicPhotos = entry?.media_assets.filter((asset) => asset.is_public && asset.upload_status === "ready") || [];
+          const publicPhotos = entry ? readyPublicPhotos(entry.media_assets || []) : [];
           return (
             <article key={day.id} className="posts-day-card">
               <div>

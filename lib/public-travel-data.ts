@@ -25,7 +25,13 @@ export async function getPublicTripBySlug(slug: string) {
     if (error) return null;
     const trip = Array.isArray(data) ? data[0] : data;
     if (!trip) return null;
-    const { data: days } = await db.from("day_entries").select("id,trip_id,day_number,day_date,title,actual_location,body,published_at").eq("trip_id", trip.id).order("day_number");
+    const { data: days, error: daysError } = await db
+      .from("day_entries")
+      .select("id,trip_id,day_number,day_date,title,actual_location,body,published_at")
+      .eq("trip_id", trip.id)
+      .order("day_number");
+    // Surface RLS/grant failures as missing rather than an empty trip with no days.
+    if (daysError) return null;
     return { trip: trip as PublicTrip, days: (days || []) as PublicDay[] };
   } catch {
     return null;
@@ -35,8 +41,13 @@ export async function getPublicTripBySlug(slug: string) {
 export async function getPublicDayByNumber(slug: string, dayNumber: number) {
   const result = await getPublicTripBySlug(slug);
   if (!result) return null;
-  const entry = result.days.find((day) => day.day_number === dayNumber);
+  const entry = result.days.find((day) => Number(day.day_number) === dayNumber);
   if (!entry) return null;
-  const { data: media } = await publicClient().from("media_assets").select("id,day_entry_id,web_object_path,sort_order,updated_at").eq("day_entry_id", entry.id).order("sort_order");
+  const { data: media, error: mediaError } = await publicClient()
+    .from("media_assets")
+    .select("id,day_entry_id,web_object_path,sort_order,updated_at")
+    .eq("day_entry_id", entry.id)
+    .order("sort_order");
+  if (mediaError) return { ...result, entry, media: [] as PublicMedia[] };
   return { ...result, entry, media: (media || []) as PublicMedia[] };
 }
