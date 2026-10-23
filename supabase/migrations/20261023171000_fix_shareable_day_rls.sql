@@ -44,6 +44,9 @@ create policy "Anonymous visitors can read published shareable day entries"
   on public.day_entries for select to anon
   using (public.day_entry_is_published_shareable(id));
 
+-- Public site selects title_i18n / body_i18n / actual_location_i18n (journal i18n).
+grant select (title_i18n, body_i18n, actual_location_i18n) on table public.day_entries to anon;
+
 -- Policy reads is_public on the same row; column grants must include it or anon
 -- gets "permission denied for table media_assets" even for otherwise public rows.
 grant select (is_public) on table public.media_assets to anon;

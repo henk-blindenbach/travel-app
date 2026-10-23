@@ -11,7 +11,7 @@ export default async function PublicTrip({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const result = await getPublicTrip(slug);
+  const result = await getPublicTrip(slug, locale);
   if (!result) notFound();
   const { trip, days } = result;
   const pins = await getPublicTripMapPins(trip.id, trip.slug, locale);

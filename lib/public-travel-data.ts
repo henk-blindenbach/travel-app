@@ -1,11 +1,34 @@
 import { createClient } from "@supabase/supabase-js";
+import { localizeEntryFields, type EntryI18nMap } from "./entry-i18n";
+import type { Locale } from "./i18n/config";
 
 const configured = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const publicClient = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
 export type PublicTrip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status: string };
-export type PublicDay = { id: string; trip_id: string; day_number: number; day_date: string; title: string; actual_location: string; body: string; published_at: string | null };
+export type PublicDay = {
+  id: string;
+  trip_id: string;
+  day_number: number;
+  day_date: string;
+  title: string;
+  actual_location: string;
+  body: string;
+  published_at: string | null;
+  title_i18n?: EntryI18nMap | null;
+  body_i18n?: EntryI18nMap | null;
+  actual_location_i18n?: EntryI18nMap | null;
+};
 export type PublicMedia = { id: string; day_entry_id: string; web_object_path: string; sort_order: number; updated_at: string };
+
+const DAY_SELECT =
+  "id,trip_id,day_number,day_date,title,actual_location,body,published_at,title_i18n,body_i18n,actual_location_i18n";
+
+/** Resolve title/body/location for the active public locale (fallback NL / primary). */
+export function localizePublicDay(day: PublicDay, locale: Locale): PublicDay {
+  const localized = localizeEntryFields(day, locale);
+  return { ...day, ...localized };
+}
 
 export async function listPublicTrips() {
   if (!configured()) return [];
@@ -27,7 +50,7 @@ export async function getPublicTripBySlug(slug: string) {
     if (!trip) return null;
     const { data: days, error: daysError } = await db
       .from("day_entries")
-      .select("id,trip_id,day_number,day_date,title,actual_location,body,published_at")
+      .select(DAY_SELECT)
       .eq("trip_id", trip.id)
       .order("day_number");
     // Surface RLS/grant failures as missing rather than an empty trip with no days.

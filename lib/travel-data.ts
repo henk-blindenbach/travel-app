@@ -1,5 +1,7 @@
-import { createClient, hasSupabaseEnv } from "./supabase/server";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
+import { localizeEntryFields } from "./entry-i18n";
+import type { Locale } from "./i18n/config";
+import { createClient, hasSupabaseEnv } from "./supabase/server";
 
 export type Trip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; travelers?: string | null; departure_location?: string | null; summary: string | null; visibility?: "private" | "unlisted" | "public"; status?: "idea" | "planning" | "booked" | "travelling" | "completed" | "archived" };
 export type TripDay = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null; planned_route: string | null; planned_latitude?: number | null; planned_longitude?: number | null; private_notes?: string; status?: "planned" | "in_progress" | "completed" | "skipped" };
@@ -54,10 +56,27 @@ export async function getPrivateTrip(tripId: string) {
 }
 
 /** Public data never falls back to planned days: only rows admitted by publication RLS are returned. */
-async function getPublishedDays(tripId: string) {
+async function getPublishedDays(tripId: string, locale?: Locale) {
   const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data } = await supabase.from("day_entries").select("id,day_number,day_date,title,actual_location").eq("trip_id", tripId).eq("publication_status", "published").order("day_number", { ascending: true });
-  return (data || []).map((entry) => ({ id: entry.id, day_number: entry.day_number, day_date: entry.day_date, title: entry.title || null, planned_location: entry.actual_location || null, planned_route: null })) as TripDay[];
+  const { data } = await supabase
+    .from("day_entries")
+    .select("id,day_number,day_date,title,actual_location,title_i18n,body_i18n,actual_location_i18n")
+    .eq("trip_id", tripId)
+    .eq("publication_status", "published")
+    .order("day_number", { ascending: true });
+  return (data || []).map((entry) => {
+    const localized = locale
+      ? localizeEntryFields(entry, locale)
+      : { title: entry.title || "", actual_location: entry.actual_location || "", body: "" };
+    return {
+      id: entry.id,
+      day_number: entry.day_number,
+      day_date: entry.day_date,
+      title: localized.title || null,
+      planned_location: localized.actual_location || null,
+      planned_route: null,
+    };
+  }) as TripDay[];
 }
 
 export async function getPublicFeaturedTrip() {
@@ -123,7 +142,7 @@ export async function getPublicTravelOverview() {
   } catch { return { current: null, upcoming: [] as PublicTripOverview[], past: [] as PublicTripOverview[], isTravelling: false }; }
 }
 
-export async function getPublicTrip(slug: string) {
+export async function getPublicTrip(slug: string, locale?: Locale) {
   if (!hasSupabaseEnv()) return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[] } : null;
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -131,7 +150,7 @@ export async function getPublicTrip(slug: string) {
     if (error) throw error;
     const trip = Array.isArray(data) ? data[0] : data;
     if (!trip) return null;
-    return { trip: trip as Trip, days: await getPublishedDays(trip.id) };
+    return { trip: trip as Trip, days: await getPublishedDays(trip.id, locale) };
   } catch {
     return null;
   }
