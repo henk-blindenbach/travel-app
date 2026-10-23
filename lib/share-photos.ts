@@ -1,5 +1,5 @@
 /**
- * Client helpers for sharing selected journal originals via Web Share or download.
+ * Client helpers for downloading selected journal JPEGs (camera-roll friendly).
  */
 
 export type SharePhotoFile = {
@@ -7,7 +7,7 @@ export type SharePhotoFile = {
   name: string;
 };
 
-/** Build ShareData variants: files+text first, then files-only (iOS often rejects text+files). */
+/** Build ShareData variants: files+text first, then files-only (kept for optional Web Share). */
 export function shareDataCandidates(input: {
   files: File[];
   title: string;
@@ -34,8 +34,7 @@ export function canSharePayload(payload: ShareData): boolean {
 /**
  * Try navigator.share with the first shareable candidate.
  * Returns "shared" | "aborted" | "unsupported".
- * Some mobile browsers lie about canShare for files — after candidates fail the
- * check we still attempt share() once with the last files-only payload.
+ * Kept for optional use; primary journal path is sequential JPEG download.
  */
 export async function tryNavigatorShare(candidates: ShareData[]): Promise<"shared" | "aborted" | "unsupported"> {
   if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
@@ -64,25 +63,55 @@ export async function tryNavigatorShare(candidates: ShareData[]): Promise<"share
   return "unsupported";
 }
 
-/** Trigger a local download for each file (desktop fallback when Web Share is unavailable). */
+function triggerFileDownload(file: File) {
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(file);
+  link.href = url;
+  link.download = file.name;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2_000);
+}
+
+/** Fire all downloads immediately (desktop; browsers often only keep the first). */
 export function downloadFilesLocally(files: File[]) {
-  for (const file of files) {
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(file);
-    link.href = url;
-    link.download = file.name;
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  for (const file of files) triggerFileDownload(file);
+}
+
+/**
+ * Sequential JPEG downloads with a short gap so iOS Safari can hand each file
+ * to Photos / Files instead of collapsing a multi-file burst into one save.
+ */
+export async function downloadFilesSequentially(
+  files: File[],
+  gapMs = 450,
+): Promise<void> {
+  for (let i = 0; i < files.length; i += 1) {
+    triggerFileDownload(files[i]);
+    if (i < files.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, gapMs));
+    }
   }
 }
 
-export function shareUnsupportedMessage(captionPresent: boolean): string {
+/** Success copy when Delen downloads JPEGs (incl. day cards) to the device. */
+export function shareDownloadMessage(input: {
+  photoCount: number;
+  captionPresent: boolean;
+}): string {
+  const n = input.photoCount;
+  const photos =
+    n === 1
+      ? "1 foto"
+      : `${n} foto’s`;
   const base =
-    "Het systeemdeelmenu opende niet (vaak bij HEIC of deze browser). Er is een JPEG-download gestart — op iPhone werkt delen betrouwbaarder in Safari.";
-  return captionPresent
-    ? `${base} Caption staat op het klembord.`
-    : base;
+    `${photos} + dagkaarten (JPEG) worden gedownload. Op iPhone: bewaar ze in Foto’s (Safari werkt het best).`;
+  return input.captionPresent ? `${base} Caption staat op het klembord.` : base;
+}
+
+/** @deprecated Prefer shareDownloadMessage — download is now the primary path. */
+export function shareUnsupportedMessage(captionPresent: boolean): string {
+  return shareDownloadMessage({ photoCount: 0, captionPresent });
 }
