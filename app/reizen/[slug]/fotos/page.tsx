@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { PublicLocaleControls } from "../../../../components/PublicLocaleControls";
 import { getDictionary, getLocale, t } from "../../../../lib/i18n";
-import { getPublicTripBySlug, type PublicMedia } from "../../../../lib/public-travel-data";
+import { getPublicTripBySlug, localizePublicDay, type PublicMedia } from "../../../../lib/public-travel-data";
 
 export default async function PublicPhotos({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,16 +16,19 @@ export default async function PublicPhotos({ params }: { params: Promise<{ slug:
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const byDay = await Promise.all(
-    result.days.map(async (day) => ({
-      day,
-      media: ((
-        await db
-          .from("media_assets")
-          .select("id,day_entry_id,web_object_path,sort_order,updated_at")
-          .eq("day_entry_id", day.id)
-          .order("sort_order")
-      ).data || []) as PublicMedia[],
-    })),
+    result.days.map(async (rawDay) => {
+      const day = localizePublicDay(rawDay, locale);
+      return {
+        day,
+        media: ((
+          await db
+            .from("media_assets")
+            .select("id,day_entry_id,web_object_path,sort_order,updated_at")
+            .eq("day_entry_id", day.id)
+            .order("sort_order")
+        ).data || []) as PublicMedia[],
+      };
+    }),
   );
 
   return (
