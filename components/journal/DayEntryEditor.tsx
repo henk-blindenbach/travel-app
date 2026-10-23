@@ -8,9 +8,11 @@ import {
   type EntryI18nMap,
 } from "../../lib/entry-i18n";
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
+import { shareJpegFilename } from "../../lib/share-export";
 import {
   downloadFilesLocally,
   shareDataCandidates,
+  shareUnsupportedMessage,
   tryNavigatorShare,
 } from "../../lib/share-photos";
 import {
@@ -628,13 +630,16 @@ export function DayEntryEditor({
           /* Clipboard may be blocked; share text below still helps on supporting browsers. */
         }
       }
+      setShareFeedback("Deelformaat klaarmaken (JPEG)…");
       const files = await Promise.all(ready.map(async (asset) => {
-        const response = await fetch(`/api/media/${asset.id}/original`);
+        const response = await fetch(`/api/media/${asset.id}/share`);
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || `Origineel van «${asset.original_filename}» kon niet worden opgehaald.`);
+          throw new Error(data.error || `Deelformaat van «${asset.original_filename}» kon niet worden gemaakt.`);
         }
-        return new File([await response.blob()], asset.original_filename, {
+        const headerName = response.headers.get("X-Share-Filename");
+        const filename = headerName || shareJpegFilename(asset.original_filename);
+        return new File([await response.blob()], filename, {
           type: response.headers.get("Content-Type") || "image/jpeg",
         });
       }));
@@ -642,8 +647,8 @@ export function DayEntryEditor({
       const result = await tryNavigatorShare(candidates);
       if (result === "shared") {
         const ok = caption
-          ? "Foto’s naar het deelmenu gezet; caption staat op het klembord (niets geüpload naar een cloudmap)."
-          : "Foto’s naar het deelmenu gezet (niets geüpload naar een cloudmap).";
+          ? "Foto’s (JPEG) naar het deelmenu gezet; caption staat op het klembord (niets geüpload naar een cloudmap)."
+          : "Foto’s (JPEG) naar het deelmenu gezet (niets geüpload naar een cloudmap).";
         setShareFeedback(ok);
         setMessage(ok);
         return;
@@ -653,9 +658,7 @@ export function DayEntryEditor({
         return;
       }
       downloadFilesLocally(files);
-      const downloaded = caption
-        ? "Foto’s lokaal gedownload; caption gekopieerd — plak in Instagram of Facebook. Geen aparte cloudmap."
-        : "Foto’s lokaal gedownload. Maak eerst captions om mee te delen.";
+      const downloaded = shareUnsupportedMessage(Boolean(caption));
       setShareFeedback(downloaded);
       setMessage(downloaded);
     } catch (error) {
@@ -1012,8 +1015,8 @@ export function DayEntryEditor({
           </button>
         </div>
         <p className="entry-helper">
-          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> haalt de privé-originelen even naar dit apparaat,
-          opent het systeemdeelmenu (of downloadt ze), en zet de actieve caption op het klembord — er is geen aparte cloudmap of staging-folder.
+          Kies foto’s met <b>Gebruik voor publicatie en social</b>. <b>Deel geselecteerde foto’s</b> zet klaargemaakte foto’s om naar JPEG (ook HEIC),
+          opent het systeemdeelmenu (of start een download), en zet de actieve caption op het klembord — er is geen aparte cloudmap.
         </p>
         {captionsError ? (
           <p className="form-message" role="alert">
