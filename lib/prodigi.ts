@@ -69,14 +69,20 @@ export function hasProdigiConfig() {
 }
 
 export function prodigiConfigStatus() {
-  const studioTemplateId = process.env.PRODIGI_STUDIO_TEMPLATE_ID?.trim() || null;
+  // Inline defaults (same as lib/prodigi-defaults.ts) to avoid import cycle with prodigi-studio.
+  const DEFAULT_STUDIO_TEMPLATE_ID = "112004b7-199e-4be5-a5f9-e1043876f6c8";
+  const DEFAULT_PHOTO_BOOK_SKU = "BOOK-FE-A4-L-LF-G"; // pragma: allowlist secret
+  const envTemplateId = process.env.PRODIGI_STUDIO_TEMPLATE_ID?.trim() || null;
+  // Soft fallback matches getStudioTemplateId() — saved template id, no embed publish required.
+  const studioTemplateId = envTemplateId || DEFAULT_STUDIO_TEMPLATE_ID;
   return {
     configured: hasProdigiConfig(),
     env: envName(),
     baseUrl: prodigiBaseUrl(),
-    defaultSku: process.env.PRODIGI_DEFAULT_SKU?.trim() || "BOOK-FE-A4-P-HARD-G",
+    defaultSku: process.env.PRODIGI_DEFAULT_SKU?.trim() || DEFAULT_PHOTO_BOOK_SKU,
     studioTemplateId,
     studioConfigured: Boolean(studioTemplateId),
+    studioTemplateFromEnv: Boolean(envTemplateId),
     studioBaseUrl: process.env.PRODIGI_STUDIO_BASE_URL?.trim() || "https://studio.prodigi.com",
   };
 }

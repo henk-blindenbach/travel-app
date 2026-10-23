@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validUuid } from "../../../../../lib/journal";
-import { loadPhotoBookAssets, loadRouteSummary, PHOTO_BOOK_SELECT } from "../../../../../lib/photo-book-assets";
+import { loadPhotoBookAssets, loadRouteSummary, loadTripCountries, PHOTO_BOOK_SELECT } from "../../../../../lib/photo-book-assets";
 import {
   buildBookStructure,
   buildStudioCreateRequest,
@@ -66,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ boo
       || getStudioTemplateId();
     if (!templateId) {
       return NextResponse.json({
-        error: "Geen Studio-template. Publiceer een template in Prodigi Studio en zet PRODIGI_STUDIO_TEMPLATE_ID (of geef templateId mee).",
+        error: "Geen Studio-template. Sla een template op in Prodigi Studio en zet PRODIGI_STUDIO_TEMPLATE_ID (of geef templateId mee). Embed/merchant snippet niet nodig.",
         setup: {
           required: ["PRODIGI_STUDIO_TEMPLATE_ID"],
           docs: "/docs/PHOTOBOOK_PRODIGI.md",
@@ -87,12 +87,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ boo
     }
 
     const routeSummary = await loadRouteSummary(supabase, book.trip_id);
+    const countries = await loadTripCountries(supabase, book.trip_id);
     const structure = buildBookStructure({
       title: book.title,
       subtitle: book.subtitle,
       introText: book.intro_text,
       assets,
       routeSummary,
+      countries,
     });
     const createRequest = buildStudioCreateRequest({ templateId, bookId, structure });
     if (!createRequest) {
@@ -112,7 +114,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ boo
       }).eq("id", bookId);
       return NextResponse.json({
         error: message,
-        hint: "Controleer of PRODIGI_STUDIO_TEMPLATE_ID een gepubliceerde template is in hetzelfde Prodigi-account als de API-key.",
+        hint: "Controleer of PRODIGI_STUDIO_TEMPLATE_ID naar een opgeslagen Studio-template wijst in hetzelfde Prodigi-account als de API-key (embed/publish-snippet niet nodig).",
       }, { status: 502 });
     }
 

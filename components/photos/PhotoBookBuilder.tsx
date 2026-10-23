@@ -59,6 +59,7 @@ type ProdigiStatus = {
   defaultSku: string;
   studioTemplateId: string | null;
   studioConfigured: boolean;
+  studioTemplateFromEnv?: boolean;
   studioBaseUrl: string;
 };
 
@@ -359,7 +360,7 @@ export function PhotoBookBuilder({
       return;
     }
     if (!prodigi.studioConfigured) {
-      setMessage("PRODIGI_STUDIO_TEMPLATE_ID ontbreekt. Publiceer een template in Prodigi Studio en zet de id in Vercel/Cursor env.");
+      setMessage("PRODIGI_STUDIO_TEMPLATE_ID ontbreekt. Sla een template op in Studio en zet de id in Vercel/Cursor env (embed niet nodig).");
       return;
     }
     setBusy(true);
@@ -525,7 +526,7 @@ export function PhotoBookBuilder({
                   onChange={(event) => setIntroText(event.target.value)}
                   maxLength={2000}
                   rows={3}
-                  placeholder="Korte intro voor het boek (Studio-slot intro.body)"
+                  placeholder="Korte intro voor het boek (Studio-slot story-text)"
                 />
               </label>
               <label>
@@ -692,11 +693,17 @@ export function PhotoBookBuilder({
             <p className="eyebrow blue">Studio-preview</p>
             <h2>Prodigi Studio (B1)</h2>
             <p>
-              Sync vult een gepubliceerde Studio-template met cover, intro, dagtitels en foto’s + bijschriften.
-              Preview is verplicht vóór bestellen. Live-order nooit zonder <code>confirmLive</code>.
+              Sync vult de opgeslagen Studio-template via slot-namen (dag foto+verhaal, 3 foto’s, land-hoofdstuk, story).
+              Embed/merchant snippet niet nodig. Preview is verplicht vóór bestellen. Live-order nooit zonder{" "}
+              <code>confirmLive</code>.
             </p>
             <p className="photo-book-studio-meta">
-              Template: {prodigi.studioConfigured ? "gezet via env" : "ontbreekt (PRODIGI_STUDIO_TEMPLATE_ID)"}
+              Template:{" "}
+              {prodigi.studioTemplateFromEnv
+                ? "gezet via env"
+                : prodigi.studioConfigured
+                  ? "app-fallback (zet PRODIGI_STUDIO_TEMPLATE_ID)"
+                  : "ontbreekt"}
               {" · "}
               Project: {studioProjectId || "nog niet gesynchroniseerd"}
               {" · "}
@@ -738,12 +745,13 @@ export function PhotoBookBuilder({
               Ik heb de Studio-preview bekeken en ga akkoord met deze layout vóór bestellen
               {previewAckedAt ? ` (bevestigd ${new Date(previewAckedAt).toLocaleString("nl-NL")})` : ""}
             </label>
-            {!prodigi.studioConfigured ? (
+            {!prodigi.studioTemplateFromEnv ? (
               <p className="form-message">
-                Henk: maak in <a href="https://studio.prodigi.com/" target="_blank" rel="noreferrer">Prodigi Studio</a> een
-                photobook-template, publiceer die, en zet <code>PRODIGI_STUDIO_TEMPLATE_ID</code> + optioneel{" "}
-                <code>PRODIGI_DEFAULT_SKU</code>. Aanbevolen text-slots: <code>cover.title</code>, <code>cover.subtitle</code>,{" "}
-                <code>intro.body</code>, <code>day.N.title</code>, <code>photo.*.caption</code>, <code>route.summary</code>.
+                Tip: zet <code>PRODIGI_STUDIO_TEMPLATE_ID</code> expliciet (nu app-fallback). Template{" "}
+                <strong>opslaan</strong> in Studio is genoeg — geen embed-publish. Slots: <code>day-photo</code>,{" "}
+                <code>day-title</code>, <code>day-meta</code>, <code>day-summary</code>, <code>day-photo-1..3</code>,{" "}
+                <code>chapter-*</code>, <code>story-text</code>. SKU-fallback: Layflat A4 via{" "}
+                <code>PRODIGI_DEFAULT_SKU</code>. Zie <code>docs/PHOTOBOOK_PRODIGI.md</code>.
               </p>
             ) : null}
           </section>

@@ -1,6 +1,38 @@
 import type { ProdigiOrderDraft, ProdigiQuoteRequest, ProdigiRecipient, ProdigiShippingMethod } from "./prodigi";
 import { prodigiConfigStatus } from "./prodigi";
-import type { StudioCreateBookRequest, StudioImageInput } from "./prodigi-studio";
+import type { StudioCreateBookRequest } from "./prodigi-studio";
+import { getStudioTemplateId } from "./prodigi-studio";
+import { DEFAULT_PHOTO_BOOK_SKU, DEFAULT_STUDIO_TEMPLATE_ID } from "./prodigi-defaults";
+import {
+  buildBookStructure as buildBookStructureCore,
+  buildStudioCreateRequest as buildStudioCreateRequestCore,
+  buildStudioTextFromStructure as buildStudioTextFromStructureCore,
+  enforceLayflatPageCount,
+  photoClientId as photoClientIdCore,
+  type BookStructure,
+  type StructureAsset,
+} from "./photo-book-structure";
+
+export { DEFAULT_PHOTO_BOOK_SKU, DEFAULT_STUDIO_TEMPLATE_ID } from "./prodigi-defaults";
+export {
+  LAYFLAT_MAX_PAGES,
+  LAYFLAT_MIN_PAGES,
+  STUDIO_CONTENT_POSITION_BASE,
+  STUDIO_SLOTS,
+  chooseDayPageType,
+  enforceLayflatPageCount,
+  inferCountry,
+} from "./photo-book-structure";
+
+export type {
+  BookPage,
+  BookPageSlot,
+  BookPageType,
+  BookStructure,
+  BookStructureChapter,
+  StructureAsset,
+  StructurePhoto,
+} from "./photo-book-structure";
 
 export const PHOTO_BOOK_STATUSES = ["draft", "ready_for_prodigi", "submitted", "failed"] as const;
 export type PhotoBookStatus = (typeof PHOTO_BOOK_STATUSES)[number];
@@ -64,36 +96,13 @@ export type PhotoBookRow = {
   updated_at: string;
 };
 
-export type BookStructureChapter = {
-  kind: "day" | "country";
-  key: string;
-  title: string;
-  dayNumber: number | null;
-  photos: Array<{
-    mediaAssetId: string;
-    clientId: string;
-    caption: string;
-    favorite: boolean;
-    downloadUrl: string | null;
-  }>;
-};
-
-export type BookStructure = {
-  cover: { title: string; subtitle: string | null };
-  intro: string | null;
-  chapters: BookStructureChapter[];
-  routeSummary: string | null;
-  photoCount: number;
-};
-
-/** Softcover/hardcover photobooks need an even page count (Prodigi guidelines). */
-export function evenPageCount(photoCount: number) {
-  const pages = Math.max(24, photoCount);
-  return pages % 2 === 0 ? pages : pages + 1;
+/** Layflat: even page count within 18–122 (pad/trim rules in enforceLayflatPageCount). */
+export function evenPageCount(contentPageCount: number) {
+  return enforceLayflatPageCount(contentPageCount).targetCount;
 }
 
 export function defaultSku() {
-  return process.env.PRODIGI_DEFAULT_SKU?.trim() || "BOOK-FE-A4-P-HARD-G";
+  return process.env.PRODIGI_DEFAULT_SKU?.trim() || DEFAULT_PHOTO_BOOK_SKU;
 }
 
 export function parseRecipient(raw: unknown): ProdigiRecipient | null {
@@ -121,17 +130,7 @@ export function parseRecipient(raw: unknown): ProdigiRecipient | null {
   };
 }
 
-export type ExportAsset = {
-  mediaAssetId: string;
-  sortOrder: number;
-  filename: string;
-  caption: string;
-  dayNumber: number | null;
-  dayTitle: string | null;
-  favorite: boolean;
-  /** Temporary signed URL when available; Prodigi must be able to GET this. */
-  downloadUrl: string | null;
-};
+export type ExportAsset = StructureAsset;
 
 export type PhotoBookExport = {
   version: 1;
@@ -168,77 +167,24 @@ export type PhotoBookExport = {
 };
 
 export function photoClientId(mediaAssetId: string) {
-  return `photo-${mediaAssetId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 48)}`;
+  return photoClientIdCore(mediaAssetId);
 }
 
-/** Cover → optional intro → per-day photo blocks. No AI. */
+/** Cover → optional intro → country chapters + per-day Studio pages. No AI. */
 export function buildBookStructure(input: {
   title: string;
   subtitle: string | null;
   introText?: string | null;
   assets: ExportAsset[];
   routeSummary?: string | null;
+  countries?: string[];
 }): BookStructure {
-  const chapterMap = new Map<string, BookStructureChapter>();
-  for (const asset of input.assets) {
-    const dayNumber = asset.dayNumber;
-    const key = dayNumber != null ? `day-${dayNumber}` : "day-unknown";
-    const title = dayNumber != null
-      ? (asset.dayTitle?.trim() ? `Dag ${dayNumber} · ${asset.dayTitle.trim()}` : `Dag ${dayNumber}`)
-      : "Overige foto’s";
-    let chapter = chapterMap.get(key);
-    if (!chapter) {
-      chapter = { kind: "day", key, title, dayNumber, photos: [] };
-      chapterMap.set(key, chapter);
-    }
-    chapter.photos.push({
-      mediaAssetId: asset.mediaAssetId,
-      clientId: photoClientId(asset.mediaAssetId),
-      caption: asset.caption,
-      favorite: asset.favorite,
-      downloadUrl: asset.downloadUrl,
-    });
-  }
-
-  const chapters = [...chapterMap.values()].sort((left, right) => {
-    if (left.dayNumber == null && right.dayNumber == null) return 0;
-    if (left.dayNumber == null) return 1;
-    if (right.dayNumber == null) return -1;
-    return left.dayNumber - right.dayNumber;
-  });
-
-  return {
-    cover: { title: input.title, subtitle: input.subtitle },
-    intro: input.introText?.trim() || null,
-    chapters,
-    routeSummary: input.routeSummary?.trim() || null,
-    photoCount: input.assets.length,
-  };
+  return buildBookStructureCore(input);
 }
 
-/**
- * Map pragmatic book structure onto Studio text slots.
- * Henk’s published template should expose these keys (or a subset):
- * cover.title, cover.subtitle, intro.body, route.summary,
- * day.{n}.title, photo.{clientId}.caption
- */
+/** Slot-name text map from structure (for tests / inspect). */
 export function buildStudioTextFromStructure(structure: BookStructure): Record<string, string> {
-  const text: Record<string, string> = {
-    "cover.title": structure.cover.title,
-  };
-  if (structure.cover.subtitle) text["cover.subtitle"] = structure.cover.subtitle;
-  if (structure.intro) text["intro.body"] = structure.intro;
-  if (structure.routeSummary) text["route.summary"] = structure.routeSummary;
-
-  for (const chapter of structure.chapters) {
-    if (chapter.dayNumber != null) {
-      text[`day.${chapter.dayNumber}.title`] = chapter.title;
-    }
-    for (const photo of chapter.photos) {
-      if (photo.caption) text[`photo.${photo.clientId}.caption`] = photo.caption;
-    }
-  }
-  return text;
+  return buildStudioTextFromStructureCore(structure);
 }
 
 export function buildStudioCreateRequest(input: {
@@ -246,20 +192,7 @@ export function buildStudioCreateRequest(input: {
   bookId: string;
   structure: BookStructure;
 }): StudioCreateBookRequest | null {
-  const images: StudioImageInput[] = [];
-  for (const chapter of input.structure.chapters) {
-    for (const photo of chapter.photos) {
-      if (!photo.downloadUrl) continue;
-      images.push({ clientId: photo.clientId, sourceUrl: photo.downloadUrl });
-    }
-  }
-  if (!images.length) return null;
-  return {
-    templateId: input.templateId,
-    merchantReference: `photo-book-${input.bookId}`,
-    images,
-    text: buildStudioTextFromStructure(input.structure),
-  };
+  return buildStudioCreateRequestCore(input);
 }
 
 export function studioOrderBlockers(book: PhotoBookRow) {
@@ -286,8 +219,8 @@ export function buildPhotoBookExport(input: {
   book: PhotoBookRow;
   assets: ExportAsset[];
   routeSummary?: string | null;
+  countries?: string[];
 }): PhotoBookExport {
-  const pageCount = evenPageCount(input.assets.length);
   const blockers: string[] = [];
   if (!input.assets.length) blockers.push("Geen foto’s in het boek.");
   if (input.assets.length < 1) blockers.push("Selecteer minstens één foto.");
@@ -306,18 +239,23 @@ export function buildPhotoBookExport(input: {
     introText: input.book.intro_text,
     assets: input.assets,
     routeSummary: input.routeSummary,
+    countries: input.countries,
   });
+  const pageCount = structure.pageCount;
 
-  const templateId = input.book.studio_template_id?.trim() || config.studioTemplateId;
+  const templateId = input.book.studio_template_id?.trim() || config.studioTemplateId || getStudioTemplateId();
   const studioCreate = templateId
     ? buildStudioCreateRequest({ templateId, bookId: input.book.id, structure })
     : null;
 
   if (!templateId) {
-    blockers.push("PRODIGI_STUDIO_TEMPLATE_ID ontbreekt — publiceer een Studio-template en zet de id in env.");
+    blockers.push("PRODIGI_STUDIO_TEMPLATE_ID ontbreekt — zet de opgeslagen Studio-template-id in env.");
   }
 
   const orderBlockers = [...blockers, ...studioOrderBlockers(input.book)];
+  if (structure.pageCountWarning) {
+    orderBlockers.push(structure.pageCountWarning);
+  }
 
   const quoteRequest: ProdigiQuoteRequest = {
     shippingMethod: input.book.shipping_method,
@@ -402,9 +340,12 @@ export function buildPhotoBookExport(input: {
       },
     },
     notes: [
-      "B1: print-ready layout via Prodigi Studio (template + foto’s + teksten).",
+      "B1: print-ready layout via Prodigi Studio (saved template + named slots).",
+      "Embed/merchant snippet niet nodig — alleen template-id + SKU in env.",
+      "Layflat: even page count 18–122 (pad blank / trim met warning).",
       "Bestellen vereist Studio-preview én expliciete preview-bevestiging; live alleen met confirmLive.",
       "Bestellen gebeurt alleen na een geslaagde Prodigi API-call — nooit gesimuleerd.",
+      ...(structure.pageCountWarning ? [structure.pageCountWarning] : []),
     ],
   };
 }

@@ -5,14 +5,22 @@
  * Never invents success without an API response.
  */
 
+import { DEFAULT_PHOTO_BOOK_SKU, DEFAULT_STUDIO_TEMPLATE_ID } from "./prodigi-defaults";
 import { getProdigiApiKey, type ProdigiRecipient, type ProdigiShippingMethod } from "./prodigi";
+
+export { DEFAULT_PHOTO_BOOK_SKU, DEFAULT_STUDIO_TEMPLATE_ID };
 
 export function studioBaseUrl() {
   return process.env.PRODIGI_STUDIO_BASE_URL?.trim() || "https://studio.prodigi.com";
 }
 
+/**
+ * Prefer PRODIGI_STUDIO_TEMPLATE_ID. Falls back to Henk’s saved Travel-app template id.
+ * Studio has no separate “publish for API” step — a saved template + env is enough.
+ * Storefront embed / merchant snippet is NOT required.
+ */
 export function getStudioTemplateId() {
-  return process.env.PRODIGI_STUDIO_TEMPLATE_ID?.trim() || null;
+  return process.env.PRODIGI_STUDIO_TEMPLATE_ID?.trim() || DEFAULT_STUDIO_TEMPLATE_ID;
 }
 
 export function hasStudioTemplateConfig() {
