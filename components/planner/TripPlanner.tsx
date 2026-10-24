@@ -2,6 +2,8 @@
 
 import { ChangeEvent, useRef, useState } from "react";
 import Link from "next/link";
+import { openDocumentOfflineFirst } from "../../lib/offline-document";
+import { isSessionExpiredError, redirectAfterSessionExpired } from "../../lib/session-expired";
 
 type Day = { id: string; day_number: number; day_date: string; title: string | null; planned_location: string | null };
 type Item = { id: string; trip_day_id: string; kind: string; status: string; title: string; details: string; location: string; starts_at: string | null };
@@ -53,8 +55,17 @@ export function TripPlanner({ tripId, days, initialItems, initialDocuments }: Pr
   }
 
   async function openDocument(documentId: string) {
-    try { const data = await json(await fetch(`/api/documents/${documentId}`)); window.open(data.signedUrl, "_blank", "noopener,noreferrer"); }
-    catch { setMessage("Document kon niet worden geopend."); }
+    try {
+      const result = await openDocumentOfflineFirst(documentId);
+      if (result.source === "offline") setMessage("Offline kopie geopend.");
+    } catch (error) {
+      if (isSessionExpiredError(error)) {
+        setMessage(error.message);
+        redirectAfterSessionExpired(error.loginPath);
+        return;
+      }
+      setMessage(error instanceof Error ? error.message : "Document kon niet worden geopend.");
+    }
   }
 
   return <div className="planner-layout"><aside className="planner-days"><p className="eyebrow blue">Reisdagen</p>{days.map((day) => <button key={day.id} type="button" className={day.id === selectedDayId ? "planner-day active" : "planner-day"} onClick={() => setSelectedDayId(day.id)}><span>Dag {day.day_number}</span><b>{day.title || day.planned_location || "Reisdag"}</b><small>{new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short" }).format(new Date(`${day.day_date}T12:00:00`))}</small></button>)}</aside><div className="planner-detail"><p className="eyebrow blue">{selectedDay ? `Dag ${selectedDay.day_number}` : "Planning"}</p><h2>{selectedDay?.title || selectedDay?.planned_location || "Kies een reisdag"}</h2><p className="planner-subtitle">Plan wat jullie doen en bewaar de documenten die je die dag nodig hebt.</p>{message ? <p className="form-message" role="status">{message}</p> : null}<section className="planner-card"><h3>Planning</h3>{dayItems.length ? <div className="planning-list">{dayItems.map((item) => <article key={item.id}><span className={`planning-status ${item.status}`}>{item.status === "confirmed" ? "Bevestigd" : item.status === "planned" ? "Gepland" : "Optie"}</span><b>{labels[item.kind]} · {item.title}</b>{item.location ? <small>{item.location}</small> : null}{item.details ? <p>{item.details}</p> : null}</article>)}</div> : <p className="planner-empty">Nog niets gepland voor deze dag.</p>}<div className="planner-form"><select value={kind} onChange={(event) => setKind(event.target.value)}>{["accommodation", "flight", "transport", "activity", "note"].map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="option">Optie</option><option value="planned">Gepland</option><option value="confirmed">Bevestigd</option></select><input value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} placeholder="Bijvoorbeeld: Hotel Nomad" /><input value={location} maxLength={200} onChange={(event) => setLocation(event.target.value)} placeholder="Plaats of vertrekpunt" /><textarea value={details} maxLength={4000} onChange={(event) => setDetails(event.target.value)} placeholder="Praktische notitie, tijd of afspraak" rows={3} /><button className="primary-button blue-button" type="button" disabled={saving} onClick={() => void addItem()}>Onderdeel toevoegen</button></div></section><section className="planner-card"><div className="planner-card-heading"><div><h3>Documenten</h3><p>Privé en snel terug te vinden.</p></div><div><select aria-label="Documenttype" value={documentType} onChange={(event) => setDocumentType(event.target.value)}>{["hotel_confirmation", "visa", "flight_ticket", "transport_ticket", "excursion_ticket", "insurance", "other"].map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select><button className="secondary-button" type="button" disabled={saving} onClick={() => fileRef.current?.click()}>Document uploaden</button></div></div><input ref={fileRef} className="visually-hidden" type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif,.pdf,.jpg,.jpeg,.png,.heic,.heif,.docx,.xlsx" onChange={(event) => void uploadDocument(event)} />{dayDocuments.length ? <div className="document-list">{dayDocuments.map((document) => <button type="button" key={document.id} onClick={() => void openDocument(document.id)}><span>{labels[document.document_type]}</span><b>{document.title}</b><small>{document.original_filename} · openen ↗</small></button>)}</div> : <p className="planner-empty">Nog geen documenten voor deze dag.</p>}<Link className="planner-library-link" href="/app/documents">Alle documenten bekijken en uploaden →</Link></section></div></div>;
