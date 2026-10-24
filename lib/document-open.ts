@@ -1,11 +1,35 @@
 /**
- * Helpers for opening private trip documents in a new tab.
- * iOS Safari blocks window.open() after an async gap and is unreliable with
- * bare blob: URLs for PDFs — open a blank tab on the user gesture, then navigate.
+ * Helpers for opening private trip documents in the in-app viewer.
+ * Never navigate the app tab to the raw /file response — that traps users
+ * (especially on iPhone) without chrome or a reliable Back.
  */
 
 export function documentFilePath(documentId: string) {
   return "/api/documents/" + documentId + "/file";
+}
+
+/** In-app viewer URL; optional back path must stay inside /app. */
+export function documentViewerPath(documentId: string, backPath?: string | null) {
+  const base = "/app/documents/" + documentId;
+  const safe = safeAppBackPath(backPath);
+  return safe ? base + "?back=" + encodeURIComponent(safe) : base;
+}
+
+/** Only allow same-app relative paths (open-redirect safe). */
+export function safeAppBackPath(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/app")) return null;
+  if (trimmed.startsWith("//") || trimmed.includes("://")) return null;
+  if (trimmed.includes("\\") || /\s/.test(trimmed)) return null;
+  return trimmed;
+}
+
+export function documentBackLabel(backHref: string) {
+  if (backHref.includes("/today")) return "← Terug naar vandaag";
+  if (backHref.includes("/plan")) return "← Terug naar planning";
+  if (backHref.includes("/documents")) return "← Terug naar documenten";
+  return "← Terug";
 }
 
 /** PDF and images can be shown inline; office docs download. */
@@ -21,86 +45,4 @@ export function contentDispositionInline(filename: string): string {
 export function contentDispositionForDocument(mime: string | null | undefined, filename: string): string {
   const disposition = isInlineDocumentMime(mime) ? "inline" : "attachment";
   return `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`;
-}
-
-/** Open a blank tab synchronously so later navigation keeps the user gesture on iOS. */
-export function openDocumentPreviewWindow(): Window | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.open("about:blank", "_blank");
-  } catch {
-    return null;
-  }
-}
-
-export function closeDocumentPreviewWindow(preview: Window | null) {
-  if (!preview || preview.closed) return;
-  try {
-    preview.close();
-  } catch {
-    /* ignore */
-  }
-}
-
-function escapeHtmlAttr(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-}
-
-/**
- * Show a blob in an already-opened preview window.
- * Images get an HTML wrapper; PDF/other navigate to the object URL.
- */
-export function showBlobInPreviewWindow(preview: Window, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const type = (blob.type || "").toLowerCase();
-  try {
-    preview.opener = null;
-  } catch {
-    /* ignore */
-  }
-
-  if (type.startsWith("image/")) {
-    const safeUrl = escapeHtmlAttr(url);
-    preview.document.open();
-    preview.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title></head><body style="margin:0;background:#111;min-height:100vh;display:flex;justify-content:center;align-items:flex-start"><img src="${safeUrl}" alt="Document" style="max-width:100%;height:auto"/></body></html>`,
-    );
-    preview.document.close();
-    return url;
-  }
-
-  if (type === "application/pdf") {
-    const safeUrl = escapeHtmlAttr(url);
-    preview.document.open();
-    preview.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title><style>html,body{margin:0;height:100%;background:#111}embed,iframe{border:0;width:100%;height:100%}</style></head><body><embed src="${safeUrl}" type="application/pdf"/></body></html>`,
-    );
-    preview.document.close();
-    return url;
-  }
-
-  preview.location.replace(url);
-  return url;
-}
-
-/** Navigate a gesture-preserved window, or fall back to a synthetic anchor click. */
-export function navigateDocumentPreview(preview: Window | null, url: string) {
-  if (preview && !preview.closed) {
-    try {
-      preview.opener = null;
-    } catch {
-      /* ignore */
-    }
-    preview.location.replace(url);
-    return;
-  }
-
-  if (typeof document === "undefined") return;
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.target = "_blank";
-  anchor.rel = "noopener noreferrer";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
 }
