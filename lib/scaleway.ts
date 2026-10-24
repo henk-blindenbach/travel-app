@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { classifyOriginalFetchError, OriginalFetchError } from "./scaleway-errors";
 
@@ -62,6 +62,16 @@ export async function fetchOriginal(key: string) {
       throw new OriginalFetchError("read_failed", "Het geüploade origineel kon niet worden gelezen.");
     }
     return Buffer.from(await result.Body.transformToByteArray());
+  } catch (error) {
+    throw classifyOriginalFetchError(error);
+  }
+}
+
+/** Cheap existence/access check before streaming a large ZIP of originals. */
+export async function assertOriginalExists(key: string) {
+  try {
+    const settings = config();
+    await client(settings).send(new HeadObjectCommand({ Bucket: settings.bucket, Key: key }));
   } catch (error) {
     throw classifyOriginalFetchError(error);
   }
