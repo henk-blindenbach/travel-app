@@ -17,9 +17,17 @@ type Props = {
   tripId: string;
   documents: TodayDocumentRow[];
   focusLabel?: string;
+  intro?: string;
+  emptyMessage?: string;
 };
 
-export function TodayDocuments({ tripId, documents, focusLabel = "Documenten van vandaag" }: Props) {
+export function TodayDocuments({
+  tripId,
+  documents,
+  focusLabel = "Documenten van vandaag",
+  intro = "Documenten van deze reisdag plus hele-reis (visa e.d.). Eén tik om te openen.",
+  emptyMessage = "Geen documenten gekoppeld aan vandaag.",
+}: Props) {
   const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
 
@@ -32,8 +40,6 @@ export function TodayDocuments({ tripId, documents, focusLabel = "Documenten van
       cancelled = true;
     };
   }, [tripId, documents]);
-
-  if (!documents.length) return null;
 
   async function open(id: string) {
     setMessage("");
@@ -54,21 +60,25 @@ export function TodayDocuments({ tripId, documents, focusLabel = "Documenten van
     <section className="today-documents planner-card">
       <p className="eyebrow blue">Snel openen</p>
       <h2>{focusLabel}</h2>
-      <p>Vandaag, morgen en documenten voor de hele reis (visa e.d.). Eén tik om te openen.</p>
-      <ul className="today-document-list">
-        {documents.map((document) => (
-          <li key={document.id}>
-            <button type="button" className="today-document-open" onClick={() => void open(document.id)}>
-              <span>{documentTypeLabel(document.document_type || "other")}</span>
-              <b>{document.title}</b>
-              <small>
-                {document.trip_day_id === null ? "Hele reis" : document.is_pinned ? "Vastgezet" : "Reisdag"}
-                {offlineIds.has(document.id) ? " · offline beschikbaar ✓" : ""}
-              </small>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <p>{intro}</p>
+      {documents.length ? (
+        <ul className="today-document-list">
+          {documents.map((document) => (
+            <li key={document.id}>
+              <button type="button" className="today-document-open" onClick={() => void open(document.id)}>
+                <span>{documentTypeLabel(document.document_type || "other")}</span>
+                <b>{document.title}</b>
+                <small>
+                  {document.trip_day_id === null ? "Hele reis" : document.is_pinned ? "Vastgezet" : "Reisdag"}
+                  {offlineIds.has(document.id) ? " · offline beschikbaar ✓" : ""}
+                </small>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="today-documents-empty">{emptyMessage}</p>
+      )}
       {message ? (
         <p className="form-message" role="status">
           {message}

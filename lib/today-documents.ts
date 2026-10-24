@@ -12,6 +12,9 @@ export type TodayDoc = {
 /**
  * Today + tomorrow day docs, plus trip-wide (trip_day_id null) such as visas.
  * Before the trip starts, pass the first travel day as `focusDayId` (and optionally day 2 as tomorrow).
+ *
+ * For the Vandaag → Documenten list (relevant for today only), call with `nextDayId` omitted/null:
+ * focus day via `trip_documents.trip_day_id` + hele-reis (`trip_day_id` null). No new schema.
  */
 export function selectRoadDocuments<T extends TodayDoc>(
   documents: T[],
@@ -20,6 +23,11 @@ export function selectRoadDocuments<T extends TodayDoc>(
 ) {
   const dayIds = new Set([focusDayId, nextDayId].filter(Boolean) as string[]);
   return documents.filter((document) => document.trip_day_id === null || dayIds.has(document.trip_day_id));
+}
+
+/** Documents linked to today’s trip day, plus trip-wide (visa e.d.). Excludes other days. */
+export function selectTodayDocuments<T extends TodayDoc>(documents: T[], todayDayId: string | null | undefined) {
+  return selectRoadDocuments(documents, todayDayId, null);
 }
 
 /** Stable order: pinned first (if present), then focus day, next day, hele reis; title A–Z within group. */

@@ -109,3 +109,28 @@
 .photo-processing-hint{display:block;font:500 .7rem 'DM Sans';color:#667c8e;max-width:16rem;line-height:1.35}
 
 .document-viewer-page{max-width:960px}.document-viewer .back-link{margin-bottom:18px}.document-viewer-frame{display:block;width:100%;height:min(78vh,920px);border:1px solid var(--line,#dce4eb);border-radius:14px;background:#111}.document-viewer-image{display:block;max-width:100%;height:auto;border-radius:14px;background:#111}.document-viewer-download{display:grid;gap:14px;align-items:start;margin:18px 0}.document-viewer-download .primary-button{display:inline-flex;width:fit-content}.document-viewer-actions{margin-top:18px}.document-viewer-actions .secondary-button{display:inline-flex}
+
+/* Vandaag: Documenten + Dagverslag + chronologische planning */
+.today-quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 18px}
+.today-quick-action{justify-content:center;min-height:44px;width:100%;text-align:center;box-sizing:border-box}
+.today-prep-note{color:var(--muted);font-size:.86rem;line-height:1.5;margin:0 0 12px}
+.today-planning{margin:8px 0 24px;padding:18px 18px 20px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.today-planning h2{font-size:1.55rem;letter-spacing:-.03em;margin:6px 0 14px}
+.today-planning-list{display:grid;gap:0}
+.today-planning-item{border-top:1px solid #e5ebf1;padding:14px 0;display:grid;gap:.35rem}
+.today-planning-item:first-child{border-top:0;padding-top:4px}
+.today-planning-meta{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.today-planning-meta>span:first-child{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#52769d;font-weight:700}
+.today-planning-meta time,.today-planning-notime{font:700 .9rem 'DM Sans';color:var(--ink);font-variant-numeric:tabular-nums}
+.today-planning-notime{color:#9aa8b8}
+.today-planning-item h3{margin:0;font:700 1.05rem 'DM Sans'}
+.today-planning-item p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45}
+.today-planning-item a,.today-planning-item button{display:inline-flex;align-items:center;min-height:44px;font:inherit;color:#1769e0;background:none;border:0;padding:.15rem 0;text-align:left;cursor:pointer}
+.today-planning-empty{color:var(--muted);font-size:.88rem;margin:4px 0 12px;line-height:1.5}
+.today-planning>.secondary-button{display:flex;width:100%;margin-top:8px;min-height:44px;box-sizing:border-box}
+.today-documents-empty{color:var(--muted);font-size:.88rem;margin:14px 0 0;line-height:1.5}
+.today-docs-all-link{display:inline-flex;margin-top:14px;min-height:44px}
+@media(max-width:760px){
+  .today-quick-actions{grid-template-columns:1fr;gap:10px;margin:18px 0 14px}
+  .today-planning{padding:16px}
+}
