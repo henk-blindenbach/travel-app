@@ -105,15 +105,12 @@ export function OfflineDocumentCache({ tripId, endsOn, documents: initialDocumen
       let saved = 0;
       for (const [index, document] of documents.entries()) {
         setStatus(`Document ${index + 1} van ${documents.length} wordt bewaard…`);
-        const response = await fetch("/api/documents/" + document.id);
-        if (response.status === 401) {
+        const file = await fetch("/api/documents/" + document.id + "/file");
+        if (file.status === 401) {
           setStatus(SESSION_EXPIRED_DOCUMENT_MESSAGE);
           redirectAfterSessionExpired(sessionExpiredLoginPath());
           return;
         }
-        const data = await response.json();
-        if (!data.signedUrl) continue;
-        const file = await fetch(data.signedUrl);
         if (!file.ok) continue;
         await cache.put("/offline-documents/" + document.id, file.clone());
         saved += 1;
