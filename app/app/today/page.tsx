@@ -2,18 +2,29 @@ import Link from "next/link";
 import { AppShell } from "../../../components/AppShell";
 import { Icon } from "../../../components/Icons";
 import { MobileDayCards } from "../../../components/today/MobileDayCards";
+import { TodayPlanning } from "../../../components/today/TodayPlanning";
+import { TodayQuickActions } from "../../../components/today/TodayQuickActions";
 import { TodayDocuments } from "../../../components/documents/TodayDocuments";
-import { selectRoadDocuments, sortRoadDocuments } from "../../../lib/today-documents";
+import { selectRoadDocuments, selectTodayDocuments, sortRoadDocuments } from "../../../lib/today-documents";
 import { getPrivateTrip, getPrivateTrips } from "../../../lib/travel-data";
 import { createClient, hasSupabaseEnv } from "../../../lib/supabase/server";
 
 function lisbonDate() {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
   const value = (type: string) => parts.find((part) => part.type === type)?.value || "";
   return [value("year"), value("month"), value("day")].join("-");
 }
+
 function daysUntil(start: string, today: string) {
-  return Math.max(0, Math.round((new Date(start + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86_400_000));
+  return Math.max(
+    0,
+    Math.round((new Date(start + "T12:00:00").getTime() - new Date(today + "T12:00:00").getTime()) / 86_400_000),
+  );
 }
 
 type DocRow = {
@@ -45,6 +56,7 @@ async function loadRoadDocs(tripId: string, dayIds: string[]) {
     seat_number: string | null;
     external_url: string | null;
     duration_minutes: number | null;
+    sort_order: number | null;
   }[] = [];
   let documents: DocRow[] = [];
   if (!hasSupabaseEnv()) return { planningItems, documents };
@@ -55,7 +67,7 @@ async function loadRoadDocs(tripId: string, dayIds: string[]) {
         ? supabase
             .from("planning_items")
             .select(
-              "id,trip_day_id,kind,title,location,departure_time,arrival_time,arrives_on,booking_reference,address,contact_phone,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,duration_minutes",
+              "id,trip_day_id,kind,title,location,departure_time,arrival_time,arrives_on,booking_reference,address,contact_phone,carrier,flight_number,departure_terminal,arrival_terminal,seat_number,external_url,duration_minutes,sort_order",
             )
             .eq("trip_id", tripId)
             .in("trip_day_id", dayIds)
@@ -95,9 +107,11 @@ export default async function Today() {
         </section>
       </AppShell>
     );
+
   const today = lisbonDate();
   const activeTrip = trips.find((trip) => trip.starts_on <= today && trip.ends_on >= today);
   const upcomingTrip = trips.filter((trip) => trip.starts_on > today).sort((a, b) => a.starts_on.localeCompare(b.starts_on))[0];
+
   if (!activeTrip) {
     if (!upcomingTrip)
       return (
@@ -118,10 +132,14 @@ export default async function Today() {
           </section>
         </AppShell>
       );
+
     const remaining = daysUntil(upcomingTrip.starts_on, today);
-    const start = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(
-      new Date(upcomingTrip.starts_on + "T12:00:00"),
-    );
+    const start = new Intl.DateTimeFormat("nl-NL", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(upcomingTrip.starts_on + "T12:00:00"));
     const journey = await getPrivateTrip(upcomingTrip.id);
     const firstDay = journey?.days[0] || null;
     const secondDay = journey?.days[1] || null;
@@ -129,6 +147,7 @@ export default async function Today() {
     const { planningItems: previewItems, documents: allDocs } = await loadRoadDocs(upcomingTrip.id, ids);
     const previewDocuments = selectRoadDocuments(allDocs, firstDay?.id, secondDay?.id);
     const roadDocs = sortRoadDocuments(previewDocuments, firstDay?.id, secondDay?.id);
+
     return (
       <AppShell active="today">
         <header className="app-header">
@@ -138,28 +157,26 @@ export default async function Today() {
             <p>{remaining === 0 ? "Vertrek is vandaag." : "Nog " + remaining + " " + (remaining === 1 ? "dag" : "dagen") + " tot vertrek."}</p>
           </div>
         </header>
-        <section className="today-grid">
-          <div className="journal-card">
-            <div className="journal-icon">✦</div>
-            <p className="eyebrow blue">Voorbereiden</p>
-            <h2>Nog even voorpret.</h2>
-            <p>De reis is nog niet begonnen. Hieronder staat alvast hoe jullie eerste dagen eruitzien.</p>
-            <Link className="primary-button blue-button" href={"/app/trips/" + upcomingTrip.id + "/plan"}>
-              Open reisplan <Icon name="arrow" size={18} />
-            </Link>
-          </div>
-          <div className="info-card">
-            <p className="eyebrow blue">Praktisch</p>
-            <h3>Vertrek</h3>
-            <p>{start}</p>
-            <hr />
-            <h3>Documenten</h3>
-            <p>Bewaar tickets, visa en bevestigingen alvast bij de juiste reis.</p>
-            <Link href={"/app/trips/" + upcomingTrip.id + "/documents"}>
-              Open documenten <Icon name="arrow" size={16} />
-            </Link>
-          </div>
-        </section>
+        {firstDay ? (
+          <TodayQuickActions
+            documentsHref={"/app/trips/" + upcomingTrip.id + "/documents"}
+            journalHref={"/app/journal/" + firstDay.id}
+            documentsLabel="Documenten"
+            journalLabel="Dagverslag (dag 1)"
+          />
+        ) : (
+          <section className="today-grid">
+            <div className="info-card">
+              <p className="eyebrow blue">Praktisch</p>
+              <h3>Vertrek</h3>
+              <p>{start}</p>
+              <Link href={"/app/trips/" + upcomingTrip.id + "/documents"}>
+                Open documenten <Icon name="arrow" size={16} />
+              </Link>
+            </div>
+          </section>
+        )}
+        <p className="today-prep-note">Vertrek: {start}. Hieronder alvast de eerste dagen.</p>
         <TodayDocuments tripId={upcomingTrip.id} documents={roadDocs} focusLabel="Documenten eerste reisdag" />
         {firstDay ? (
           <MobileDayCards
@@ -171,9 +188,13 @@ export default async function Today() {
             headings={{ first: "Eerste reisdag", second: "Daarna" }}
           />
         ) : null}
+        <Link className="secondary-button" href={"/app/trips/" + upcomingTrip.id + "/plan"}>
+          Open reisplan
+        </Link>
       </AppShell>
     );
   }
+
   const journey = await getPrivateTrip(activeTrip.id);
   const day = journey?.days.find((entry) => entry.day_date === today);
   if (!day)
@@ -193,12 +214,15 @@ export default async function Today() {
         </section>
       </AppShell>
     );
-  const formattedDate = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long" }).format(new Date(day.day_date + "T12:00:00"));
-  const tomorrow = journey?.days.find((entry) => entry.day_date > today) || null;
-  const ids = [day.id, ...(tomorrow ? [tomorrow.id] : [])];
-  const { planningItems, documents: allDocs } = await loadRoadDocs(activeTrip.id, ids);
-  const documents = selectRoadDocuments(allDocs, day.id, tomorrow?.id);
-  const roadDocs = sortRoadDocuments(documents, day.id, tomorrow?.id);
+
+  const formattedDate = new Intl.DateTimeFormat("nl-NL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(day.day_date + "T12:00:00"));
+  const { planningItems, documents: allDocs } = await loadRoadDocs(activeTrip.id, [day.id]);
+  const todayDocs = selectTodayDocuments(allDocs, day.id);
+
   return (
     <AppShell active="today">
       <header className="app-header">
@@ -210,60 +234,10 @@ export default async function Today() {
           </p>
         </div>
       </header>
-      <section className="today-hero">
-        <div>
-          <p className="eyebrow">Reisdag {day.day_number}</p>
-          <h2>{day.title || "Onderweg"}</h2>
-          <p>{day.planned_route || "De planning voor vandaag wordt nog aangevuld."}</p>
-        </div>
-        <div className="today-hero-image" />
-      </section>
-      <TodayDocuments tripId={activeTrip.id} documents={roadDocs} />
-      <MobileDayCards tripId={activeTrip.id} today={day} tomorrow={tomorrow} items={planningItems} documents={documents} />
-      <section className="today-grid">
-        <div className="journal-card">
-          <div className="journal-icon">
-            <Icon name="spark" />
-          </div>
-          <p className="eyebrow blue">Jullie dagboek</p>
-          <h2>Leg jullie dag vast.</h2>
-          <p>Schrijf het verslag wanneer het uitkomt en voeg foto’s toe. HEIC-originelen blijven privé; de app gebruikt een lichte webversie.</p>
-          <Link className="primary-button blue-button" href={"/app/journal/" + day.id}>
-            Open dagverslag <Icon name="arrow" size={18} />
-          </Link>
-        </div>
-        <div className="info-card">
-          <p className="eyebrow blue">In de planning</p>
-          <h3>Route</h3>
-          <p>{day.planned_route || "Nog niet ingevuld"}</p>
-          <hr />
-          <h3>Overnachting</h3>
-          <p>{day.planned_location ? "In " + day.planned_location : "Nog niet ingevuld"}</p>
-          <Link href={"/app/trips/" + activeTrip.id + "/plan#day-" + day.id}>
-            Bekijk reisdag <Icon name="arrow" size={16} />
-          </Link>
-        </div>
-      </section>
-      <section className="photo-strip">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow blue">Foto’s</p>
-            <h2>Leg vandaag vast</h2>
-          </div>
-          <Link href={"/app/journal/" + day.id}>
-            Foto’s toevoegen <Icon name="arrow" size={17} />
-          </Link>
-        </div>
-        <div className="photo-placeholders">
-          <div />
-          <div />
-          <div />
-          <Link href={"/app/journal/" + day.id} className="photo-placeholder-button">
-            <b>+</b>
-            <span>Foto’s kiezen</span>
-          </Link>
-        </div>
-      </section>
+
+      <TodayQuickActions documentsHref="/app/today/documents" journalHref={"/app/journal/" + day.id} />
+
+      <TodayPlanning tripId={activeTrip.id} day={day} items={planningItems} documents={todayDocs} />
     </AppShell>
   );
 }
