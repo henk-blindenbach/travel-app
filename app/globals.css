@@ -134,3 +134,20 @@
   .today-quick-actions{grid-template-columns:1fr;gap:10px;margin:18px 0 14px}
   .today-planning{padding:16px}
 }
+
+/* Day journal: Google Maps paste → pin */
+.maps-paste-field small,.manual-coords-details label small,.entry-form-card label small{font-weight:400;color:var(--muted);line-height:1.35}
+.maps-paste-row{display:flex;gap:8px;align-items:stretch}
+.maps-paste-row input{flex:1;min-width:0}
+.maps-paste-row .secondary-button{flex:none;align-self:stretch}
+.manual-coords-details{margin-top:16px;border:1px solid #dce4eb;border-radius:9px;background:#f8fbfe;padding:0 12px 12px}
+.manual-coords-details>summary{cursor:pointer;list-style:none;font:700 .78rem 'DM Sans';color:#3d6b93;padding:12px 0;min-height:44px;display:flex;align-items:center}
+.manual-coords-details>summary::-webkit-details-marker{display:none}
+.manual-coords-details>summary:after{content:"⌄";margin-left:auto;font-size:.8rem;color:#6e8497}
+.manual-coords-details[open]>summary:after{content:"⌃"}
+.manual-coords-details label{margin-top:10px}
+.entry-form-card .day-pin-status{margin-top:10px}
+@media(max-width:760px){
+  .maps-paste-row{display:grid;grid-template-columns:1fr;gap:8px}
+  .maps-paste-row .secondary-button{width:100%;min-height:44px}
+}
