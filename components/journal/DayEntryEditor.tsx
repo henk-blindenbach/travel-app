@@ -16,6 +16,10 @@ import {
   tryNavigatorShare,
 } from "../../lib/share-photos";
 import {
+  isGoogleMapsShortLink,
+  parseGoogleMapsUrl,
+} from "../../lib/google-maps-url";
+import {
   normalizeSocialCaptions,
   preferredShareCaption,
   readyPublicPhotos,
@@ -199,6 +203,9 @@ export function DayEntryEditor({
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [clearCoordinates, setClearCoordinates] = useState(false);
+  const [mapsPaste, setMapsPaste] = useState("");
+  const [mapsPasteBusy, setMapsPasteBusy] = useState(false);
+  const [manualCoordsOpen, setManualCoordsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const baselineRef = useRef({
     title: initialEntry?.title || dayTitle || "",
@@ -235,6 +242,88 @@ export function DayEntryEditor({
     if (status === "failed") return " Geen kaartpin gevonden — vul een duidelijker plaats in of lat/lng.";
     if (status === "cleared") return " Kaartpin verwijderd.";
     return "";
+  }
+
+  async function resolveMapsPaste(raw: string) {
+    const text = raw.trim();
+    if (!text) throw new Error("Plak eerst een Google Maps-link.");
+    if (isGoogleMapsShortLink(text)) {
+      const data = await responseJson(await fetch("/api/maps/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: text }),
+      }));
+      return {
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+        placeName: typeof data.placeName === "string" && data.placeName.trim() ? data.placeName.trim() : undefined,
+      };
+    }
+    const parsed = parseGoogleMapsUrl(text);
+    if (!parsed) {
+      throw new Error("Geen coördinaten in deze link — open de pin in Maps en kies ‘Link delen’.");
+    }
+    return parsed;
+  }
+
+  async function applyMapsPaste() {
+    if (mapsPasteBusy || saving) return;
+    setMapsPasteBusy(true);
+    setMessage("");
+    try {
+      const parsed = await resolveMapsPaste(mapsPaste);
+      const latText = formatCoord(parsed.latitude);
+      const lngText = formatCoord(parsed.longitude);
+      if (!latText || !lngText) throw new Error("Geen geldige coördinaten in deze link.");
+
+      setManualLat(latText);
+      setManualLng(lngText);
+      setClearCoordinates(false);
+
+      let nextLocation = actualLocation;
+      if (parsed.placeName && !actualLocation.trim()) {
+        nextLocation = parsed.placeName.slice(0, 160);
+        setActualLocation(nextLocation);
+      }
+
+      setSaving(true);
+      const data = await responseJson(await fetch("/api/day-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripDayId,
+          title,
+          actualLocation: nextLocation,
+          body,
+          latitude: parsed.latitude,
+          longitude: parsed.longitude,
+        }),
+      }));
+      const nextEntry = {
+        ...(entry || { id: data.entry.id, title: "", actual_location: "", body: "" }),
+        ...data.entry,
+        publication_status: data.entry.publication_status || entry?.publication_status || "draft",
+      } as NonNullable<Entry>;
+      applyTranslationEntry(nextEntry);
+      baselineRef.current = { title, actualLocation: nextLocation, body };
+      setDirty(false);
+      setClearCoordinates(false);
+      setManualLat("");
+      setManualLng("");
+      setMapsPaste("");
+      const stamp = formatSavedAt();
+      setLastSavedAt(stamp);
+      const status = data.coordinateStatus as CoordinateStatus | undefined;
+      const pin = `${formatCoord(data.entry.actual_latitude)}, ${formatCoord(data.entry.actual_longitude)}`;
+      setMessage(status === "manual" ? `Pin gezet: ${pin}.` : savedConfirmation() + pinFeedback(status, data.entry.actual_latitude, data.entry.actual_longitude));
+      if (body.trim()) setShowTranslateOffer(true);
+      try { localStorage.removeItem(draftStorageKey(tripDayId)); } catch { /* ignore */ }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Deze Maps-link kon niet worden gelezen.");
+    } finally {
+      setMapsPasteBusy(false);
+      setSaving(false);
+    }
   }
 
   function applyTranslationEntry(next: NonNullable<Entry>) {
@@ -886,8 +975,42 @@ export function DayEntryEditor({
         </div>
         <label>Eigen titel<input value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} placeholder="Bijvoorbeeld: Stilte boven de wolken" /></label>
         <label>Waar waren jullie?<input value={actualLocation} maxLength={160} onChange={(event) => setActualLocation(event.target.value)} placeholder={plannedLocation || "Plaats of gebied"} /><small>Bij wijziging zoekt de app een publieke kaartpin (geen EXIF). Boekingscodes horen hier niet.</small></label>
-        <label>Breedtegraad (lat)<input value={manualLat} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_latitude) || "bijv. 27.7172"} onChange={(event) => setManualLat(event.target.value)} /><small>Optioneel · vul beide in om de pin handmatig te zetten</small></label>
-        <label>Lengtegraad (lng)<input value={manualLng} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_longitude) || "bijv. 85.3240"} onChange={(event) => setManualLng(event.target.value)} /></label>
+        <label className="maps-paste-field">
+          Plak Google Maps-link
+          <span className="maps-paste-row">
+            <input
+              value={mapsPaste}
+              autoComplete="off"
+              inputMode="url"
+              placeholder="https://maps.app.goo.gl/… of google.com/maps/…"
+              onChange={(event) => setMapsPaste(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void applyMapsPaste();
+                }
+              }}
+            />
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={mapsPasteBusy || saving || !mapsPaste.trim()}
+              onClick={() => void applyMapsPaste()}
+            >
+              {mapsPasteBusy ? "Bezig…" : "Toepassen"}
+            </button>
+          </span>
+          <small>Deel een pin in Google Maps en plak de link hier. Korte links worden via de server gevolgd (geen Google-API). Place-naam vult alleen als het veld hierboven leeg is.</small>
+        </label>
+        <details
+          className="manual-coords-details"
+          open={manualCoordsOpen}
+          onToggle={(event) => setManualCoordsOpen((event.target as HTMLDetailsElement).open)}
+        >
+          <summary>Handmatig lat/lng</summary>
+          <label>Breedtegraad (lat)<input value={manualLat} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_latitude) || "bijv. 27.7172"} onChange={(event) => setManualLat(event.target.value)} /><small>Optioneel · vul beide in om de pin handmatig te zetten</small></label>
+          <label>Lengtegraad (lng)<input value={manualLng} inputMode="decimal" autoComplete="off" placeholder={formatCoord(entry?.actual_longitude) || "bijv. 85.3240"} onChange={(event) => setManualLng(event.target.value)} /></label>
+        </details>
         <label className="optional-toggle"><input type="checkbox" checked={clearCoordinates} onChange={(event) => setClearCoordinates(event.target.checked)} /> Kaartpin wissen</label>
         <p className="day-pin-status" role="status">{entry?.actual_latitude != null && entry?.actual_longitude != null ? `Huidige pin: ${formatCoord(entry.actual_latitude)}, ${formatCoord(entry.actual_longitude)}` : "Nog geen kaartpin voor deze bezochte plek."}</p>
         <label>Het verslag<textarea value={body} maxLength={20_000} onChange={(event) => setBody(event.target.value)} placeholder="Schrijf hier vrijuit wat er gebeurde, wat je zag en hoe het voelde…" rows={11} /></label>
