@@ -81,6 +81,7 @@ export type PublicDictionary = {
     dayReport: string;
     onTheWay: string;
     storiesEmpty: string;
+    followOnPolarsteps: string;
   };
   route: {
     backToTrip: string;
@@ -112,6 +113,7 @@ export type PublicDictionary = {
     onTheWay: string;
     previousDay: string;
     nextDay: string;
+    followOnPolarsteps: string;
   };
   about: {
     eyebrow: string;
@@ -220,6 +222,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       dayReport: "Dagverslag",
       onTheWay: "Onderweg",
       storiesEmpty: "Zodra we een dag publiceren, verschijnt het verhaal hier.",
+      followOnPolarsteps: "Je kunt deze reis ook volgen op Polarsteps",
     },
     route: {
       backToTrip: "← Terug naar reis",
@@ -252,6 +255,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       onTheWay: "onderweg",
       previousDay: "← Vorige dag",
       nextDay: "Volgende dag →",
+      followOnPolarsteps: "Je kunt deze reis ook volgen op Polarsteps",
     },
     about: {
       eyebrow: "Over ons",
@@ -358,6 +362,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       dayReport: "Day journal",
       onTheWay: "On the way",
       storiesEmpty: "When we publish a day, the story will appear here.",
+      followOnPolarsteps: "You can also follow this trip on Polarsteps",
     },
     route: {
       backToTrip: "← Back to trip",
@@ -390,6 +395,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       onTheWay: "on the way",
       previousDay: "← Previous day",
       nextDay: "Next day →",
+      followOnPolarsteps: "You can also follow this trip on Polarsteps",
     },
     about: {
       eyebrow: "About us",
@@ -496,6 +502,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       dayReport: "Diário do dia",
       onTheWay: "A caminho",
       storiesEmpty: "Quando publicarmos um dia, a história aparece aqui.",
+      followOnPolarsteps: "Também podes seguir esta viagem no Polarsteps",
     },
     route: {
       backToTrip: "← Voltar à viagem",
@@ -528,6 +535,7 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
       onTheWay: "a caminho",
       previousDay: "← Dia anterior",
       nextDay: "Dia seguinte →",
+      followOnPolarsteps: "Também podes seguir esta viagem no Polarsteps",
     },
     about: {
       eyebrow: "Sobre nós",

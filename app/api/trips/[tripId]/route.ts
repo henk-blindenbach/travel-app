@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { safeText, validUuid } from "../../../../lib/journal";
+import { normalizePolarstepsUrl } from "../../../../lib/polarsteps-url";
 import { deleteOriginal } from "../../../../lib/scaleway";
 import { createClient } from "../../../../lib/supabase/server";
 import { isoDate, syncTripDaysForDateChange } from "../../../../lib/sync-trip-days";
@@ -29,6 +30,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
     const status = statuses.has(payload.status) ? payload.status : "";
     const summary = safeText(payload.summary, 1000) || null;
     const aiBasis = safeText(payload.aiBasis, 2000) || null;
+    let polarstepsUrl: string | null = null;
+    try {
+      polarstepsUrl = normalizePolarstepsUrl(payload.polarstepsUrl);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Ongeldige Polarsteps-URL." },
+        { status: 400 },
+      );
+    }
 
     if (!title) return NextResponse.json({ error: "Geef de reis een naam." }, { status: 400 });
     if (!startsOn) return NextResponse.json({ error: "Kies een geldige vertrekdatum." }, { status: 400 });
@@ -60,11 +70,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
         departure_location: departureLocation,
         summary,
         ai_basis: aiBasis,
+        polarsteps_url: polarstepsUrl,
         status,
         updated_at: new Date().toISOString(),
       })
       .eq("id", tripId)
-      .select("id,title,starts_on,ends_on,countries,travelers,departure_location,summary,ai_basis,status,slug")
+      .select("id,title,starts_on,ends_on,countries,travelers,departure_location,summary,ai_basis,polarsteps_url,status,slug")
       .single();
     if (error || !data) return NextResponse.json({ error: "De reis kon niet worden opgeslagen." }, { status: 400 });
 

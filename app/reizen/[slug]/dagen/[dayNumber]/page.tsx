@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PolarstepsFollowLink } from "../../../../../components/public/PolarstepsFollowLink";
 import { PublicLocaleControls } from "../../../../../components/PublicLocaleControls";
 import { getDictionary, getLocale, LOCALE_DATE, t } from "../../../../../lib/i18n";
 import { getPublicDayByNumber, localizePublicDay } from "../../../../../lib/public-travel-data";
@@ -75,6 +76,9 @@ export default async function PublicDay({
             ),
           )}
         </article>
+        {trip.polarsteps_url ? (
+          <PolarstepsFollowLink url={trip.polarsteps_url} label={dict.followOnPolarsteps} />
+        ) : null}
         <nav className="public-day-navigation">
           {previous ? (
             <Link href={"/reizen/" + trip.slug + "/dagen/" + previous.day_number}>{dict.previousDay}</Link>
