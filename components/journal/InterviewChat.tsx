@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { assembleSpeechTranscript, mergeDictationDraft } from "../../lib/speech-dictation";
 
 type Message = { role: "assistant" | "user"; text: string };
 type Props = { tripDayId: string; initialQuestion: string };
+
+const DICTATION_MAX_MS = 120_000;
+const DICTATION_RESTART_MS = 250;
 
 export function InterviewChat({ tripDayId, initialQuestion }: Props) {
   const [messages, setMessages] = useState<Message[]>([{ role: "assistant", text: initialQuestion }]);
@@ -18,25 +22,58 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
   const [retryAttempt, setRetryAttempt] = useState<{ messages: Message[]; finish: boolean } | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wantListeningRef = useRef(false);
+  const intentionalStopRef = useRef(false);
+  const baseDraftRef = useRef("");
+  const draftRef = useRef("");
   const newestMessageRef = useRef<HTMLDivElement>(null);
   const answerCount = messages.filter((message) => message.role === "user").length;
 
-  function stopListening() {
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
+  function clearTimers() {
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
     stopTimerRef.current = null;
+    restartTimerRef.current = null;
+  }
+
+  function detachRecognition() {
+    const recognition = recognitionRef.current;
     recognitionRef.current = null;
+    if (!recognition) return;
+    recognition.onstart = null;
+    recognition.onend = null;
+    recognition.onerror = null;
+    recognition.onresult = null;
+  }
+
+  function stopListening(options?: { intentional?: boolean }) {
+    clearTimers();
+    wantListeningRef.current = false;
+    intentionalStopRef.current = Boolean(options?.intentional);
+    const recognition = recognitionRef.current;
+    detachRecognition();
     setListening(false);
+    if (recognition) {
+      try { recognition.stop(); } catch { /* already stopped */ }
+    }
   }
 
   useEffect(() => () => {
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    recognitionRef.current?.stop();
+    wantListeningRef.current = false;
+    clearTimers();
+    const recognition = recognitionRef.current;
+    detachRecognition();
+    try { recognition?.stop(); } catch { /* unmount */ }
   }, []);
 
   useEffect(() => { newestMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [busy, complete, messages]);
 
   async function submit(next: Message[], finish: boolean) {
     if (busy || complete) return;
+    stopListening({ intentional: true });
     setBusy(true);
     setRequestError("");
     setDraftSaved(false);
@@ -74,14 +111,17 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
   async function send() {
     const clean = draft.trim();
     if (!clean || busy || complete) return;
+    stopListening({ intentional: true });
     const next = [...messages, { role: "user" as const, text: clean }];
     setMessages(next);
     setDraft("");
+    baseDraftRef.current = "";
     await submit(next, false);
   }
 
   async function finishInterview() {
     if (busy || complete) return;
+    stopListening({ intentional: true });
     if (!messages.some((message) => message.role === "user")) {
       setRequestError("Vertel eerst iets over jullie dag; daarna kan Nós er een verslag van maken.");
       return;
@@ -89,40 +129,98 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
     await submit(messages, true);
   }
 
-  function dictate() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      return;
-    }
+  function applySessionTranscript(sessionText: string) {
+    setDraft(mergeDictationDraft(baseDraftRef.current, sessionText));
+  }
+
+  function startRecognition() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setVoiceMessage("Spraakherkenning wordt niet ondersteund in deze browser. Je kunt natuurlijk typen.");
+      wantListeningRef.current = false;
+      setListening(false);
       return;
     }
-    setVoiceMessage("");
+
+    intentionalStopRef.current = false;
     const recognition = new Recognition();
     recognitionRef.current = recognition;
     recognition.lang = "nl-NL";
+    recognition.continuous = true;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
     recognition.onstart = () => {
       setListening(true);
-      stopTimerRef.current = setTimeout(() => recognition.stop(), 20_000);
+      setVoiceMessage("");
     };
-    recognition.onend = stopListening;
+
+    recognition.onresult = (event) => {
+      applySessionTranscript(assembleSpeechTranscript(event.results));
+    };
+
     recognition.onerror = (event) => {
+      if (intentionalStopRef.current || event.error === "aborted") return;
+      if (event.error === "no-speech") {
+        // Keep listening intent; onend may restart for the next utterance block.
+        return;
+      }
+      wantListeningRef.current = false;
       const message = event.error === "not-allowed" || event.error === "service-not-allowed"
         ? "Geef Nós toegang tot je microfoon in de browserinstellingen en probeer opnieuw."
-        : event.error === "no-speech"
-          ? "Ik hoorde geen spraak. Probeer het nog eens of typ je antwoord."
-          : "De spraakopname stopte onverwacht. Je kunt het nog eens proberen of typen.";
+        : "De spraakopname stopte onverwacht. Je kunt het nog eens proberen of typen.";
       setVoiceMessage(message);
     };
-    recognition.onresult = (event) => setDraft(Array.from(event.results).map((item) => item[0].transcript).join(""));
-    try { recognition.start(); }
-    catch {
-      stopListening();
+
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      if (!wantListeningRef.current || intentionalStopRef.current) {
+        setListening(false);
+        return;
+      }
+      // Browser ended after a speech block — restart so consecutive blocks keep writing.
+      baseDraftRef.current = draftRef.current;
+      restartTimerRef.current = setTimeout(() => {
+        restartTimerRef.current = null;
+        if (!wantListeningRef.current || intentionalStopRef.current) {
+          setListening(false);
+          return;
+        }
+        try { startRecognition(); }
+        catch {
+          wantListeningRef.current = false;
+          setListening(false);
+          setVoiceMessage("De spraakopname kon niet opnieuw starten. Tik nog eens op Vertellen of typ verder.");
+        }
+      }, DICTATION_RESTART_MS);
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      detachRecognition();
+      wantListeningRef.current = false;
+      setListening(false);
       setVoiceMessage("De spraakopname kon niet starten. Probeer het nog eens of typ je antwoord.");
     }
+  }
+
+  function dictate() {
+    if (wantListeningRef.current || recognitionRef.current) {
+      stopListening({ intentional: true });
+      return;
+    }
+    if (busy || complete) return;
+    setVoiceMessage("");
+    baseDraftRef.current = draftRef.current;
+    wantListeningRef.current = true;
+    setListening(true);
+    clearTimers();
+    stopTimerRef.current = setTimeout(() => {
+      stopListening({ intentional: true });
+      setVoiceMessage("Opname gestopt na twee minuten. Tik opnieuw op Vertellen om verder te gaan.");
+    }, DICTATION_MAX_MS);
+    startRecognition();
   }
 
   return (
@@ -155,7 +253,9 @@ export function InterviewChat({ tripDayId, initialQuestion }: Props) {
           )}
           {answerCount >= 5 && <p className="voice-message">We hebben genoeg voor een mooi verslag. Je kunt nog aanvullen of nu afronden.</p>}
           <div>
-            <button type="button" className="secondary-button" onClick={dictate}>{listening ? "Opname stoppen" : "🎙 Vertellen"}</button>
+            <button type="button" className="secondary-button" onClick={dictate} disabled={busy}>
+              {listening ? "Opname stoppen" : "🎙 Vertellen"}
+            </button>
             <button type="button" className="primary-button blue-button" onClick={() => void send()} disabled={busy || !draft.trim()}>Stuur antwoord</button>
           </div>
           <button type="button" className="finish-button" onClick={() => void finishInterview()} disabled={busy}>
@@ -175,16 +275,18 @@ declare global {
 }
 interface SpeechRecognition extends EventTarget {
   lang: string;
+  continuous: boolean;
   interimResults: boolean;
+  maxAlternatives: number;
   onstart: (() => void) | null;
-  onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
   start(): void;
   stop(): void;
 }
 interface SpeechRecognitionEvent extends Event {
-  results: ArrayLike<{ [index: number]: { transcript: string } }>;
+  results: ArrayLike<{ isFinal?: boolean; [index: number]: { transcript: string } }>;
 }
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
