@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { PublicLocaleControls } from "../../../../../components/PublicLocaleControls";
 import { getDictionary, getLocale, LOCALE_DATE, t } from "../../../../../lib/i18n";
 import { getPublicDayByNumber, localizePublicDay } from "../../../../../lib/public-travel-data";
+import { parsePublicStoryBlocks } from "../../../../../lib/public-story";
+import "../../../../public-trip-journal.css";
 
 export default async function PublicDay({
   params,
@@ -26,55 +28,66 @@ export default async function PublicDay({
     month: "short",
     year: "numeric",
   }).format(new Date(entry.day_date + "T12:00:00"));
-  const bodyParagraphs = (entry.body || "").split("\n\n").filter(Boolean);
+  const coverUrl = media[0] ? `/api/public/media/${media[0].id}` : null;
+  const place = entry.actual_location || dict.onTheWay;
+  const storyBlocks = parsePublicStoryBlocks(entry.body || "");
 
   return (
-    <main className="public-day">
-      <div className="public-page-top">
-        <Link className="back-link" href={"/reizen/" + trip.slug}>
-          {dict.allStories}
-        </Link>
-        <PublicLocaleControls />
-      </div>
-      <p className="eyebrow blue">{t(dict.dayNDate, { n: entry.day_number, date })}</p>
-      <h1>{entry.title || dict.travelStory}</h1>
-      <p className="journal-intro">{entry.actual_location}</p>
-      {media.length ? (
-        <div className="public-photo-gallery">
-          {media.map((asset, index) => (
-            <figure className={index === 0 ? "public-photo featured" : "public-photo"} key={asset.id}>
-              <img
-                src={"/api/public/media/" + asset.id}
-                alt={t(dict.photoAlt, {
-                  n: entry.day_number,
-                  place: entry.actual_location || dict.onTheWay,
-                })}
-              />
-            </figure>
-          ))}
+    <main className="public-day public-day-read">
+      <div
+        className={`public-day-hero${coverUrl ? " has-cover" : ""}`}
+        style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}
+      >
+        <div className="public-day-hero-inner">
+          <div className="public-page-top">
+            <Link className="back-link" href={"/reizen/" + trip.slug}>
+              {dict.allStories}
+            </Link>
+            <PublicLocaleControls />
+          </div>
+          <p className="eyebrow">{t(dict.dayNDate, { n: entry.day_number, date })}</p>
+          <h1>{entry.title || dict.travelStory}</h1>
+          <p className="public-day-place">{place}</p>
         </div>
-      ) : null}
-      <article>
-        {bodyParagraphs.map((paragraph, index) =>
-          paragraph.startsWith("## ") ? (
-            <h2 key={index}>{paragraph.slice(3)}</h2>
+      </div>
+      <div className="public-day-body">
+        {media.length ? (
+          <div className="public-photo-gallery">
+            {media.map((asset, index) => (
+              <figure className={index === 0 ? "public-photo featured" : "public-photo"} key={asset.id}>
+                <img
+                  src={"/api/public/media/" + asset.id}
+                  alt={t(dict.photoAlt, {
+                    n: entry.day_number,
+                    place,
+                  })}
+                />
+              </figure>
+            ))}
+          </div>
+        ) : null}
+        <article className="public-day-story">
+          {storyBlocks.map((block, index) =>
+            block.type === "heading" ? (
+              <h2 key={index}>{block.text}</h2>
+            ) : (
+              <p key={index}>{block.text}</p>
+            ),
+          )}
+        </article>
+        <nav className="public-day-navigation">
+          {previous ? (
+            <Link href={"/reizen/" + trip.slug + "/dagen/" + previous.day_number}>{dict.previousDay}</Link>
           ) : (
-            <p key={index}>{paragraph}</p>
-          ),
-        )}
-      </article>
-      <nav className="public-day-navigation">
-        {previous ? (
-          <Link href={"/reizen/" + trip.slug + "/dagen/" + previous.day_number}>{dict.previousDay}</Link>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <Link href={"/reizen/" + trip.slug + "/dagen/" + next.day_number}>{dict.nextDay}</Link>
-        ) : (
-          <span />
-        )}
-      </nav>
+            <span />
+          )}
+          {next ? (
+            <Link href={"/reizen/" + trip.slug + "/dagen/" + next.day_number}>{dict.nextDay}</Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      </div>
     </main>
   );
 }

@@ -1,0 +1,577 @@
+/* Public trip + day journal — extend homepage atmosphere (navy/sky/gold), not a new theme. */
+
+.public-trip-hero-shell {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  min-height: min(72vh, 640px);
+  color: #fff;
+  background-color: #102941;
+  background-position: center;
+  background-size: cover;
+}
+
+.public-trip-hero-shell:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 25, 43, 0.88) 0%, rgba(9, 29, 46, 0.58) 44%, rgba(9, 29, 46, 0.12) 78%),
+    linear-gradient(0deg, rgba(6, 20, 34, 0.55), transparent 48%);
+}
+
+.public-trip-hero-shell:not(.has-cover) {
+  background-image:
+    radial-gradient(ellipse at 72% 18%, rgba(194, 226, 245, 0.35) 0 8%, transparent 34%),
+    linear-gradient(142deg, #416e89 0 28%, #294a59 39% 54%, #0c263a 55% 100%);
+}
+
+.public-trip-hero-shell .public-header,
+.public-trip-hero-shell .public-trip-hero-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.public-trip-hero-shell .public-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.public-trip-hero-shell .wordmark,
+.public-trip-hero-shell .public-header nav a,
+.public-trip-hero-shell .lang-toggle button {
+  color: #fff;
+}
+
+.public-trip-hero-shell .header-link {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(9px);
+  border-color: rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.public-trip-hero-shell .header-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.public-trip-hero-copy {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 88px 30px 72px;
+  animation: public-rise 0.7s ease both;
+}
+
+.public-trip-hero-copy .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e9c685;
+  background: rgba(247, 218, 160, 0.13);
+  border: 1px solid rgba(247, 218, 160, 0.33);
+  border-radius: 999px;
+  padding: 7px 12px;
+  letter-spacing: 0.11em;
+}
+
+.public-trip-hero-copy h1 {
+  max-width: 18ch;
+  margin: 16px 0 14px;
+  font-size: clamp(2.85rem, 6.2vw, 5.4rem);
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+  text-wrap: balance;
+  text-shadow: 0 3px 28px rgba(0, 0, 0, 0.24);
+}
+
+.public-trip-hero-meta {
+  margin: 0 0 16px;
+  font-weight: 600;
+  color: #f5eee2;
+  font-size: 1.02rem;
+}
+
+.public-trip-hero-copy > p:not(.eyebrow):not(.public-trip-hero-meta) {
+  max-width: 36rem;
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  color: #edf2f4;
+}
+
+.public-trip-hero-orbit {
+  position: absolute;
+  z-index: 1;
+  right: 6%;
+  bottom: 10%;
+  width: 180px;
+  height: 180px;
+  pointer-events: none;
+  opacity: 0.68;
+}
+
+.public-trip-hero-orbit i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(240, 218, 177, 0.55);
+  border-radius: 50%;
+  transform: rotate(-20deg);
+  animation: public-orbit-drift 14s ease-in-out infinite alternate;
+}
+
+.public-trip-hero-orbit i:nth-child(2) {
+  inset: 28px -16px;
+  transform: rotate(42deg);
+  animation-delay: -3s;
+}
+
+.public-trip-hero-orbit i:nth-child(3) {
+  inset: 64px 14px;
+  transform: rotate(110deg);
+  animation-delay: -6s;
+}
+
+/* Wider trip reading surface */
+.public-trip.public-trip-wide {
+  max-width: 1120px;
+  margin: auto;
+  padding: 52px 30px 100px;
+  animation: public-rise 0.65s ease 0.08s both;
+}
+
+.public-trip.public-trip-wide > .back-link {
+  margin-bottom: 28px;
+}
+
+.public-trip.public-trip-wide .section-heading {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 22px;
+}
+
+.public-trip.public-trip-wide .section-heading h2 {
+  font-size: clamp(1.85rem, 3.6vw, 2.85rem);
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  margin: 8px 0 0;
+}
+
+.public-trip.public-trip-wide .section-heading > a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.public-trip.public-trip-wide .section-heading > a:hover {
+  opacity: 0.72;
+}
+
+.public-trip.public-trip-wide .trip-map-preview {
+  margin: 4px 0 40px;
+}
+
+.public-trip.public-trip-wide .trip-map-shell {
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(23, 53, 92, 0.08);
+}
+
+/* Day timeline — roomy, not a cramped dashboard list */
+.public-trip-wide .public-day-timeline {
+  border-top: 0;
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.public-trip-wide .public-day-timeline li {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  border-bottom: 0;
+}
+
+.public-trip-wide .public-day-timeline li > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: #eef5fb;
+  color: #3d6b93;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.public-trip-wide .public-day-timeline li a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(23, 53, 92, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+
+.public-trip-wide .public-day-timeline li a:hover {
+  transform: translateY(-3px);
+  border-color: #8eb7cf;
+  box-shadow: 0 16px 34px rgba(23, 53, 92, 0.12);
+}
+
+.public-trip-wide .public-day-timeline p,
+.public-trip-wide .public-day-timeline small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.public-trip-wide .public-day-timeline h3 {
+  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
+  letter-spacing: -0.03em;
+  margin: 5px 0 6px;
+  line-height: 1.2;
+}
+
+.public-trip-wide .public-day-timeline b {
+  color: #1769e8;
+  font-size: 1.15rem;
+  transition: transform 0.2s ease;
+}
+
+.public-trip-wide .public-day-timeline li a:hover b {
+  transform: translateX(3px);
+}
+
+/* —— Day journal reading —— */
+.public-day.public-day-read {
+  max-width: none;
+  margin: 0;
+  padding: 0 0 100px;
+}
+
+.public-day-hero {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  min-height: min(52vh, 460px);
+  color: #fff;
+  background-color: #102941;
+  background-position: center;
+  background-size: cover;
+}
+
+.public-day-hero:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 25, 43, 0.9) 0%, rgba(9, 29, 46, 0.55) 48%, rgba(9, 29, 46, 0.18) 100%),
+    linear-gradient(0deg, rgba(6, 20, 34, 0.62), transparent 52%);
+}
+
+.public-day-hero:not(.has-cover) {
+  background-image:
+    radial-gradient(ellipse at 70% 20%, rgba(194, 226, 245, 0.28) 0 10%, transparent 36%),
+    linear-gradient(148deg, #3a657e 0 34%, #1c3a4c 40% 62%, #0c263a 63% 100%);
+  min-height: min(42vh, 380px);
+}
+
+.public-day-hero .public-day-hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 30px 56px;
+  animation: public-rise 0.65s ease both;
+}
+
+.public-day-hero .public-page-top {
+  margin-bottom: 48px;
+}
+
+.public-day-hero .back-link,
+.public-day-hero .lang-toggle button,
+.public-day-hero .public-locale-bar .lang-toggle button {
+  color: #f3f6f8;
+}
+
+.public-day-hero .back-link {
+  opacity: 0.92;
+  transition: opacity 0.2s ease;
+}
+
+.public-day-hero .back-link:hover {
+  opacity: 1;
+}
+
+.public-day-hero .eyebrow {
+  display: inline-flex;
+  color: #e9c685;
+  letter-spacing: 0.11em;
+}
+
+.public-day-hero h1 {
+  max-width: 18ch;
+  margin: 14px 0 12px;
+  font-size: clamp(2.15rem, 4.8vw, 3.45rem);
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  text-wrap: balance;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.22);
+}
+
+.public-day-hero .public-day-place {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: #edf2f4;
+  font-weight: 500;
+}
+
+.public-day-body {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 30px;
+  animation: public-rise 0.7s ease 0.1s both;
+}
+
+.public-day-body .public-photo-gallery {
+  margin-top: -36px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 3;
+}
+
+.public-day-body .public-photo {
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgba(23, 53, 92, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.public-day-body .public-photo:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 42px rgba(23, 53, 92, 0.16);
+}
+
+.public-day-body .public-photo img {
+  height: 300px;
+}
+
+.public-day-body .public-photo.featured img {
+  height: min(58vw, 520px);
+}
+
+/* One clear story voice — no mixed body sizes */
+.public-day-story {
+  max-width: 44rem;
+  margin: 42px auto 0;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+.public-day-story > * {
+  font-size: inherit;
+  line-height: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+}
+
+.public-day-story p {
+  margin: 0 0 1.15em;
+}
+
+.public-day-story h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin: 1.7em 0 0.55em;
+  color: var(--ink);
+}
+
+.public-day-story h2:first-child {
+  margin-top: 0;
+}
+
+.public-day-read .public-day-navigation {
+  max-width: 44rem;
+  margin: 48px auto 0;
+  padding: 22px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.public-day-read .public-day-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: #1769e8;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.public-day-read .public-day-navigation a:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+@keyframes public-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes public-orbit-drift {
+  from {
+    transform: rotate(-20deg) scale(1);
+  }
+  to {
+    transform: rotate(8deg) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-trip-hero-copy,
+  .public-trip.public-trip-wide,
+  .public-day-hero .public-day-hero-inner,
+  .public-day-body,
+  .public-trip-hero-orbit i {
+    animation: none;
+  }
+
+  .public-trip-wide .public-day-timeline li a,
+  .public-day-body .public-photo,
+  .public-trip-hero-shell .header-link,
+  .public-day-read .public-day-navigation a {
+    transition: none;
+  }
+
+  .public-trip-wide .public-day-timeline li a:hover,
+  .public-day-body .public-photo:hover,
+  .public-trip-hero-shell .header-link:hover,
+  .public-day-read .public-day-navigation a:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .public-trip-hero-shell {
+    min-height: min(78vh, 620px);
+  }
+
+  .public-trip-hero-shell .public-header {
+    border-bottom: 0;
+  }
+
+  .public-trip-hero-copy {
+    padding: 72px 20px 56px;
+  }
+
+  .public-trip-hero-copy h1 {
+    font-size: clamp(2.55rem, 12vw, 3.6rem);
+    max-width: none;
+  }
+
+  .public-trip-hero-copy > p:not(.eyebrow):not(.public-trip-hero-meta) {
+    font-size: 1rem;
+  }
+
+  .public-trip-hero-orbit {
+    width: 120px;
+    height: 120px;
+    right: -12px;
+    bottom: 28px;
+  }
+
+  .public-trip.public-trip-wide {
+    padding: 36px 18px 90px;
+  }
+
+  .public-trip-wide .public-day-timeline li {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .public-trip-wide .public-day-timeline li > span {
+    justify-content: flex-start;
+    width: max-content;
+    padding: 7px 10px;
+    align-self: start;
+  }
+
+  .public-trip-wide .public-day-timeline li a {
+    padding: 16px;
+  }
+
+  .public-day-hero {
+    min-height: min(58vh, 420px);
+  }
+
+  .public-day-hero:not(.has-cover) {
+    min-height: min(46vh, 340px);
+  }
+
+  .public-day-hero .public-day-hero-inner {
+    padding: 20px 18px 44px;
+  }
+
+  .public-day-hero .public-page-top {
+    margin-bottom: 36px;
+  }
+
+  .public-day-hero h1 {
+    font-size: clamp(2rem, 9.5vw, 2.85rem);
+    max-width: none;
+  }
+
+  .public-day-body {
+    padding: 0 18px;
+  }
+
+  .public-day-body .public-photo-gallery {
+    margin-top: -24px;
+    gap: 10px;
+  }
+
+  .public-day-body .public-photo img {
+    height: 180px;
+  }
+
+  .public-day-body .public-photo.featured img {
+    height: 62vw;
+  }
+
+  .public-day-story {
+    margin-top: 32px;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+  }
+
+  .public-day-story h2 {
+    font-size: 1.28rem;
+  }
+}

@@ -148,14 +148,23 @@ export async function getPublicTravelOverview() {
 }
 
 export async function getPublicTrip(slug: string, locale?: Locale) {
-  if (!hasSupabaseEnv()) return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[] } : null;
+  if (!hasSupabaseEnv()) {
+    return slug === fallbackTrip.slug ? { trip: fallbackTrip, days: [] as TripDay[], coverUrl: null as string | null } : null;
+  }
   try {
     const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = await supabase.rpc("get_shareable_trip_by_slug", { p_slug: slug });
     if (error) throw error;
     const trip = Array.isArray(data) ? data[0] : data;
     if (!trip) return null;
-    return { trip: trip as Trip, days: await getPublishedDays(trip.id, locale) };
+    const days = await getPublishedDays(trip.id, locale);
+    const tripCoverUrl = await getPublicTripCoverUrl(trip.id);
+    const dayCoverId = tripCoverUrl ? null : await getPublicCoverAssetId(days.map((day) => day.id));
+    return {
+      trip: trip as Trip,
+      days,
+      coverUrl: tripCoverUrl || (dayCoverId ? `/api/public/media/${dayCoverId}` : null),
+    };
   } catch {
     return null;
   }
