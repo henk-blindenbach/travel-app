@@ -556,6 +556,7 @@ export function DayEntryEditor({
       }));
       setEntry((current) => current ? { ...current, publication_status: data.entry.publication_status } : current);
       setMessage(status === "ready" ? "Dag gemarkeerd als klaar." : "Teruggezet naar concept.");
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Status kon niet worden opgeslagen.");
     } finally {
@@ -915,6 +916,7 @@ export function DayEntryEditor({
           ? "Dag gepubliceerd. De reis staat nu op niet-vermeld zodat de directe link werkt."
           : "Dag gepubliceerd. Controleer hem nog even en deel daarna waar je wilt.",
       );
+      router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Publiceren lukte niet.");
     } finally {

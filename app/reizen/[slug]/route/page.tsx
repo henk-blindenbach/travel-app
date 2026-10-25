@@ -40,7 +40,8 @@ export default async function PublicRoute({ params }: { params: Promise<{ slug: 
           <i className="trip-map-swatch item" /> {t(dict.route.planning, { n: counts.planning })}
         </span>
         <span>
-          <i className="trip-map-swatch published" /> {t(dict.route.visitedPublished, { n: counts.published })}
+          <i className="trip-map-swatch published" />{" "}
+          {t(dict.route.visitedPublished, { n: counts.published + counts.visited })}
         </span>
       </div>
       <TripMapLoader pins={pins} labels={mapLabels} />

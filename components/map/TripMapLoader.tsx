@@ -8,8 +8,8 @@ import type { MapChromeLabels } from "../../lib/i18n/map-labels";
 
 const DEFAULT_CHROME: MapChromeLabels = {
   loading: "Kaart laden…",
-  routeToggleTitle: "Lijn tussen dagen in volgorde",
-  routeToggleAria: "Lijn tussen dagen tonen",
+  routeToggleTitle: "Lijn langs foto’s met GPS (of geplande dagen)",
+  routeToggleAria: "Routelijn tonen",
   routeToggleLabel: "Lijn",
   open: "Openen →",
   ariaLabel: "Reiskaart",

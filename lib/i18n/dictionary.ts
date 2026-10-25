@@ -261,8 +261,8 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
     },
     map: {
       loading: "Kaart laden…",
-      routeToggleTitle: "Lijn tussen dagen in volgorde",
-      routeToggleAria: "Lijn tussen dagen tonen",
+      routeToggleTitle: "Lijn langs foto’s met GPS (of geplande dagen)",
+      routeToggleAria: "Routelijn tonen",
       routeToggleLabel: "Lijn",
       open: "Openen →",
       ariaLabel: "Reiskaart",
@@ -399,8 +399,8 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
     },
     map: {
       loading: "Loading map…",
-      routeToggleTitle: "Line between days in order",
-      routeToggleAria: "Show line between days",
+      routeToggleTitle: "Line along GPS photos (or planned days)",
+      routeToggleAria: "Show route line",
       routeToggleLabel: "Line",
       open: "Open →",
       ariaLabel: "Trip map",
@@ -537,8 +537,8 @@ export const dictionaries: Record<Locale, PublicDictionary> = {
     },
     map: {
       loading: "A carregar o mapa…",
-      routeToggleTitle: "Linha entre dias por ordem",
-      routeToggleAria: "Mostrar linha entre dias",
+      routeToggleTitle: "Linha pelas fotos com GPS (ou dias planeados)",
+      routeToggleAria: "Mostrar linha da rota",
       routeToggleLabel: "Linha",
       open: "Abrir →",
       ariaLabel: "Mapa da viagem",

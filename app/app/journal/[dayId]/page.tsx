@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/AppShell";
 import { DayEntryEditor } from "../../../../components/journal/DayEntryEditor";
-import { findNextDayWithoutEntry, oneDayEntry, statusMeta } from "../../../../lib/journal-status";
+import { findNextDayWithoutEntry, oneDayEntry } from "../../../../lib/journal-status";
 import { getFeaturedTrip, getPrivateTrip } from "../../../../lib/travel-data";
 import { createClient, hasSupabaseEnv } from "../../../../lib/supabase/server";
 
@@ -81,7 +81,6 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
     month: "long",
   }).format(new Date(`${day.day_date}T12:00:00`));
   const journalHub = `/app/trips/${trip.id}/journal`;
-  const chip = statusMeta(entry);
 
   return (
     <AppShell active="trips">
@@ -92,9 +91,6 @@ export default async function JournalDay({ params }: { params: Promise<{ dayId: 
         <h1>{day.title || "Dagverslag"}</h1>
         <p className="journal-intro">
           Leg de dag vast wanneer het uitkomt. Het verslag en de foto’s zijn alleen zichtbaar voor jullie reisgenoten.
-        </p>
-        <p className="journal-day-status">
-          Status: <span className={`journal-status journal-status-${chip.key}`}>{chip.label}</span>
         </p>
         <DayEntryEditor
           tripDayId={day.id}
