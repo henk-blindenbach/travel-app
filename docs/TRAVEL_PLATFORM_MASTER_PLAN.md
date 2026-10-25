@@ -1518,3 +1518,9 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - **Kopieer naar andere dag** in de planningeditor (`POST /api/planning-items/copy`); CSV-import bleef zoals eerder (geen tweede import).
 - Reisdossier (reizigers/contacten/budget): duidelijkere labels, ankers, sidemenu-link **Reisdossier**, klikbare tel/mailto; geen rebuild.
 - Verlopen sessie bij document openen (en verwante auth-gated acties): duidelijke melding, daarna login met `error=session`.
+
+### Afgerond — interview spraakblokken en vervolgbeurten (25 oktober 2026)
+
+- **🎙 Vertellen** in het daginterview houdt opeenvolgende spraakblokken vast: continuous recognition, herstart na een browser-stop, en append i.p.v. overschrijven van eerdere tekst.
+- Versturen/afronden stopt de opname eerst, zodat een tweede beurt niet race’t met een open SpeechRecognition-sessie.
+- Vervolgvragen via `/api/interview` vragen geen vroegtijdig verslag meer (lege title/location/body); afronden krijgt een hogere `max_output_tokens`-budget en incomplete provider-antwoorden worden netjes afgewezen.

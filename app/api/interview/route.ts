@@ -59,7 +59,8 @@ export async function POST(request: Request) {
       currentDraft: entry ? { title: entry.title, location: entry.actual_location, body: entry.body } : null,
       photos: entry?.media_assets?.map((asset) => ({ filename: asset.original_filename, caption: asset.caption, capturedAt: asset.captured_at })) || [],
     });
-    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijk, direct publiceerbaar reisverhaal. Schrijf het volledige body-veld consequent in de wij-vorm (wij, ons, onze) en nooit over 'jullie'. Gebruik 2 tot 4 korte Markdown-kopjes met ##, lege regels tussen alinea's en een warme, feitelijke reisvertelling. Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren. ${payload.finish ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is." : ""} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
+    const finishing = Boolean(payload.finish);
+    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijk, direct publiceerbaar reisverhaal. Schrijf het volledige body-veld consequent in de wij-vorm (wij, ons, onze) en nooit over 'jullie'. Gebruik 2 tot 4 korte Markdown-kopjes met ##, lege regels tussen alinea's en een warme, feitelijke reisvertelling. Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren. ${finishing ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is." : "Dit is een vervolgbeurt in het gesprek: zet complete=false tenzij het verhaal al duidelijk genoeg is, vul reply met precies één korte vraag, en zet title, actualLocation en body op lege strings — schrijf nog geen verslag."} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
 
     let answer: { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
     try {
@@ -69,7 +70,8 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model: "gpt-5-mini",
           reasoning: { effort: "minimal" },
-          max_output_tokens: 1_600,
+          // Follow-ups only need a short question; finishing needs the full story.
+          max_output_tokens: finishing ? 3_200 : 800,
           input: prompt,
           text: { format: { type: "json_schema", name: "travel_interview", strict: true, schema } },
         }),
@@ -79,13 +81,22 @@ export async function POST(request: Request) {
         console.error("OpenAI interview request failed", { status: response.status, category: "provider_rejected" });
         throw new InterviewError(openAiUserMessage(response.status), "provider_rejected");
       }
-      const result = await response.json() as { output_text?: unknown; output?: unknown };
+      const result = await response.json() as { status?: unknown; output_text?: unknown; output?: unknown };
       const rawAnswer = outputText(result);
       if (!rawAnswer) throw new InterviewError("OpenAI gaf geen leesbaar antwoord terug. Probeer het opnieuw.", "empty_provider_output");
+      if (result.status === "incomplete") {
+        console.error("OpenAI interview response incomplete", { category: "incomplete_provider_output" });
+        throw new InterviewError("OpenAI gaf een onvolledig antwoord terug. Probeer het opnieuw.", "incomplete_provider_output");
+      }
       try { answer = JSON.parse(rawAnswer); }
       catch { throw new InterviewError("OpenAI gaf een onvolledig antwoord terug. Probeer het opnieuw.", "invalid_provider_output"); }
       if (typeof answer.reply !== "string" || !answer.reply.trim() || typeof answer.complete !== "boolean") {
         throw new InterviewError("OpenAI gaf geen bruikbaar antwoord terug. Probeer het opnieuw.", "invalid_provider_output");
+      }
+      if (!finishing && !answer.complete) {
+        answer.title = "";
+        answer.actualLocation = "";
+        answer.body = "";
       }
     } catch (error) {
       const userAnswers = answersAsPlainText(payload.messages);
