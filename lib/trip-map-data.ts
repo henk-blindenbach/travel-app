@@ -38,6 +38,7 @@ type EntryMediaRow = {
     caption: string | null;
     original_filename: string;
     upload_status: string;
+    captured_at: string | null;
   }[] | null;
 };
 
@@ -72,6 +73,17 @@ type PublicVisitedPoint = {
   label: string;
   latitude: number;
   longitude: number;
+};
+
+type PublicPhotoPoint = {
+  id: string;
+  trip_id: string;
+  day_number: number;
+  day_date: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  captured_at: string | null;
 };
 
 function publicClient() {
@@ -130,7 +142,7 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
         .in("kind", ["accommodation", "activity", "transport", "flight", "permit"]),
       supabase
         .from("day_entries")
-        .select("day_number,title,trip_day_id,media_assets(id,latitude,longitude,caption,original_filename,upload_status)")
+        .select("day_number,title,trip_day_id,media_assets(id,latitude,longitude,caption,original_filename,upload_status,captured_at)")
         .eq("trip_id", tripId)
         .order("day_number"),
     ]);
@@ -185,6 +197,7 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
       href: `/app/journal/${entry.trip_day_id}`,
       thumbnailUrl: thumbs.get(asset.id),
       dayNumber: entry.day_number,
+      capturedAt: asset.captured_at,
     }));
 
     void tripSlug;
@@ -194,7 +207,7 @@ export async function getPrivateTripMapPins(tripId: string, tripSlug?: string): 
   }
 }
 
-/** Privacy A: planned + public planning pins + published actual_location. No EXIF GPS for anon. */
+/** Planned + planning pins + published day pins + public photo-EXIF pins (for visited trail). */
 export async function getPublicTripMapPins(
   tripId: string,
   tripSlug: string,
@@ -211,7 +224,7 @@ export async function getPublicTripMapPins(
   if (!hasSupabaseEnv()) return [];
   try {
     const client = publicClient();
-    const [plannedResult, planningResult, visitedResult] = await Promise.all([
+    const [plannedResult, planningResult, visitedResult, photoResult] = await Promise.all([
       client
         .from("public_trip_map_points")
         .select("id,trip_id,day_number,day_date,label,latitude,longitude,day_published")
@@ -226,6 +239,10 @@ export async function getPublicTripMapPins(
         .select("id,trip_id,day_number,day_date,label,latitude,longitude")
         .eq("trip_id", tripId)
         .order("day_number"),
+      client
+        .from("public_trip_photo_map_points")
+        .select("id,trip_id,day_number,day_date,label,latitude,longitude,captured_at")
+        .eq("trip_id", tripId),
     ]);
 
     const visitedDays = new Set(
@@ -276,7 +293,20 @@ export async function getPublicTripMapPins(
       dayNumber: point.day_number,
     }));
 
-    return [...planned, ...planning, ...visited];
+    const photos: TripMapPin[] = ((photoResult.data || []) as PublicPhotoPoint[]).map((point) => ({
+      id: `public-photo-${point.id}`,
+      kind: "visited" as const,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      label: point.label,
+      subtitle: t(dict.visitedDay, { n: point.day_number }),
+      href: `/reizen/${tripSlug}/dagen/${point.day_number}`,
+      thumbnailUrl: `/api/public/media/${point.id}`,
+      dayNumber: point.day_number,
+      capturedAt: point.captured_at,
+    }));
+
+    return [...planned, ...planning, ...visited, ...photos];
   } catch {
     return [];
   }

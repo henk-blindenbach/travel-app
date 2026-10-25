@@ -58,15 +58,17 @@ export async function getPrivateTrip(tripId: string) {
   } catch { return null; }
 }
 
-/** Public data never falls back to planned days: only rows admitted by publication RLS are returned. */
+/** Public data never falls back to planned days: only rows admitted by publication RLS are returned.
+ * Do not filter on publication_status here: anon has no SELECT grant on that column, so the filter
+ * 401s and the public journal falsely shows “Nog geen verhalen”. RLS already admits published rows only. */
 async function getPublishedDays(tripId: string, locale?: Locale) {
   const supabase = createAnonClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("day_entries")
     .select("id,day_number,day_date,title,actual_location,title_i18n,body_i18n,actual_location_i18n")
     .eq("trip_id", tripId)
-    .eq("publication_status", "published")
     .order("day_number", { ascending: true });
+  if (error) return [] as TripDay[];
   return (data || []).map((entry) => {
     const localized = locale
       ? localizeEntryFields(entry, locale)
