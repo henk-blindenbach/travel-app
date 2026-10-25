@@ -72,6 +72,7 @@ export function EditTripForm({ trip }: { trip: Trip }) {
           endsOn: endDate,
           summary: form.get("summary"),
           aiBasis: form.get("aiBasis"),
+          polarstepsUrl: form.get("polarstepsUrl"),
           status: form.get("status"),
         }),
       }));
@@ -163,6 +164,17 @@ export function EditTripForm({ trip }: { trip: Trip }) {
           </select>
         </label>
         <label>Korte omschrijving<textarea name="summary" maxLength={1000} rows={4} defaultValue={trip.summary || ""} /></label>
+        <label>
+          Polarsteps-URL
+          <input
+            name="polarstepsUrl"
+            type="url"
+            maxLength={500}
+            defaultValue={trip.polarsteps_url || ""}
+            placeholder="https://www.polarsteps.com/…"
+          />
+          <small>Optioneel. Zichtbaar op de openbare reis- en dagpagina’s als er een link staat.</small>
+        </label>
         <label>
           AI-basis voor dagverslagen
           <textarea

@@ -5,7 +5,7 @@ import type { Locale } from "./i18n/config";
 const configured = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const publicClient = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 
-export type PublicTrip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status: string };
+export type PublicTrip = { id: string; title: string; slug: string; starts_on: string; ends_on: string; countries: string[]; summary: string | null; status: string; polarsteps_url?: string | null };
 export type PublicDay = {
   id: string;
   trip_id: string;

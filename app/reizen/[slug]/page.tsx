@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicHeader } from "../../../components/PublicHeader";
+import { PolarstepsFollowLink } from "../../../components/public/PolarstepsFollowLink";
 import { TripMapLoader } from "../../../components/map/TripMapLoader";
 import { getDictionary, getLocale, LOCALE_DATE, t } from "../../../lib/i18n";
 import { mapChromeLabels } from "../../../lib/i18n/map-labels";
@@ -40,6 +41,13 @@ export default async function PublicTrip({ params }: { params: Promise<{ slug: s
             {formatDate(trip.starts_on)} — {formatDate(trip.ends_on)}
           </p>
           {trip.summary ? <p>{trip.summary}</p> : null}
+          {trip.polarsteps_url ? (
+            <PolarstepsFollowLink
+              className="polarsteps-follow polarsteps-follow-hero"
+              url={trip.polarsteps_url}
+              label={dict.trip.followOnPolarsteps}
+            />
+          ) : null}
         </div>
         <div className="public-trip-hero-orbit" aria-hidden>
           <i />

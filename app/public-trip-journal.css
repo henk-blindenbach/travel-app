@@ -410,6 +410,36 @@
   margin-top: 0;
 }
 
+.polarsteps-follow {
+  max-width: 44rem;
+  margin: 28px auto 0;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.polarsteps-follow a {
+  color: #1769e8;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.polarsteps-follow a:hover {
+  opacity: 0.85;
+}
+
+.polarsteps-follow-hero {
+  max-width: none;
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.polarsteps-follow-hero a {
+  color: #f7daa0;
+}
+
 .public-day-read .public-day-navigation {
   max-width: 44rem;
   margin: 48px auto 0;
