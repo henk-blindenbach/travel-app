@@ -71,6 +71,7 @@ export function EditTripForm({ trip }: { trip: Trip }) {
           startsOn: startDate,
           endsOn: endDate,
           summary: form.get("summary"),
+          aiBasis: form.get("aiBasis"),
           status: form.get("status"),
         }),
       }));
@@ -162,6 +163,17 @@ export function EditTripForm({ trip }: { trip: Trip }) {
           </select>
         </label>
         <label>Korte omschrijving<textarea name="summary" maxLength={1000} rows={4} defaultValue={trip.summary || ""} /></label>
+        <label>
+          AI-basis voor dagverslagen
+          <textarea
+            name="aiBasis"
+            maxLength={2000}
+            rows={4}
+            defaultValue={trip.ai_basis || ""}
+            placeholder="Tone, thema’s, dingen die de interviewer mag onthouden — niet publiek."
+          />
+          <small>Alleen voor het reisverslag-interview. Niet zichtbaar op de publieke site (anders dan de korte omschrijving).</small>
+        </label>
         {message ? <p className="form-message" role="status">{message}</p> : null}
         <button className="primary-button blue-button" disabled={saving || deleting} type="submit">
           {saving ? "Bezig met opslaan…" : "Wijzigingen opslaan"}

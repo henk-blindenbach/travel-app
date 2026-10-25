@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  AI_BASIS_MAX_CHARS,
+  buildInterviewContext,
+  EARLIER_JOURNAL_MAX_DAYS,
+  INTERVIEW_STORY_STYLE,
+} from "../../../lib/interview-context";
 import { safeText, validUuid } from "../../../lib/journal";
 import { openAiUserMessage, outputText } from "../../../lib/openai-text";
 import { createClient } from "../../../lib/supabase/server";
@@ -54,13 +60,39 @@ export async function POST(request: Request) {
     const key = process.env.OPENAI_API_KEY;
     if (!key) return NextResponse.json({ error: "OpenAI is nog niet ingesteld." }, { status: 503 });
     const entry = Array.isArray(day.day_entries) ? day.day_entries[0] : day.day_entries;
-    const context = JSON.stringify({
-      planned: { title: day.title, location: day.planned_location, route: day.planned_route, date: day.day_date, number: day.day_number },
-      currentDraft: entry ? { title: entry.title, location: entry.actual_location, body: entry.body } : null,
-      photos: entry?.media_assets?.map((asset) => ({ filename: asset.original_filename, caption: asset.caption, capturedAt: asset.captured_at })) || [],
-    });
+
+    const [{ data: trip }, { data: planningItems }, { data: earlierEntries }] = await Promise.all([
+      supabase.from("trips").select("ai_basis").eq("id", day.trip_id).maybeSingle(),
+      supabase
+        .from("planning_items")
+        .select("kind,status,title,details,location,departure_time,arrival_time,arrives_on,ends_on,carrier,flight_number,address,duration_minutes,sort_order")
+        .eq("trip_day_id", day.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("day_entries")
+        .select("day_number,day_date,title,actual_location,body")
+        .eq("trip_id", day.trip_id)
+        .lt("day_number", day.day_number)
+        .not("body", "eq", "")
+        .order("day_number", { ascending: false })
+        .limit(EARLIER_JOURNAL_MAX_DAYS * 2),
+    ]);
+
+    const context = JSON.stringify(buildInterviewContext({
+      aiBasis: trip?.ai_basis ? safeText(trip.ai_basis, AI_BASIS_MAX_CHARS) : null,
+      day: {
+        title: day.title,
+        planned_location: day.planned_location,
+        planned_route: day.planned_route,
+        day_date: day.day_date,
+        day_number: day.day_number,
+      },
+      entry,
+      planningItems: planningItems || [],
+      earlierJournal: earlierEntries || [],
+    }));
     const finishing = Boolean(payload.finish);
-    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle. Spreek Nederlands. Gebruik de context alleen als geheugen, verzin geen feiten. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. Als complete=true, maak dan een aantrekkelijk, direct publiceerbaar reisverhaal. Schrijf het volledige body-veld consequent in de wij-vorm (wij, ons, onze) en nooit over 'jullie'. Gebruik 2 tot 4 korte Markdown-kopjes met ##, lege regels tussen alinea's en een warme, feitelijke reisvertelling. Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren. ${finishing ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is." : "Dit is een vervolgbeurt in het gesprek: zet complete=false tenzij het verhaal al duidelijk genoeg is, vul reply met precies één korte vraag, en zet title, actualLocation en body op lege strings — schrijf nog geen verslag."} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
+    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle. Spreek Nederlands. Gebruik de context alleen als geheugen (eerdere dagen, planning van vandaag, trip AI-basis, concept en foto's), verzin geen feiten en herhaal eerdere dagen niet als nieuw. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. ${INTERVIEW_STORY_STYLE} Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren. ${finishing ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is (context mag kleuren, niet feiten verzinnen)." : "Dit is een vervolgbeurt in het gesprek: zet complete=false tenzij het verhaal al duidelijk genoeg is, vul reply met precies één korte vraag, en zet title, actualLocation en body op lege strings — schrijf nog geen verslag."} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
 
     let answer: { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
     try {
