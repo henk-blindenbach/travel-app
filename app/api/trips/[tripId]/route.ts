@@ -28,6 +28,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
         : [];
     const status = statuses.has(payload.status) ? payload.status : "";
     const summary = safeText(payload.summary, 1000) || null;
+    const aiBasis = safeText(payload.aiBasis, 2000) || null;
 
     if (!title) return NextResponse.json({ error: "Geef de reis een naam." }, { status: 400 });
     if (!startsOn) return NextResponse.json({ error: "Kies een geldige vertrekdatum." }, { status: 400 });
@@ -58,11 +59,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
         travelers,
         departure_location: departureLocation,
         summary,
+        ai_basis: aiBasis,
         status,
         updated_at: new Date().toISOString(),
       })
       .eq("id", tripId)
-      .select("id,title,starts_on,ends_on,countries,travelers,departure_location,summary,status,slug")
+      .select("id,title,starts_on,ends_on,countries,travelers,departure_location,summary,ai_basis,status,slug")
       .single();
     if (error || !data) return NextResponse.json({ error: "De reis kon niet worden opgeslagen." }, { status: 400 });
 
