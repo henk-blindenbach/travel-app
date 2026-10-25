@@ -1524,3 +1524,9 @@ Bewust buiten deze stap: directe social-API-koppelingen, automatisch posten, acc
 - **🎙 Vertellen** in het daginterview houdt opeenvolgende spraakblokken vast: continuous recognition, herstart na een browser-stop, en append i.p.v. overschrijven van eerdere tekst.
 - Versturen/afronden stopt de opname eerst, zodat een tweede beurt niet race’t met een open SpeechRecognition-sessie.
 - Vervolgvragen via `/api/interview` vragen geen vroegtijdig verslag meer (lege title/location/body); afronden krijgt een hogere `max_output_tokens`-budget en incomplete provider-antwoorden worden netjes afgewezen.
+
+### Afgerond — interview mic/focus na corrigeren (25 oktober 2026)
+
+- Vertellen focust het antwoordveld zelf (geen vooraf tikken in het blok nodig).
+- Microfoontoegang via `getUserMedia` één keer per interviewpagina; dezelfde SpeechRecognition-engine wordt hergebruikt zodat Safari niet bij elke herstart opnieuw vraagt.
+- Wissen/corrigeren van de draft tijdens opname synchroniseert de basis en soft-herstart recognition, zodat de volgende utterance doorgaat zonder oude tekst terug te zetten.
