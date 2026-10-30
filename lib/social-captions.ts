@@ -168,36 +168,100 @@ export function sharePhotosDisabledHint(selectedCount: number, readyCount = sele
   return "";
 }
 
-/** OpenAI JSON schema for generating all platform captions. */
-export function socialCaptionsJsonSchema() {
+/** Platform batches so large days stay within serverless + OpenAI time budgets. */
+export const SOCIAL_CAPTION_CHUNKS: SocialPlatformKey[][] = [
+  ["instagram_feed", "instagram_carousel", "instagram_story"],
+  ["facebook", "polarsteps"],
+];
+
+const PHOTO_CAPTION_PROMPT_LIMIT = 12;
+const PHOTO_CAPTION_CHAR_LIMIT = 120;
+const BODY_PROMPT_LIMIT = 2_500;
+
+const PLATFORM_PROMPT_HINTS: Record<SocialPlatformKey, string> = {
+  instagram_feed: "instagram_feed: warm, compact, max ±2200 tekens, passende hashtags aan het eind.",
+  instagram_carousel: "instagram_carousel: iets meer nadruk op de reeks beelden, compact, hashtags aan het eind.",
+  instagram_story: "instagram_story: heel kort (max ±200 tekens), geen hashtags, geschikt als story-tekst.",
+  facebook: "facebook: iets uitgebreider, zonder hashtags.",
+  polarsteps: "polarsteps: feitelijk reislog, compact, zonder hashtags.",
+};
+
+/**
+ * Shrink media captions for the AI prompt: prefer publication-marked photos,
+ * keep order, drop empties, truncate — large days (15–20+ photos) otherwise
+ * blow the OpenAI + Vercel time budget.
+ */
+export function compactPhotoCaptionsForPrompt(assets: unknown): string[] {
+  if (!Array.isArray(assets)) return [];
+  const rows = assets
+    .map((raw, index) => {
+      if (!raw || typeof raw !== "object") return null;
+      const asset = raw as {
+        caption?: unknown;
+        is_public?: unknown;
+        sort_order?: unknown;
+      };
+      const caption = typeof asset.caption === "string" ? asset.caption.trim() : "";
+      if (!caption) return null;
+      const sort =
+        typeof asset.sort_order === "number" && Number.isFinite(asset.sort_order)
+          ? asset.sort_order
+          : index;
+      return {
+        caption: caption.slice(0, PHOTO_CAPTION_CHAR_LIMIT),
+        isPublic: Boolean(asset.is_public),
+        sort,
+      };
+    })
+    .filter((row): row is { caption: string; isPublic: boolean; sort: number } => Boolean(row));
+
+  const preferred = rows.filter((row) => row.isPublic);
+  const pool = preferred.length ? preferred : rows;
+  return pool
+    .sort((a, b) => a.sort - b.sort)
+    .slice(0, PHOTO_CAPTION_PROMPT_LIMIT)
+    .map((row) => row.caption);
+}
+
+function clipPromptText(value: unknown, limit: number) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit)}…`;
+}
+
+/** OpenAI JSON schema for the requested platform captions. */
+export function socialCaptionsJsonSchema(platforms: readonly SocialPlatformKey[] = SOCIAL_PLATFORM_KEYS) {
+  const keys = platforms.length ? [...platforms] : [...SOCIAL_PLATFORM_KEYS];
   const properties: Record<string, { type: "string" }> = {};
-  for (const key of SOCIAL_PLATFORM_KEYS) properties[key] = { type: "string" };
+  for (const key of keys) properties[key] = { type: "string" };
   return {
     type: "object",
     additionalProperties: false,
     properties,
-    required: [...SOCIAL_PLATFORM_KEYS],
+    required: keys,
   };
 }
 
-export function socialCaptionsPrompt(facts: {
-  title: string;
-  location: string;
-  body: string;
-  photoCaptions: unknown;
-}) {
+export function socialCaptionsPrompt(
+  facts: {
+    title: string;
+    location: string;
+    body: string;
+    photoCaptions: unknown;
+  },
+  platforms: readonly SocialPlatformKey[] = SOCIAL_PLATFORM_KEYS,
+) {
+  const keys = platforms.length ? platforms : SOCIAL_PLATFORM_KEYS;
+  const photoLines = compactPhotoCaptionsForPrompt(facts.photoCaptions);
   return [
     "Schrijf Nederlandse social-captions voor Henk en Michel.",
     "Michel is mannelijk en heet nooit Michelle.",
     "Gebruik alleen deze feiten, schrijf in wij-vorm en verzin niets.",
-    "instagram_feed: warm, compact, max ±2200 tekens, passende hashtags aan het eind.",
-    "instagram_carousel: iets meer nadruk op de reeks beelden, compact, hashtags aan het eind.",
-    "instagram_story: heel kort (max ±200 tekens), geen hashtags, geschikt als story-tekst.",
-    "facebook: iets uitgebreider, zonder hashtags.",
-    "polarsteps: feitelijk reislog, compact, zonder hashtags.",
-    `Titel: ${facts.title}.`,
-    `Locatie: ${facts.location}.`,
-    `Verhaal: ${facts.body}.`,
-    `Fotobijschriften: ${JSON.stringify(facts.photoCaptions)}`,
+    `Schrijf alleen deze platforms: ${keys.join(", ")}.`,
+    ...keys.map((key) => PLATFORM_PROMPT_HINTS[key]),
+    `Titel: ${clipPromptText(facts.title, 200)}.`,
+    `Locatie: ${clipPromptText(facts.location, 200)}.`,
+    `Verhaal: ${clipPromptText(facts.body, BODY_PROMPT_LIMIT)}.`,
+    `Fotobijschriften (${photoLines.length}): ${JSON.stringify(photoLines)}`,
   ].join(" ");
 }
