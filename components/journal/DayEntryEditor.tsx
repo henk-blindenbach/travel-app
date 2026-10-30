@@ -932,25 +932,67 @@ export function DayEntryEditor({
 
   async function makeCaptions() {
     if (!entry) { setCaptionsError("Sla eerst het verslag op."); return; }
+    const entryId = entry.id;
     setCaptionsBusy(true);
     setCaptionsError("");
-    setMessage("");
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 20_000);
+    setMessage("Captions maken…");
+
+    const requestCaptions = async () => {
+      const controller = new AbortController();
+      // Above server maxDuration (60s) so API errors surface instead of a silent client abort.
+      const timeout = window.setTimeout(() => controller.abort(), 65_000);
+      try {
+        const response = await fetch(`/api/day-entries/${entryId}/social`, {
+          method: "POST",
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = new Error(data.error || "Captions maken lukte niet.");
+          (err as Error & { status?: number }).status = response.status;
+          throw err;
+        }
+        return data as { captions?: unknown; partial?: boolean; error?: string };
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    };
+
+    const isRetryable = (error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") return true;
+      if (error instanceof Error && "status" in error) {
+        const status = (error as Error & { status?: number }).status;
+        return status === 504 || status === 502;
+      }
+      return false;
+    };
+
     try {
-      const data = await responseJson(await fetch(`/api/day-entries/${entry.id}/social`, {
-        method: "POST",
-        signal: controller.signal,
-      }));
+      let data: { captions?: unknown; partial?: boolean; error?: string };
+      try {
+        data = await requestCaptions();
+      } catch (first) {
+        if (!isRetryable(first)) throw first;
+        setMessage("Nog een poging…");
+        data = await requestCaptions();
+      }
       setCaptions(normalizeSocialCaptions(data.captions));
-      setMessage("Captions klaar.");
+      if (data.partial) {
+        setCaptionsError(
+          data.error ||
+            "Een deel van de captions is klaar. Tik opnieuw op «Maak captions» voor de ontbrekende platforms.",
+        );
+        setMessage("Deels klaar.");
+      } else {
+        setMessage("Captions klaar.");
+      }
     } catch (error) {
       const text = error instanceof DOMException && error.name === "AbortError"
-        ? "Captions maken duurde te lang."
+        ? "Captions maken duurde te lang. Probeer opnieuw."
         : error instanceof Error ? error.message : "Captions maken lukte niet.";
       setCaptionsError(text);
+      setMessage("");
     } finally {
-      window.clearTimeout(timeout);
       setCaptionsBusy(false);
     }
   }
