@@ -8,9 +8,10 @@ import {
   type EntryI18nMap,
 } from "../../lib/entry-i18n";
 import { formatSavedAt, savedConfirmation, statusMeta } from "../../lib/journal-status";
-import { shareJpegFilename } from "../../lib/share-export";
+import { shareJpegFilename, uniqueShareFilenames } from "../../lib/share-export";
 import {
   shareDataCandidates,
+  shareGestureRetryMessage,
   shareSuccessMessage,
   shareUnsupportedMessage,
   tryNavigatorShare,
@@ -188,6 +189,13 @@ export function DayEntryEditor({
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareFeedback, setShareFeedback] = useState("");
+  const [pendingShare, setPendingShare] = useState<{
+    files: File[];
+    photoCount: number;
+    captionPresent: boolean;
+    title: string;
+    text: string;
+  } | null>(null);
   const [translateBusy, setTranslateBusy] = useState(false);
   const [translationsBusy, setTranslationsBusy] = useState(false);
   const [showTranslateOffer, setShowTranslateOffer] = useState(false);
@@ -706,9 +714,62 @@ export function DayEntryEditor({
     }
     const headerName = response.headers.get("X-Share-Filename");
     const filename = headerName || fallbackName;
-    return new File([await response.blob()], filename, {
-      type: response.headers.get("Content-Type") || "image/jpeg",
+    const blob = await response.blob();
+    /* Force image/jpeg — some UAs reject canShare when the blob type is empty/odd. */
+    return new File([blob], filename, { type: "image/jpeg" });
+  }
+
+  function applyUniqueShareNames(files: File[]): File[] {
+    const names = uniqueShareFilenames(files.map((file) => file.name));
+    return files.map((file, index) =>
+      file.name === names[index]
+        ? file
+        : new File([file], names[index], { type: "image/jpeg" }),
+    );
+  }
+
+  async function openShareSheet(input: {
+    files: File[];
+    photoCount: number;
+    captionPresent: boolean;
+    title: string;
+    text: string;
+  }) {
+    const candidates = shareDataCandidates({
+      files: input.files,
+      title: input.title,
+      text: input.text,
     });
+    const result = await tryNavigatorShare(candidates);
+    if (result === "shared") {
+      setPendingShare(null);
+      const ok = shareSuccessMessage({
+        photoCount: input.photoCount,
+        fileCount: input.files.length,
+        captionPresent: input.captionPresent,
+      });
+      setShareFeedback(ok);
+      setMessage(ok);
+      return;
+    }
+    if (result === "aborted") {
+      setShareFeedback("Delen geannuleerd.");
+      return;
+    }
+    if (result === "gesture") {
+      setPendingShare(input);
+      const retry = shareGestureRetryMessage({ fileCount: input.files.length });
+      setShareFeedback(retry);
+      setMessage(retry);
+      return;
+    }
+    setPendingShare(input);
+    const unsupported = shareUnsupportedMessage({
+      fileCount: input.files.length,
+      captionPresent: input.captionPresent,
+    });
+    setShareFeedback(unsupported);
+    setMessage(unsupported);
   }
 
   async function savePhotosToLibrary() {
@@ -716,6 +777,7 @@ export function DayEntryEditor({
     const ready = readyPublicPhotos(assets);
     const hint = sharePhotosDisabledHint(selected.length, ready.length);
     if (hint) {
+      setPendingShare(null);
       setShareFeedback(hint);
       setMessage(hint);
       return;
@@ -723,6 +785,7 @@ export function DayEntryEditor({
     const caption =
       captions[activeCaptionKey]?.trim() || preferredShareCaption(captions);
     setSharing(true);
+    setPendingShare(null);
     setShareFeedback("Foto’s ophalen…");
     setMessage("");
     try {
@@ -749,40 +812,33 @@ export function DayEntryEditor({
           `Dag-${dayNumber}-eind.jpg`,
         ),
       ]);
-      const files = [startCard, ...photoFiles, endCard];
+      const files = applyUniqueShareNames([startCard, ...photoFiles, endCard]);
       setShareFeedback(`Deelmenu openen (${files.length} JPEG)…`);
-      const candidates = shareDataCandidates({
+      await openShareSheet({
         files,
+        photoCount: photoFiles.length,
+        captionPresent: Boolean(caption),
         title: dayTitle || `Dag ${dayNumber}`,
         text: caption,
       });
-      const result = await tryNavigatorShare(candidates);
-      if (result === "shared") {
-        const ok = shareSuccessMessage({
-          photoCount: photoFiles.length,
-          fileCount: files.length,
-          captionPresent: Boolean(caption),
-        });
-        setShareFeedback(ok);
-        setMessage(ok);
-        return;
-      }
-      if (result === "aborted") {
-        setShareFeedback("Delen geannuleerd.");
-        return;
-      }
-      const unsupported = shareUnsupportedMessage({
-        fileCount: files.length,
-        captionPresent: Boolean(caption),
-      });
-      setShareFeedback(unsupported);
-      setMessage(unsupported);
     } catch (error) {
+      setPendingShare(null);
       const fail = error instanceof Error
         ? error.message
         : "De geselecteerde foto’s konden niet worden klaargezet (origineel ontbreekt of is nog niet verwerkt).";
       setShareFeedback(fail);
       setMessage(fail);
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function openPreparedShareMenu() {
+    if (!pendingShare || sharing) return;
+    setSharing(true);
+    setShareFeedback(`Deelmenu openen (${pendingShare.files.length} JPEG)…`);
+    try {
+      await openShareSheet(pendingShare);
     } finally {
       setSharing(false);
     }
@@ -1197,6 +1253,17 @@ export function DayEntryEditor({
             >
               {sharing ? "Delen…" : "Deel geselecteerde foto’s"}
             </button>
+            {pendingShare ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => void openPreparedShareMenu()}
+                disabled={sharing}
+                aria-disabled={sharing}
+              >
+                Open deelmenu
+              </button>
+            ) : null}
             {shareDisabled ? (
               <p className="share-photos-hint" role="status">{shareHint}</p>
             ) : (
