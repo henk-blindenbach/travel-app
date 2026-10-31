@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import {
   AI_BASIS_MAX_CHARS,
   buildInterviewContext,
+  buildInterviewPrompt,
   EARLIER_JOURNAL_MAX_DAYS,
-  INTERVIEW_STORY_STYLE,
 } from "../../../lib/interview-context";
 import { safeText, validUuid } from "../../../lib/journal";
 import { openAiUserMessage, outputText } from "../../../lib/openai-text";
@@ -92,7 +92,11 @@ export async function POST(request: Request) {
       earlierJournal: earlierEntries || [],
     }));
     const finishing = Boolean(payload.finish);
-    const prompt = `Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel. Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle. Spreek Nederlands. Gebruik de context alleen als geheugen (eerdere dagen, planning van vandaag, trip AI-basis, concept en foto's), verzin geen feiten en herhaal eerdere dagen niet als nieuw. Vraag steeds één leuke, concrete vervolgvraag. Verzamel zonder formulier zoveel mogelijk: werkelijke route/locatie, activiteiten, vervoer, verblijf, mensen, eten, sfeer, verrassingen, hoogtepunten en tips. Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn. ${INTERVIEW_STORY_STYLE} Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren. ${finishing ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is (context mag kleuren, niet feiten verzinnen)." : "Dit is een vervolgbeurt in het gesprek: zet complete=false tenzij het verhaal al duidelijk genoeg is, vul reply met precies één korte vraag, en zet title, actualLocation en body op lege strings — schrijf nog geen verslag."} Context: ${context}. Gesprek: ${JSON.stringify(payload.messages)}`;
+    const prompt = buildInterviewPrompt({
+      contextJson: context,
+      messagesJson: JSON.stringify(payload.messages),
+      finishing,
+    });
 
     let answer: { reply: string; complete: boolean; title: string; actualLocation: string; body: string };
     try {

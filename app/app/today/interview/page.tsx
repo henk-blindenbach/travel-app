@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/AppShell";
 import { InterviewChat } from "../../../../components/journal/InterviewChat";
+import { pickOpeningQuestion } from "../../../../lib/interview-context";
 import { validUuid } from "../../../../lib/journal";
 import { createClient, hasSupabaseEnv } from "../../../../lib/supabase/server";
 import { getPrivateTrip, getPrivateTrips } from "../../../../lib/travel-data";
@@ -23,7 +24,7 @@ async function resolveInterviewDay(dayId?: string) {
       const supabase = await createClient();
       const { data } = await supabase
         .from("trip_days")
-        .select("id,trip_id,day_number,day_date,title,planned_location")
+        .select("id,trip_id,day_number,day_date,title,planned_location,planned_route")
         .eq("id", dayId)
         .maybeSingle();
       if (data) return data;
@@ -47,7 +48,24 @@ async function resolveInterviewDay(dayId?: string) {
     day_date: day.day_date,
     title: day.title,
     planned_location: day.planned_location,
+    planned_route: day.planned_route ?? null,
   };
+}
+
+async function loadPlanningTitles(tripDayId: string) {
+  if (!hasSupabaseEnv()) return [] as string[];
+  try {
+    const supabase = await createClient();
+    const { data: items } = await supabase
+      .from("planning_items")
+      .select("title,sort_order")
+      .eq("trip_day_id", tripDayId)
+      .order("sort_order", { ascending: true })
+      .limit(6);
+    return (items || []).map((item) => String(item.title || "").trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 export default async function Interview({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
@@ -55,6 +73,14 @@ export default async function Interview({ searchParams }: { searchParams: Promis
   const day = await resolveInterviewDay(dayId);
   if (!day) notFound();
   const label = day.title || day.planned_location || "Reisdag";
+  const planningTitles = await loadPlanningTitles(day.id);
+  const initialQuestion = pickOpeningQuestion({
+    dayTitle: day.title,
+    plannedLocation: day.planned_location,
+    plannedRoute: day.planned_route ?? null,
+    planningTitles,
+    dayNumber: day.day_number,
+  });
   return (
     <AppShell active="today">
       <div className="interview-page">
@@ -64,10 +90,7 @@ export default async function Interview({ searchParams }: { searchParams: Promis
         <p className="interview-intro">
           Zeg het gewoon zoals je het aan vrienden zou vertellen. Ik vraag alleen door waar het leuk of handig is — de rest maak ik er als conceptverslag van.
         </p>
-        <InterviewChat
-          tripDayId={day.id}
-          initialQuestion="Wat was het eerste moment vandaag waarvan je dacht: dit wil ik onthouden?"
-        />
+        <InterviewChat tripDayId={day.id} initialQuestion={initialQuestion} />
       </div>
     </AppShell>
   );
