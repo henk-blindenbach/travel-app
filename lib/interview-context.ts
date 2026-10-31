@@ -141,4 +141,78 @@ export function buildInterviewContext(input: {
 }
 
 export const INTERVIEW_STORY_STYLE =
-  "Als complete=true, maak dan een aantrekkelijk, direct publiceerbaar reisverhaal in natuurlijk gesproken of geschreven Nederlands. Schrijf het volledige body-veld consequent in de wij-vorm (wij, ons, onze) en nooit over 'jullie'. Gebruik doorlopende alinea's met lege regels ertussen; geen Markdown-kopjes (geen #, ## of ###) en geen andere heading-chrome in de body. Warm, feitelijk en leesbaar als reisproza — geen opsommingen-als-rapport tenzij het gesprek dat vraagt.";
+  "Als complete=true, maak dan een aantrekkelijk, direct publiceerbaar reisverhaal in natuurlijk gesproken of geschreven Nederlands. Schrijf het volledige body-veld consequent in de wij-vorm (wij, ons, onze) en nooit over 'jullie'. Gebruik doorlopende alinea's met lege regels ertussen; geen Markdown-kopjes (geen #, ## of ###) en geen andere heading-chrome in de body. Warm, feitelijk en leesbaar als reisproza — geen opsommingen-als-rapport tenzij het gesprek dat vraagt. Stem toon en lengte af op eerdereJournal (stijlsample van Henk): persoonlijk, betekenis/sfeer/contrast, lichte logistiek alleen als het kleurt. Geen tipparagraaf voor andere reizigers, geen kleding-/timing-/fooi-/gids-advies, en eindig het verslag niet met een vraag of meta-zin.";
+
+/** Question policy for follow-ups — keep the chat in Henk's narrative style. */
+export const INTERVIEW_QUESTION_STYLE =
+  "Vervolgvragen: precies één korte, warme vraag die past bij déze dag (planning, wat al verteld is, foto's) en die het verhaal verdiept — gevoel, verrassing, contrast, een detail dat blijft hangen, of waarom iets bijzonder was. Varieer; herhaal geen vaste vragenlijst. Verboden: exacte volgorde/tijden/vervoer-checklists tussen bezoeken; 'wie was er nog bij jullie naast …'; tip-vragen (kleding, timing, fooi, gidskeuze, 'wat zou je anderen aanraden'); vragen die alleen logistiek checklistten terwijl de gebruiker al zei dat dat niet voor het verslag is. Logistiek of gezelschap alleen als hij het zelf aansneed of het verhaal erom vraagt.";
+
+export type OpeningQuestionInput = {
+  dayTitle?: string | null;
+  plannedLocation?: string | null;
+  plannedRoute?: string | null;
+  planningTitles?: Array<string | null | undefined> | null;
+  dayNumber?: number | null;
+};
+
+function firstMeaningful(values: Array<string | null | undefined>, max = 80) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+  }
+  return "";
+}
+
+/**
+ * Pick a day-aware opening question so interviews do not start with the same
+ * template every day. Pure helper — no AI call.
+ */
+export function pickOpeningQuestion(input: OpeningQuestionInput = {}) {
+  const activity = firstMeaningful([
+    ...(input.planningTitles || []),
+    input.dayTitle,
+    input.plannedRoute,
+    input.plannedLocation,
+  ]);
+  const dayNumber = Number(input.dayNumber) || 0;
+  const variants = activity
+    ? [
+        `Wat bleef er van ${activity} het meest bij jullie hangen?`,
+        `Waarmee begon ${activity} voor jullie — of wat was het eerste dat anders voelde dan verwacht?`,
+        `Als je één moment van ${activity} zou bewaren, welk moment was dat?`,
+        `Wat maakte ${activity} vandaag persoonlijk voor jullie, meer dan alleen ‘weer een stop’?`,
+      ]
+    : [
+        "Wat was vandaag het moment waarvan je dacht: dit hoort in ons verslag?",
+        "Waarmee begon de dag echt — of wat was de eerste wending?",
+        "Welk detail of gevoel van vandaag wil je later nog kunnen nazeggen?",
+        "Wat was vandaag anders dan je van tevoren in je hoofd had?",
+      ];
+  const index = Math.abs(dayNumber) % variants.length;
+  return variants[index] || variants[0];
+}
+
+export function buildInterviewPrompt(input: {
+  contextJson: string;
+  messagesJson: string;
+  finishing: boolean;
+}) {
+  const turn = input.finishing
+    ? "De gebruiker kiest nu expliciet voor afronden: zet complete=true en maak het verslag uitsluitend op basis van wat al verteld is (context mag kleuren, niet feiten verzinnen)."
+    : "Dit is een vervolgbeurt in het gesprek: zet complete=false tenzij het verhaal al duidelijk genoeg is, vul reply met precies één korte vraag volgens de vraagstijl hierboven, en zet title, actualLocation en body op lege strings — schrijf nog geen verslag.";
+
+  return [
+    "Je bent de warme, nieuwsgierige reisinterviewer van Henk en Michel.",
+    "Michel is Henk's mannelijke partner; schrijf zijn naam altijd precies als Michel, nooit Michelle.",
+    "Spreek Nederlands.",
+    "Gebruik de context alleen als geheugen (eerdere dagen als stijl én feitengeheugen, planning van vandaag, trip AI-basis, concept en foto's), verzin geen feiten en herhaal eerdere dagen niet als nieuw.",
+    INTERVIEW_QUESTION_STYLE,
+    "Doel van het gesprek is stof voor Henks eigen dagverslag: betekenis, sfeer, verrassing, contrast, gedeelde momenten — niet een complete logistieke reconstructie en geen reistips.",
+    "Houd het bij maximaal 5 vragen totaal; zet complete=true zodra een bruikbaar dagverhaal mogelijk is of de gebruiker aangeeft klaar te zijn.",
+    INTERVIEW_STORY_STYLE,
+    "Geen AI-terugkoppeling, geen uitleg over het interview, geen verzonnen feiten en geen oproep om iets te controleren.",
+    turn,
+    `Context: ${input.contextJson}.`,
+    `Gesprek: ${input.messagesJson}`,
+  ].join(" ");
+}
