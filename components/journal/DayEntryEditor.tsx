@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +29,15 @@ import {
   type SocialCaptions,
   type SocialPlatformKey,
 } from "../../lib/social-captions";
+import {
+  IDLE_MEDIA_UPLOAD_PROGRESS,
+  MEDIA_UPLOAD_CONCURRENCY,
+  mediaUploadProgressLabel,
+  resolveMediaContentType,
+  runWithConcurrency,
+  type MediaUploadProgress,
+} from "../../lib/media-upload";
+import { MediaUploader } from "./MediaUploader";
 import { SocialCaptionsEditor } from "./SocialCaptionsEditor";
 
 type Entry = {
@@ -122,14 +131,7 @@ type Props = {
   nextEmptyDayId?: string | null;
 };
 
-const acceptedTypes = new Set(["image/heic", "image/heif", "image/jpeg", "image/png", "image/webp"]);
 const draftStorageKey = (tripDayId: string) => `nos-day-draft:${tripDayId}`;
-
-function fileType(file: File) {
-  if (acceptedTypes.has(file.type)) return file.type;
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  return extension === "heic" ? "image/heic" : extension === "heif" ? "image/heif" : "";
-}
 
 async function responseJson(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -214,7 +216,7 @@ export function DayEntryEditor({
   const [mapsPaste, setMapsPaste] = useState("");
   const [mapsPasteBusy, setMapsPasteBusy] = useState(false);
   const [manualCoordsOpen, setManualCoordsOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress>(IDLE_MEDIA_UPLOAD_PROGRESS);
   const baselineRef = useRef({
     title: initialEntry?.title || dayTitle || "",
     actualLocation: initialEntry?.actual_location || plannedLocation || "",
@@ -606,11 +608,11 @@ export function DayEntryEditor({
     }
   }
 
-  async function uploadFile(file: File, savedEntry: NonNullable<Entry>) {
-    const contentType = fileType(file);
+  async function uploadFile(file: File, savedEntry: NonNullable<Entry>, sortOrder: number): Promise<boolean> {
+    const contentType = resolveMediaContentType(file);
     if (!contentType || file.size > 50 * 1024 * 1024) {
       setMessage(`${file.name} is geen ondersteunde foto of is groter dan 50 MB.`);
-      return;
+      return false;
     }
 
     let assetId: string | undefined;
@@ -618,7 +620,13 @@ export function DayEntryEditor({
       const init = await responseJson(await fetch("/api/media/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dayEntryId: savedEntry.id, filename: file.name, contentType, byteSize: file.size }),
+        body: JSON.stringify({
+          dayEntryId: savedEntry.id,
+          filename: file.name,
+          contentType,
+          byteSize: file.size,
+          sortOrder,
+        }),
       }));
       const pendingId: string = init.asset.id;
       assetId = pendingId;
@@ -626,10 +634,10 @@ export function DayEntryEditor({
         ...init.asset,
         original_filename: file.name,
         caption: "",
-        sort_order: assets.length,
+        sort_order: sortOrder,
         localUrl: URL.createObjectURL(file),
       };
-      setAssets((current) => [...current, pending]);
+      setAssets((current) => [...current, pending].sort((a, b) => a.sort_order - b.sort_order));
       await responseJson(await fetch(init.uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: file }));
       setAssets((current) => current.map((asset) => asset.id === pendingId
         ? { ...asset, upload_status: "processing" }
@@ -643,7 +651,7 @@ export function DayEntryEditor({
         ? { ...asset, ...complete.asset, processing_error: null }
         : asset));
       await loadWebUrl(pendingId);
-      setMessage("Foto veilig opgeslagen en omgezet naar een webversie.");
+      return true;
     } catch (error) {
       if (assetId) {
         const failedId = assetId;
@@ -653,6 +661,7 @@ export function DayEntryEditor({
           : asset));
       }
       setMessage(error instanceof Error ? error.message : "De foto kon niet worden geüpload.");
+      return false;
     }
   }
 
@@ -865,14 +874,45 @@ export function DayEntryEditor({
     }
   }
 
-  async function choosePhotos(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
+  async function choosePhotos(files: File[]) {
+    if (!files.length || uploadProgress.phase === "uploading") return;
     const savedEntry = entry || await saveEntry();
-    if (savedEntry) {
-      for (const file of files) await uploadFile(file, savedEntry);
-    }
-    event.target.value = "";
+    if (!savedEntry) return;
+
+    const baseSort = assets.reduce((max, asset) => Math.max(max, asset.sort_order ?? -1), -1) + 1;
+    let settled = 0;
+    let succeeded = 0;
+    let failed = 0;
+    const total = files.length;
+
+    setUploadProgress({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 });
+    setMessage(mediaUploadProgressLabel({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 }));
+
+    await runWithConcurrency(files, MEDIA_UPLOAD_CONCURRENCY, async (file, index) => {
+      const ok = await uploadFile(file, savedEntry, baseSort + index);
+      settled += 1;
+      if (ok) succeeded += 1;
+      else failed += 1;
+      const next: MediaUploadProgress = {
+        phase: "uploading",
+        total,
+        settled,
+        succeeded,
+        failed,
+      };
+      setUploadProgress(next);
+      setMessage(mediaUploadProgressLabel(next));
+    });
+
+    const done: MediaUploadProgress = {
+      phase: "done",
+      total,
+      settled,
+      succeeded,
+      failed,
+    };
+    setUploadProgress(done);
+    setMessage(mediaUploadProgressLabel(done));
   }
 
   async function translateWithAi() {
@@ -1172,16 +1212,11 @@ export function DayEntryEditor({
         </div>
       </section>
 
-      <section className="entry-photos-card">
-        <div className="entry-form-heading">
-          <div>
-            <p className="eyebrow blue">Foto’s</p>
-            <h2>Beelden van deze dag</h2>
-          </div>
-          <button className="secondary-button" type="button" onClick={() => inputRef.current?.click()}>Foto’s kiezen</button>
-        </div>
-        <p className="entry-helper">HEIC, JPEG, PNG of WebP · maximaal 50 MB per foto. Het origineel blijft privé in Scaleway; alleen een geoptimaliseerde WebP-versie komt in de app.</p>
-        <input ref={inputRef} className="visually-hidden" type="file" accept="image/heic,image/heif,image/jpeg,image/png,image/webp,.heic,.heif" multiple onChange={(event) => void choosePhotos(event)} />
+      <MediaUploader
+        progress={uploadProgress}
+        showEmptyDropzone={!assets.length && uploadProgress.phase !== "uploading"}
+        onFilesSelected={(files) => void choosePhotos(files)}
+      >
         {assets.length ? (
           <div className="journal-photo-grid">
             {assets.map((asset, index) => (
@@ -1246,12 +1281,8 @@ export function DayEntryEditor({
               </figure>
             ))}
           </div>
-        ) : (
-          <button className="photo-dropzone" type="button" onClick={() => inputRef.current?.click()}>
-            <b>+</b><span>Kies foto’s van vandaag</span><small>HEIC is welkom</small>
-          </button>
-        )}
-      </section>
+        ) : null}
+      </MediaUploader>
 
       <section className="entry-photos-card">
         <div className="entry-form-heading">

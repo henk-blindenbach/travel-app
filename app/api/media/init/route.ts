@@ -32,6 +32,11 @@ export async function POST(request: Request) {
     const originalObjectKey = `originals/${tripDay.trip_id}/${entry.id}/${id}.${extension}`;
     const webObjectPath = `web/${tripDay.trip_id}/${entry.id}/${id}.webp`;
     const { data: lastAsset } = await supabase.from("media_assets").select("sort_order").eq("day_entry_id", entry.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+    // Client may pass sortOrder for parallel batches so concurrent inits do not collide.
+    const requestedSort = Number(payload.sortOrder);
+    const sortOrder = Number.isSafeInteger(requestedSort) && requestedSort >= 0
+      ? requestedSort
+      : (lastAsset?.sort_order ?? -1) + 1;
     const { data: asset, error } = await supabase.from("media_assets").insert({
       id,
       day_entry_id: entry.id,
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
       original_filename: safeText(payload.filename, 255) || `foto.${extension}`,
       mime_type: contentType,
       byte_size: byteSize,
-      sort_order: (lastAsset?.sort_order ?? -1) + 1,
+      sort_order: sortOrder,
       upload_status: "uploading",
     }).select("id,upload_status").single();
     if (error || !asset) return NextResponse.json({ error: "De foto kon niet worden voorbereid." }, { status: 400 });
