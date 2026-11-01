@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, ReactNode, useRef } from "react";
+import { ChangeEvent, ReactNode, useId, useRef } from "react";
 import {
+  collectSelectedFiles,
   mediaUploadPercent,
   mediaUploadProgressLabel,
   type MediaUploadProgress,
@@ -12,7 +13,7 @@ type Props = {
   disabled?: boolean;
   /** Show the empty “Kies foto’s” dropzone when there are no assets yet. */
   showEmptyDropzone?: boolean;
-  onFilesSelected: (files: File[]) => void;
+  onFilesSelected: (files: File[]) => void | Promise<void>;
   children?: ReactNode;
 };
 
@@ -28,21 +29,23 @@ export function MediaUploader({
   children,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const busy = progress.phase === "uploading" || disabled;
   const label = mediaUploadProgressLabel(progress);
   const percent = mediaUploadPercent(progress);
   const showProgress = progress.phase === "uploading" || progress.phase === "done";
 
-  function openPicker() {
+  async function onChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
     if (busy) return;
-    inputRef.current?.click();
-  }
-
-  function onChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (!files.length || busy) return;
-    onFilesSelected(files);
+    // Snapshot before any await/clear — live FileList can shrink to 1 file once value is reset.
+    const files = collectSelectedFiles(input.files);
+    if (!files.length) return;
+    try {
+      await onFilesSelected(files);
+    } finally {
+      input.value = "";
+    }
   }
 
   return (
@@ -52,27 +55,27 @@ export function MediaUploader({
           <p className="eyebrow blue">Foto’s</p>
           <h2>Beelden van deze dag</h2>
         </div>
-        <button
-          className="secondary-button"
-          type="button"
-          disabled={busy}
-          onClick={openPicker}
+        <label
+          className={`secondary-button media-upload-picker${busy ? " is-busy" : ""}`}
+          htmlFor={busy ? undefined : inputId}
+          aria-disabled={busy || undefined}
         >
           {busy && progress.phase === "uploading" ? "Bezig met uploaden…" : "Foto’s kiezen"}
-        </button>
+        </label>
       </div>
       <p className="entry-helper">
         HEIC, JPEG, PNG of WebP · maximaal 50 MB per foto. Het origineel blijft privé in Scaleway; alleen een
-        geoptimaliseerde WebP-versie komt in de app. Meerdere foto’s worden parallel geüpload.
+        geoptimaliseerde WebP-versie komt in de app. Meerdere foto’s worden parallel geüpload (max. 4 tegelijk).
       </p>
       <input
+        id={inputId}
         ref={inputRef}
         className="visually-hidden"
         type="file"
-        accept="image/heic,image/heif,image/jpeg,image/png,image/webp,.heic,.heif"
+        accept="image/*,image/heic,image/heif,.heic,.heif"
         multiple
         disabled={busy}
-        onChange={onChange}
+        onChange={(event) => void onChange(event)}
       />
       {showProgress ? (
         <div
@@ -106,11 +109,15 @@ export function MediaUploader({
       ) : null}
       {children}
       {showEmptyDropzone ? (
-        <button className="photo-dropzone" type="button" disabled={busy} onClick={openPicker}>
+        <label
+          className={`photo-dropzone media-upload-picker${busy ? " is-busy" : ""}`}
+          htmlFor={busy ? undefined : inputId}
+          aria-disabled={busy || undefined}
+        >
           <b>+</b>
           <span>Kies foto’s van vandaag</span>
-          <small>HEIC is welkom</small>
-        </button>
+          <small>HEIC is welkom · meerdere tegelijk</small>
+        </label>
       ) : null}
     </section>
   );

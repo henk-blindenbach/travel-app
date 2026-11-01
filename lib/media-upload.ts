@@ -29,10 +29,31 @@ export const IDLE_MEDIA_UPLOAD_PROGRESS: MediaUploadProgress = {
   failed: 0,
 };
 
-export function resolveMediaContentType(file: File) {
+export function resolveMediaContentType(file: { name: string; type: string }) {
   if (MEDIA_ACCEPTED_TYPES.has(file.type)) return file.type;
   const extension = file.name.split(".").pop()?.toLowerCase();
-  return extension === "heic" ? "image/heic" : extension === "heif" ? "image/heif" : "";
+  if (extension === "heic") return "image/heic";
+  if (extension === "heif") return "image/heif";
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  return "";
+}
+
+/**
+ * Copy selected files out of a live FileList before the input is cleared.
+ * Clearing `<input type="file">` mid-upload can leave only the first file readable
+ * on some mobile browsers (notably iOS Safari).
+ */
+export function collectSelectedFiles(fileList: FileList | null | undefined): File[] {
+  if (!fileList?.length) return [];
+  return Array.from(fileList, (file) => {
+    const type = resolveMediaContentType(file) || file.type;
+    return new File([file.slice(0, file.size, type || undefined)], file.name, {
+      type,
+      lastModified: file.lastModified,
+    });
+  });
 }
 
 /**
