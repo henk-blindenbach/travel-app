@@ -217,6 +217,7 @@ export function DayEntryEditor({
   const [mapsPasteBusy, setMapsPasteBusy] = useState(false);
   const [manualCoordsOpen, setManualCoordsOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress>(IDLE_MEDIA_UPLOAD_PROGRESS);
+  const uploadInFlightRef = useRef(false);
   const baselineRef = useRef({
     title: initialEntry?.title || dayTitle || "",
     actualLocation: initialEntry?.actual_location || plannedLocation || "",
@@ -875,44 +876,49 @@ export function DayEntryEditor({
   }
 
   async function choosePhotos(files: File[]) {
-    if (!files.length || uploadProgress.phase === "uploading") return;
-    const savedEntry = entry || await saveEntry();
-    if (!savedEntry) return;
+    if (!files.length || uploadInFlightRef.current) return;
+    uploadInFlightRef.current = true;
+    try {
+      const savedEntry = entry || await saveEntry();
+      if (!savedEntry) return;
 
-    const baseSort = assets.reduce((max, asset) => Math.max(max, asset.sort_order ?? -1), -1) + 1;
-    let settled = 0;
-    let succeeded = 0;
-    let failed = 0;
-    const total = files.length;
+      const baseSort = assets.reduce((max, asset) => Math.max(max, asset.sort_order ?? -1), -1) + 1;
+      let settled = 0;
+      let succeeded = 0;
+      let failed = 0;
+      const total = files.length;
 
-    setUploadProgress({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 });
-    setMessage(mediaUploadProgressLabel({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 }));
+      setUploadProgress({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 });
+      setMessage(mediaUploadProgressLabel({ phase: "uploading", total, settled: 0, succeeded: 0, failed: 0 }));
 
-    await runWithConcurrency(files, MEDIA_UPLOAD_CONCURRENCY, async (file, index) => {
-      const ok = await uploadFile(file, savedEntry, baseSort + index);
-      settled += 1;
-      if (ok) succeeded += 1;
-      else failed += 1;
-      const next: MediaUploadProgress = {
-        phase: "uploading",
+      await runWithConcurrency(files, MEDIA_UPLOAD_CONCURRENCY, async (file, index) => {
+        const ok = await uploadFile(file, savedEntry, baseSort + index);
+        settled += 1;
+        if (ok) succeeded += 1;
+        else failed += 1;
+        const next: MediaUploadProgress = {
+          phase: "uploading",
+          total,
+          settled,
+          succeeded,
+          failed,
+        };
+        setUploadProgress(next);
+        setMessage(mediaUploadProgressLabel(next));
+      });
+
+      const done: MediaUploadProgress = {
+        phase: "done",
         total,
         settled,
         succeeded,
         failed,
       };
-      setUploadProgress(next);
-      setMessage(mediaUploadProgressLabel(next));
-    });
-
-    const done: MediaUploadProgress = {
-      phase: "done",
-      total,
-      settled,
-      succeeded,
-      failed,
-    };
-    setUploadProgress(done);
-    setMessage(mediaUploadProgressLabel(done));
+      setUploadProgress(done);
+      setMessage(mediaUploadProgressLabel(done));
+    } finally {
+      uploadInFlightRef.current = false;
+    }
   }
 
   async function translateWithAi() {
@@ -1215,7 +1221,7 @@ export function DayEntryEditor({
       <MediaUploader
         progress={uploadProgress}
         showEmptyDropzone={!assets.length && uploadProgress.phase !== "uploading"}
-        onFilesSelected={(files) => void choosePhotos(files)}
+        onFilesSelected={(files) => choosePhotos(files)}
       >
         {assets.length ? (
           <div className="journal-photo-grid">
